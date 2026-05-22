@@ -1,30 +1,36 @@
 import { useState } from 'react';
-import './App.css';
+import WaterPreloader from './components/WaterPreloader';
+import StoryScroll from './components/StoryScroll';
+import SandboxWrapper from './components/SandboxWrapper';
+
+type AppState = 'PRELOADER' | 'STORY' | 'PLAYGROUND';
 
 function App() {
-  const [boot, setBoot] = useState(false);
-  // Encoded: "Live Love Laugh"
-  const payload = "TGl2ZSBMb3ZlIExhdWdo"; 
+  const [currentPhase, setCurrentPhase] = useState<AppState>('PRELOADER');
 
   return (
-    <div className="bios-screen">
-      <header className="header">
-        <span>CORE_LOG: MASTERPIECE_INIT</span>
-        <span>BUILD: ver.1337</span>
-      </header>
+    <div className="w-full h-screen bg-black text-white overflow-hidden">
       
-      <main className="terminal">
-        <p className="cursor">{'>'} SYSTEM_STATUS: {boot ? 'ROOT_ACCESS_GRANTED' : 'AWAITING_KERNEL_INIT'}</p>
-        <p className="sub-text">{boot ? '' : 'ERR: MISSING_ENVIRONMENT_VARIABLES'}</p>
-        
-        <button className="auth-btn" onClick={() => setBoot(true)}>
-          {boot ? payload : "INITIALIZE_CORE_VARS"}
-        </button>
-      </main>
+      {currentPhase === 'PRELOADER' && (
+        <WaterPreloader onSplashComplete={() => setCurrentPhase('STORY')} />
+      )}
 
-      <footer className="footer">
-        <code>0x2A // HUMAN_COMPILER_VARS_LOADED</code>
-      </footer>
+      {currentPhase === 'STORY' && (
+        <StoryScroll onStoryComplete={() => setCurrentPhase('PLAYGROUND')} />
+      )}
+
+      {currentPhase === 'PLAYGROUND' && (
+        <SandboxWrapper />
+      )}
+
+      {currentPhase !== 'PLAYGROUND' && (
+        <button 
+          onClick={() => setCurrentPhase('PLAYGROUND')}
+          className="absolute bottom-6 right-6 z-50 px-4 py-2 text-sm font-bold tracking-widest uppercase border border-white/20 hover:bg-white hover:text-black transition-colors duration-300"
+        >
+          Skip to Playground
+        </button>
+      )}
     </div>
   );
 }
