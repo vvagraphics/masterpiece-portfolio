@@ -14,53 +14,32 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
-      // Pin the container to the screen
-      ScrollTrigger.create({
-        trigger: containerRef.current,
-        start: 'top top',
-        end: '+=400%', // 4x the height of the screen to give scroll distance
-        pin: true,
-      });
-
-      // Animate each section based on scroll progress
-      sectionsRef.current.forEach((section, index) => {
-        if (!section) return;
-        
-        // FIX: Chapter 1 is visible by default. We only animate Chapters 2, 3, and 4 IN.
-        if (index > 0) {
-          gsap.fromTo(section, 
-            { opacity: 0, y: 100, scale: 0.95 },
-            {
-              opacity: 1, 
-              y: 0,
-              scale: 1,
-              scrollTrigger: {
-                trigger: containerRef.current,
-                start: `${index * 100 - 50}% top`, // Fade in slightly before hitting the absolute top
-                end: `${index * 100}% top`,
-                scrub: 1,
-              }
-            }
-          );
-        }
-
-        // Fade OUT logic (for all except the last chapter)
-        if (index < sectionsRef.current.length - 1) {
-          gsap.to(section, {
-            opacity: 0,
-            y: -100,
-            scrollTrigger: {
-              trigger: containerRef.current,
-              start: `${(index + 1) * 100 - 20}% top`, // Start fading out as the next one comes in
-              end: `${((index + 1) * 100) + 30}% top`,
-              scrub: 1,
-            }
-          });
+      // Create a master timeline locked to the scroll
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: 'top top',
+          end: '+=400%', // 4 screens worth of scrolling
+          scrub: 1,      // Smoothly scrub the timeline
+          pin: true,     // Pin the container in place
         }
       });
+
+      // Chapter 1 -> Chapter 2
+      tl.to(sectionsRef.current[0], { opacity: 0, y: -50, duration: 1 })
+        .fromTo(sectionsRef.current[1], { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 1 }, "<0.5") // <0.5 means overlap the previous animation by half a second
+      
+      // Chapter 2 -> Chapter 3
+        .to(sectionsRef.current[1], { opacity: 0, y: -50, duration: 1 }, "+=1") // +=1 means pause for a moment so the user can read it
+        .fromTo(sectionsRef.current[2], { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 1 }, "<0.5")
+
+      // Chapter 3 -> Chapter 4
+        .to(sectionsRef.current[2], { opacity: 0, y: -50, duration: 1 }, "+=1")
+        .fromTo(sectionsRef.current[3], { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 1 }, "<0.5");
+
     }, containerRef);
 
-    return () => ctx.revert(); // Cleanup GSAP on unmount
+    return () => ctx.revert();
   }, []);
 
   return (
@@ -71,7 +50,7 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
         <div className="w-px h-12 bg-gradient-to-b from-white to-transparent"></div>
       </div>
 
-      {/* Chapter 1: MySpace (Removed opacity-0 so it's visible on load) */}
+      {/* Chapter 1: MySpace */}
       <div 
         ref={el => { sectionsRef.current[0] = el; }} 
         className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-cover bg-center" 
@@ -95,7 +74,7 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
         </div>
       </div>
 
-      {/* Chapter 3: Structure & Logic (Added a subtle background gradient) */}
+      {/* Chapter 3: Structure & Logic */}
       <div 
         ref={el => { sectionsRef.current[2] = el; }} 
         className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center opacity-0 bg-gradient-to-b from-black via-teal-950 to-black"

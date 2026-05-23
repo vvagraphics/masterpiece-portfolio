@@ -8,14 +8,13 @@ type AppState = 'PRELOADER' | 'STORY' | 'PLAYGROUND';
 function App() {
   const [currentPhase, setCurrentPhase] = useState<AppState>('PRELOADER');
 
-  // THE FIX: Reset scroll position to top whenever the phase changes!
-  // This prevents the user from being trapped 4000px down the page when SandboxWrapper loads.
   useEffect(() => {
+    // Reset scroll when switching views so you aren't trapped in the void
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [currentPhase]);
 
   return (
-    <div className="w-full min-h-screen bg-black text-white overflow-hidden">
+    <div className="w-full min-h-screen bg-black text-white overflow-x-hidden">
       
       {currentPhase === 'PRELOADER' && (
         <WaterPreloader onSplashComplete={() => setCurrentPhase('STORY')} />
