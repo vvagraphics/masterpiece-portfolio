@@ -69,7 +69,7 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
         style={{ backgroundImage: "url('https://mr3anderson.pro/masterpiece-portfolio/first_web-background.jpg')" }}
       >
         <div className="bg-black/70 p-12 rounded-xl backdrop-blur-sm">
-          <h2 className="text-red-500 text-7xl font-black mb-4 uppercase italic transform -skew-x-12">Statunderson</h2>
+          <h2 className="text-red-500 text-7xl font-black mb-4 uppercase italic transform -skew-x-12">VVAGRAPHICS</h2>
           <p className="text-xl max-w-2xl text-gray-300">The raw era. Digital graffiti, experimental graphics, and breaking the rules of grid design before I even knew them.</p>
         </div>
       </div>
@@ -78,6 +78,7 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
       <div 
         ref={el => { sectionsRef.current[2] = el; }} 
         className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center opacity-0 bg-gradient-to-b from-black via-teal-950 to-black"
+         style={{ backgroundImage: "url('https://mr3anderson.pro/masterpiece-portfolio/ui_ux.jpg')" }}
       >
         <h2 className="text-teal-400 text-5xl font-semibold mb-4 tracking-widest">STRUCTURE & LOGIC</h2>
         <p className="text-xl max-w-2xl text-gray-400">Evolving into UI/UX and Full Stack logic. Mastering the rules so I could shatter them with purpose.</p>
@@ -86,9 +87,9 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
       {/* Chapter 4: Epiphany */}
       <div 
         ref={el => { sectionsRef.current[3] = el; }} 
-        className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center opacity-0 bg-black"
+        className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center opacity-0 bg-black"  style={{ backgroundImage: "url('https://mr3anderson.pro/masterpiece-portfolio/logostefand.svg')" }}
       >
-        <h2 className="text-white text-8xl font-serif mb-4">EFANDERSON</h2>
+        <h2 className="text-white text-8xl font-serif mb-4"></h2>
         <p className="text-xl max-w-2xl text-gray-400 mb-12">The Epiphany. The Masterpiece. Welcome to the Playground.</p>
         <button 
           onClick={onStoryComplete}
