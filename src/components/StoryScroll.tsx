@@ -62,7 +62,11 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
 
   return (
     <div ref={containerRef} className="relative w-full h-screen bg-black text-white overflow-hidden">
-      
+      {/* Scroll Down Indicator */}
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 animate-bounce flex flex-col items-center opacity-70 pointer-events-none">
+        <span className="text-xs tracking-widest uppercase mb-2 font-mono">Scroll to Explore</span>
+        <div className="w-px h-12 bg-gradient-to-b from-white to-transparent"></div>
+      </div>
       {/* Chapter 1: MySpace */}
       <div 
         ref={el => { sectionsRef.current[0] = el; }} 
