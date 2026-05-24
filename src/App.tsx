@@ -1,11 +1,12 @@
 // src/App.tsx
 import { useState, useEffect, useRef } from 'react';
 import Lenis from '@studio-freight/lenis';
+import { Howl } from 'howler';
 import WaterPreloader from './components/WaterPreloader';
 import StoryScroll from './components/StoryScroll';
 import SandboxWrapper from './components/SandboxWrapper';
 import CustomCursor from './components/CustomCursor';
-import MagneticButton from './components/MagneticButton'
+import MagneticButton from './components/MagneticButton';
 
 type AppState = 'PRELOADER' | 'STORY' | 'PLAYGROUND';
 
@@ -14,17 +15,20 @@ function App() {
   
   // --- GLOBAL AUDIO STATE ---
   const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
-  const ambientAudioRef = useRef<HTMLAudioElement | null>(null);
+  const ambientAudioRef = useRef<Howl | null>(null);
 
   useEffect(() => {
-    ambientAudioRef.current = new Audio('https://mr3anderson.pro/music/Midnight_Moonlight_(Remastered)_v7.mp3');
-    ambientAudioRef.current.loop = true;
-    ambientAudioRef.current.volume = 0; 
+    // FIX 1: Use the local ambient.mp3 to avoid browser CORS blocking external URLs
+    ambientAudioRef.current = new Howl({
+      src: ['https://mr3anderson.pro/music/Midnight_Moonlight_(Remastered)_v7.mp3'], // Pointing to your local public/audio folder
+      loop: true,
+      volume: 0,
+      html5: true
+    });
 
-    // Cleanup global audio on close
     return () => {
       if (ambientAudioRef.current) {
-        ambientAudioRef.current.pause();
+        ambientAudioRef.current.unload();
       }
     }
   }, []);
@@ -34,20 +38,12 @@ function App() {
     if (!ambientAudioRef.current) return;
 
     if (currentPhase !== 'PRELOADER' && isAudioUnlocked) {
-      ambientAudioRef.current.play().catch(() => {});
-      
-      let vol = ambientAudioRef.current.volume;
-      const fadeInterval = setInterval(() => {
-        vol += 0.05;
-        if (vol >= 0.3) { 
-          if (ambientAudioRef.current) ambientAudioRef.current.volume = 0.3;
-          clearInterval(fadeInterval);
-        } else {
-          if (ambientAudioRef.current) ambientAudioRef.current.volume = vol;
-        }
-      }, 200);
+      // FIX 2: Simplified play logic. Grab the ID and fade it directly.
+      if (!ambientAudioRef.current.playing()) {
+        const soundId = ambientAudioRef.current.play();
+        ambientAudioRef.current.fade(0, 0.3, 2000, soundId); 
+      }
     } else if (!isAudioUnlocked) {
-       // Instantly pause if user mutes
        ambientAudioRef.current.pause();
     }
   }, [currentPhase, isAudioUnlocked]);

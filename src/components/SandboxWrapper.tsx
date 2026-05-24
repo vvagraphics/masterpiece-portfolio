@@ -1,6 +1,8 @@
+// src/components/SandboxWrapper.tsx
 import { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
 import gsap from 'gsap';
+import { Howl } from 'howler';
 
 import GraffitiCanvas from '../sandboxes/GraffitiCanvas';
 import GlassWalls from '../sandboxes/GlassWalls';
@@ -13,19 +15,20 @@ export default function SandboxWrapper() {
   const engineRef = useRef<Matter.Engine | null>(null);
   const runnerRef = useRef<Matter.Runner | null>(null);
   
-  // --- NEW: Sound Pool Array ---
-  // We create multiple audio instances so rapid collisions don't cut each other off
-  const soundsRef = useRef<HTMLAudioElement[]>([]);
+  // Only keeping the Thud sound for collisions. Hover sound removed.
+  const thudSoundRef = useRef<Howl | null>(null);
   
   const [activeView, setActiveView] = useState<ActiveView>('MUSEUM');
 
   useEffect(() => {
-    // Pre-load our collision sounds (Creating a pool of 10 concurrent sounds)
-    soundsRef.current = Array.from({ length: 10 }).map(() => {
-      const audio = new Audio('/audio/thud.mp3');
-      audio.volume = 0; // Start quiet
-      return audio;
+    thudSoundRef.current = new Howl({
+      src: ['/audio/thud.mp3'],
+      preload: true
     });
+
+    return () => {
+      thudSoundRef.current?.unload();
+    }
   }, []);
 
   useEffect(() => {
@@ -114,30 +117,19 @@ export default function SandboxWrapper() {
       });
     });
 
-    // --- NEW: DYNAMIC COLLISION SOUNDS ---
     Events.on(engine, 'collisionStart', (event) => {
       event.pairs.forEach((pair) => {
-        // Calculate how hard the objects hit each other
         const speedA = pair.bodyA.speed;
         const speedB = pair.bodyB.speed;
         const impactVelocity = speedA + speedB;
 
-        // Only play a sound if the impact is hard enough (prevents "machine gun" noise when objects are just resting)
-        if (impactVelocity > 1.5) {
-          // Map impact velocity to a volume between 0.1 and 1.0
+        if (impactVelocity > 1.5 && thudSoundRef.current) {
           const volume = Math.min(1, impactVelocity / 20);
+          const rate = 0.8 + Math.random() * 0.4; 
           
-          // Find an audio object that isn't currently playing
-          const availableSound = soundsRef.current.find(audio => audio.paused || audio.ended);
-          
-          if (availableSound) {
-            availableSound.volume = volume;
-            // Slight randomization of pitch/playback speed makes it sound more natural and less repetitive!
-            availableSound.playbackRate = 0.8 + Math.random() * 0.4; 
-            availableSound.play().catch(() => {
-              // Ignore auto-play blocking errors from the browser
-            });
-          }
+          const soundId = thudSoundRef.current.play();
+          thudSoundRef.current.volume(volume, soundId);
+          thudSoundRef.current.rate(rate, soundId);
         }
       });
     });

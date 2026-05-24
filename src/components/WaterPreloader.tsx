@@ -1,5 +1,6 @@
 // src/components/WaterPreloader.tsx
 import { useEffect, useRef, useState } from 'react';
+import { Howl } from 'howler';
 
 interface WaterPreloaderProps {
   onSplashComplete: (audioEnabled: boolean) => void;
@@ -14,12 +15,12 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
   const [isReady, setIsReady] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
 
-  // --- AUDIO REFS ---
-  const hoverAudioRef = useRef<HTMLAudioElement | null>(null);
-  const splashAudioRef = useRef<HTMLAudioElement | null>(null);
+  // --- AUDIO REFS (Updated for Howler & TypeScript) ---
+  const hoverAudioRef = useRef<Howl | null>(null);
+  const splashAudioRef = useRef<Howl | null>(null);
   const targetVolumeRef = useRef(0);
   const currentVolumeRef = useRef(0);
-  const mouseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mouseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // --- ASSET PRELOADER ---
   useEffect(() => {
@@ -43,6 +44,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       }
     };
 
+    // Native Audio is fine here just for tracking load progress
     assetsToLoad.forEach(url => {
       if (url.endsWith('.mp3')) {
         const audio = new Audio();
@@ -59,49 +61,46 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     });
   }, []);
 
-  // --- AUDIO INITIALIZATION & CLEANUP ---
+  // --- AUDIO INITIALIZATION & CLEANUP (Howler) ---
   useEffect(() => {
-    hoverAudioRef.current = new Audio('/audio/water-hover.mp3');
-    hoverAudioRef.current.loop = true;
-    hoverAudioRef.current.volume = 0; 
+    hoverAudioRef.current = new Howl({
+      src: ['/audio/water-hover.mp3'],
+      loop: true,
+      volume: 0
+    });
 
-    splashAudioRef.current = new Audio('/audio/water-splash.mp3');
-    splashAudioRef.current.volume = 0.8;
+    splashAudioRef.current = new Howl({
+      src: ['/audio/water-splash.mp3'],
+      volume: 0.8
+    });
 
-    // FIX: When this component unmounts, destroy the audio objects so they don't leak into the Story!
+    // Unload completely destroys the audio instances so they never leak to the Story
     return () => {
-      if (hoverAudioRef.current) {
-        hoverAudioRef.current.pause();
-        hoverAudioRef.current.src = ''; // completely clears it from memory
-      }
-      if (splashAudioRef.current) {
-        splashAudioRef.current.pause();
-        splashAudioRef.current.src = '';
-      }
+      if (hoverAudioRef.current) hoverAudioRef.current.unload();
+      if (splashAudioRef.current) splashAudioRef.current.unload();
     };
   }, []);
 
-  // --- VOLUME FADE LOOP (Only runs if audio is enabled) ---
+  // --- VOLUME FADE LOOP ---
   useEffect(() => {
     if (!isAudioEnabled) {
       if (hoverAudioRef.current) hoverAudioRef.current.pause();
       return;
     }
 
-    // Play the audio (allowed because user clicked the unmute button)
-    if (hoverAudioRef.current) {
-      hoverAudioRef.current.play().catch(() => console.log("Audio play prevented"));
+    if (hoverAudioRef.current && !hoverAudioRef.current.playing()) {
+      hoverAudioRef.current.play();
     }
 
     const fadeInterval = setInterval(() => {
       if (!hoverAudioRef.current) return;
       
-      // Smoothly interpolate current volume toward target volume
       currentVolumeRef.current += (targetVolumeRef.current - currentVolumeRef.current) * 0.1;
       
-      // Clamp volume between 0 and 1 just to be safe
       const newVolume = Math.min(1, Math.max(0, currentVolumeRef.current));
-      hoverAudioRef.current.volume = newVolume;
+      
+      // FIX: Use Howler's method, not assignment
+      hoverAudioRef.current.volume(newVolume);
       
     }, 50);
 
@@ -132,7 +131,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     let outputImageData = ctx.createImageData(width, height);
     let animationFrameId: number | null = null;
 
-    // --- FIX: Safety start function to ensure the engine ALWAYS fires ---
     const startWater = () => {
       if (!animationFrameId) {
         baseImageData = ctx.getImageData(0, 0, width, height);
@@ -142,7 +140,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
 
     const logo = new Image();
     
-    // 1. Define onload FIRST
     logo.onload = () => {
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
@@ -153,10 +150,9 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       const y = (height - logoHeight) / 2;
       
       ctx.drawImage(logo, x, y - 40, logoWidth, logoHeight);
-      startWater(); // Start the engine!
+      startWater(); 
     };
 
-    // 2. Define onerror SECOND
     logo.onerror = () => {
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
@@ -164,13 +160,11 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       ctx.font = 'bold 48px "Inter", sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('STEFANDERSON', width / 2, height / 2 - 40);
-      startWater(); // Start the engine!
+      startWater(); 
     };
 
-    // 3. Define src LAST (This prevents the cache race condition)
     logo.src = '/logostefand.svg'; 
     
-    // 4. Ultimate Fallback: If image hangs for more than 1 second, start the water anyway
     setTimeout(() => {
       if (!animationFrameId) {
         ctx.fillStyle = '#000000';
@@ -229,12 +223,10 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       previous = current;
       current = temp;
 
-      // Update the animationFrameId so our fallback knows it's running
       animationFrameId = requestAnimationFrame(processWater); 
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      // 1. Water Ripple Physics
       const px = Math.floor(e.clientX / scale);
       const py = Math.floor(e.clientY / scale);
       const radius = 2;
@@ -249,7 +241,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
         }
       }
 
-      // 2. Audio Hover Logic
       targetVolumeRef.current = 0.5; 
       
       if (mouseTimeoutRef.current) clearTimeout(mouseTimeoutRef.current);
@@ -271,12 +262,11 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     if (!isReady || isSplashing) return; 
     setIsSplashing(true);
     
-    // Play splash sound if user enabled audio
+    // Play splash sound via Howler
     if (isAudioEnabled && splashAudioRef.current) {
-      splashAudioRef.current.play().catch(() => {});
+      splashAudioRef.current.play();
     }
 
-    // Force hover audio off during transition
     targetVolumeRef.current = 0; 
     
     const canvas = canvasRef.current;
@@ -287,14 +277,13 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     canvas.style.opacity = '0';
 
     setTimeout(() => {
-      onSplashComplete(isAudioEnabled); // PASS THE STATE HERE!
+      onSplashComplete(isAudioEnabled);
     }, 1200);
   };
 
   return (
     <div className={`relative w-full h-screen bg-black overflow-hidden ${isReady ? 'cursor-pointer' : 'cursor-wait'}`}>
       
-      {/* AUDIO TOGGLE BUTTON */}
       <button
         onClick={() => setIsAudioEnabled(!isAudioEnabled)}
         className="absolute top-8 right-8 z-50 flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 hover:scale-110"
@@ -306,14 +295,12 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
         title={isAudioEnabled ? "Mute Audio" : "Enable Audio"}
       >
         {isAudioEnabled ? (
-          // Speaker ON SVG
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
             <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
           </svg>
         ) : (
-          // Speaker OFF SVG
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
             <line x1="23" y1="9" x2="17" y2="15"></line>
@@ -322,7 +309,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
         )}
       </button>
 
-      {/* HUD OVERLAY */}
       <div className="absolute inset-0 z-20 flex flex-col items-center justify-end pb-32 pointer-events-none mix-blend-difference">
         {!isReady ? (
           <div className="text-zinc-500 font-mono text-sm tracking-[0.5em] animate-pulse">
@@ -335,7 +321,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
         )}
       </div>
 
-      {/* PHYSICS CANVAS */}
       <canvas 
         ref={canvasRef} 
         onClick={triggerBucketSplash}
