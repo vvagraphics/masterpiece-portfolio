@@ -59,14 +59,26 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     });
   }, []);
 
-  // --- AUDIO INITIALIZATION ---
+  // --- AUDIO INITIALIZATION & CLEANUP ---
   useEffect(() => {
     hoverAudioRef.current = new Audio('/audio/water-hover.mp3');
     hoverAudioRef.current.loop = true;
-    hoverAudioRef.current.volume = 0; // Start silent
+    hoverAudioRef.current.volume = 0; 
 
     splashAudioRef.current = new Audio('/audio/water-splash.mp3');
     splashAudioRef.current.volume = 0.8;
+
+    // FIX: When this component unmounts, destroy the audio objects so they don't leak into the Story!
+    return () => {
+      if (hoverAudioRef.current) {
+        hoverAudioRef.current.pause();
+        hoverAudioRef.current.src = ''; // completely clears it from memory
+      }
+      if (splashAudioRef.current) {
+        splashAudioRef.current.pause();
+        splashAudioRef.current.src = '';
+      }
+    };
   }, []);
 
   // --- VOLUME FADE LOOP (Only runs if audio is enabled) ---
@@ -118,11 +130,19 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     let previous = new Float32Array(size);
     let baseImageData: ImageData;
     let outputImageData = ctx.createImageData(width, height);
-    let animationFrameId: number;
+    let animationFrameId: number | null = null;
+
+    // --- FIX: Safety start function to ensure the engine ALWAYS fires ---
+    const startWater = () => {
+      if (!animationFrameId) {
+        baseImageData = ctx.getImageData(0, 0, width, height);
+        processWater();
+      }
+    };
 
     const logo = new Image();
-    logo.src = '/logostefand.svg'; 
     
+    // 1. Define onload FIRST
     logo.onload = () => {
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
@@ -133,11 +153,10 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       const y = (height - logoHeight) / 2;
       
       ctx.drawImage(logo, x, y - 40, logoWidth, logoHeight);
-
-      baseImageData = ctx.getImageData(0, 0, width, height);
-      processWater();
+      startWater(); // Start the engine!
     };
 
+    // 2. Define onerror SECOND
     logo.onerror = () => {
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
@@ -145,9 +164,20 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       ctx.font = 'bold 48px "Inter", sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('STEFANDERSON', width / 2, height / 2 - 40);
-      baseImageData = ctx.getImageData(0, 0, width, height);
-      processWater();
+      startWater(); // Start the engine!
     };
+
+    // 3. Define src LAST (This prevents the cache race condition)
+    logo.src = '/logostefand.svg'; 
+    
+    // 4. Ultimate Fallback: If image hangs for more than 1 second, start the water anyway
+    setTimeout(() => {
+      if (!animationFrameId) {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, width, height);
+        startWater();
+      }
+    }, 1000);
 
     const processWater = () => {
       for (let y = 1; y < physicsHeight - 1; y++) {
@@ -199,7 +229,8 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       previous = current;
       current = temp;
 
-      animationFrameId = requestAnimationFrame(processWater);
+      // Update the animationFrameId so our fallback knows it's running
+      animationFrameId = requestAnimationFrame(processWater); 
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -219,19 +250,19 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       }
 
       // 2. Audio Hover Logic
-      targetVolumeRef.current = 0.5; // Spike volume to 50%
+      targetVolumeRef.current = 0.5; 
       
       if (mouseTimeoutRef.current) clearTimeout(mouseTimeoutRef.current);
       
       mouseTimeoutRef.current = setTimeout(() => {
-        targetVolumeRef.current = 0; // Drop volume back to 0 if mouse stops
+        targetVolumeRef.current = 0; 
       }, 150);
     };
 
     canvas.addEventListener('mousemove', handleMouseMove);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
       canvas.removeEventListener('mousemove', handleMouseMove);
     };
   }, []);
