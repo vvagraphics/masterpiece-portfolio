@@ -1,3 +1,4 @@
+// src/sandboxes/GlassWalls/index.tsx
 import { useState, useRef } from 'react';
 import * as htmlToImage from 'html-to-image';
 import { supabase, dataUrlToBlob } from '../../lib/supabase';
@@ -7,20 +8,30 @@ export default function GlassWalls() {
   const [text, setText] = useState('EFANDERSON');
   const [letterSpacing, setLetterSpacing] = useState(10);
   const [fontSize, setFontSize] = useState(120);
+  
+  // Refined UX States
   const [isCapturing, setIsCapturing] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'IDLE' | 'SAVING' | 'SUCCESS' | 'ERROR'>('IDLE');
 
   const handleCloudSave = async () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || saveStatus === 'SAVING') return;
+    
+    setSaveStatus('SAVING');
     setIsCapturing(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 100)); // Wait for UI hide
-      const dataUrl = await htmlToImage.toPng(containerRef.current, { quality: 0.95 });
+      await new Promise(resolve => setTimeout(resolve, 100)); 
+      
+      // Added pixelRatio: 2 for high-res typography capture
+      const dataUrl = await htmlToImage.toPng(containerRef.current, { 
+        quality: 0.95,
+        pixelRatio: 2,
+        backgroundColor: '#09090b' // Hardcoding bg color prevents transparent-blur bugs
+      });
       
       const blob = await dataUrlToBlob(dataUrl);
       const fileName = `artwork_${Date.now()}.png`;
 
-      // Upload to Supabase Storage
       const { error: uploadError } = await supabase
         .storage
         .from('gallery')
@@ -28,13 +39,11 @@ export default function GlassWalls() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase
         .storage
         .from('gallery')
         .getPublicUrl(`public/${fileName}`);
 
-      // Save to SQL Database
       const { error: dbError } = await supabase
         .from('creations')
         .insert([
@@ -47,11 +56,13 @@ export default function GlassWalls() {
 
       if (dbError) throw dbError;
       
-      alert("Masterpiece saved to the global gallery!");
+      setSaveStatus('SUCCESS');
+      setTimeout(() => setSaveStatus('IDLE'), 4000);
 
     } catch (err) {
       console.error('Upload failed:', err);
-      alert("Failed to save. Check console for errors.");
+      setSaveStatus('ERROR');
+      setTimeout(() => setSaveStatus('IDLE'), 4000);
     } finally {
       setIsCapturing(false);
     }
@@ -87,7 +98,7 @@ export default function GlassWalls() {
 
       {/* UI Controls */}
       {!isCapturing && (
-        <div className="absolute bottom-8 z-30 bg-black/80 p-6 border border-zinc-700 rounded-xl flex gap-8 items-center text-white backdrop-blur-md shadow-2xl">
+        <div className="absolute bottom-8 z-30 bg-black/80 p-6 border border-zinc-700 rounded-xl flex gap-8 items-center text-white backdrop-blur-md shadow-2xl relative">
           <label className="flex flex-col gap-2 font-mono text-xs text-gray-400">
             SIGNATURE TEXT
             <input 
@@ -115,9 +126,28 @@ export default function GlassWalls() {
               className="w-24 accent-blue-500"
             />
           </label>
-          <button onClick={handleCloudSave} className="ml-4 px-6 py-3 bg-white text-black font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors">
-            Save to Gallery
-          </button>
+          
+          <div className="flex flex-col items-center ml-4">
+            <button 
+              onClick={handleCloudSave} 
+              disabled={saveStatus === 'SAVING'}
+              className="px-6 py-3 bg-white text-black font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors disabled:opacity-50"
+            >
+              {saveStatus === 'SAVING' ? 'RENDERING...' : 'Save to Gallery'}
+            </button>
+          </div>
+
+          {/* Absolute positioned feedback text to prevent layout shifting */}
+          {saveStatus === 'SUCCESS' && (
+            <div className="absolute -top-8 right-6 text-green-400 font-mono text-xs tracking-widest animate-pulse">
+              [ GLASS STRUCTURE SAVED TO ARCHIVES ]
+            </div>
+          )}
+          {saveStatus === 'ERROR' && (
+            <div className="absolute -top-8 right-6 text-red-500 font-mono text-xs tracking-widest">
+              [ EXPORT ERROR ]
+            </div>
+          )}
         </div>
       )}
 

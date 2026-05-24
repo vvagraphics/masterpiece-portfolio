@@ -1,7 +1,7 @@
 // src/App.tsx
 import { useState, useEffect, useRef } from 'react';
 import Lenis from '@studio-freight/lenis';
-import { Howl } from 'howler';
+import { Howl, Howler } from 'howler';
 import WaterPreloader from './components/WaterPreloader';
 import StoryScroll from './components/StoryScroll';
 import SandboxWrapper from './components/SandboxWrapper';
@@ -13,17 +13,21 @@ type AppState = 'PRELOADER' | 'STORY' | 'PLAYGROUND';
 function App() {
   const [currentPhase, setCurrentPhase] = useState<AppState>('PRELOADER');
   
-  // --- GLOBAL AUDIO STATE ---
   const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
   const ambientAudioRef = useRef<Howl | null>(null);
 
   useEffect(() => {
-    // FIX 1: Use the local ambient.mp3 to avoid browser CORS blocking external URLs
     ambientAudioRef.current = new Howl({
-      src: ['https://mr3anderson.pro/music/Midnight_Moonlight_(Remastered)_v7.mp3'], // Pointing to your local public/audio folder
+      src: ['https://mr3anderson.pro/music/Midnight_Moonlight_(Remastered)_v7.mp3'],
       loop: true,
       volume: 0,
-      html5: true
+      html5: true,
+      onplayerror: function() {
+        ambientAudioRef.current?.once('unlock', function() {
+          ambientAudioRef.current?.play();
+          ambientAudioRef.current?.fade(0, 0.3, 2000);
+        });
+      }
     });
 
     return () => {
@@ -33,15 +37,23 @@ function App() {
     }
   }, []);
 
-  // Handle Play/Pause based on global toggle
   useEffect(() => {
     if (!ambientAudioRef.current) return;
 
     if (currentPhase !== 'PRELOADER' && isAudioUnlocked) {
-      // FIX 2: Simplified play logic. Grab the ID and fade it directly.
-      if (!ambientAudioRef.current.playing()) {
-        const soundId = ambientAudioRef.current.play();
-        ambientAudioRef.current.fade(0, 0.3, 2000, soundId); 
+      // POLISH: Ensure the Web Audio API context is awake before playing
+      if (Howler.ctx && Howler.ctx.state === 'suspended') {
+        Howler.ctx.resume().then(() => {
+          if (!ambientAudioRef.current?.playing()) {
+            const soundId = ambientAudioRef.current?.play();
+            if (soundId) ambientAudioRef.current?.fade(0, 0.3, 2000, soundId); 
+          }
+        });
+      } else {
+        if (!ambientAudioRef.current.playing()) {
+          const soundId = ambientAudioRef.current.play();
+          ambientAudioRef.current.fade(0, 0.3, 2000, soundId); 
+        }
       }
     } else if (!isAudioUnlocked) {
        ambientAudioRef.current.pause();
