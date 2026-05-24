@@ -18,10 +18,10 @@ function App() {
 
   useEffect(() => {
     ambientAudioRef.current = new Howl({
-      src: ['https://mr3anderson.pro/music/Midnight_Moonlight_(Remastered)_v7.mp3'],
+      src: ['audio/Midnight_Moonlight_(Remastered)_v7.mp3'],
       loop: true,
       volume: 0,
-      html5: true,
+      // html5: true,
       onplayerror: function() {
         ambientAudioRef.current?.once('unlock', function() {
           ambientAudioRef.current?.play();
@@ -37,6 +37,28 @@ function App() {
     }
   }, []);
 
+  // story section
+
+  useEffect(() => {
+  if (!ambientAudioRef.current) return;
+
+  if (currentPhase === 'STORY' && isAudioUnlocked) {
+    // Force resume the context whenever we enter the Story phase
+    if (Howler.ctx && Howler.ctx.state === 'suspended') {
+      Howler.ctx.resume().then(() => {
+        if (!ambientAudioRef.current?.playing()) {
+          ambientAudioRef.current?.play();
+          ambientAudioRef.current?.fade(0, 0.3, 2000);
+        }
+      });
+    } else if (!ambientAudioRef.current.playing()) {
+      ambientAudioRef.current.play();
+      ambientAudioRef.current.fade(0, 0.3, 2000);
+    }
+  }
+}, [currentPhase, isAudioUnlocked]);
+
+// home section
   useEffect(() => {
     if (!ambientAudioRef.current) return;
 

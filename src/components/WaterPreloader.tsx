@@ -132,11 +132,19 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     let animationFrameId: number | null = null;
 
     const startWater = () => {
-      if (!animationFrameId) {
-        baseImageData = ctx.getImageData(0, 0, width, height);
-        processWater();
-      }
-    };
+  if (animationFrameId) return;
+  // const startWater = () => {
+  //     if (!animationFrameId) {
+  //       baseImageData = ctx.getImageData(0, 0, width, height);
+  //       processWater();
+  //     }
+  //   };
+const ctx = canvasRef.current?.getContext('2d');
+  if (!ctx) return;
+
+  baseImageData = ctx.getImageData(0, 0, width, height);
+  processWater();
+};
 
     const logo = new Image();
     
