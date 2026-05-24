@@ -4,9 +4,10 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 // 1. IMPORT ALL YOUR NEW SVG COMPONENTS HERE
 import MySpaceSVG from './svgs/MySpaceSVG';
-import VvaGraphicsSVG from './svgs/VvaGraphicsSVG.tsx'; // Replace with your actual filename
-import StructureLogicSVG from './svgs/StructureLogicSVG.tsx/index.ts'; // Replace with your actual filename
+import VvaGraphicsSVG from './svgs/VvaGraphicsSVG.tsx'; 
+import StructureLogicSVG from './svgs/StructureLogicSVG.tsx'; 
 import EfandersonLogo from './svgs/EfandersonLogo';
+import MagneticButton from './MagneticButton';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -22,14 +23,13 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
     const ctx = gsap.context(() => {
       
       // PRE-COMPUTE SVG MATHEMATICS FOR THE ENTIRE PAGE
-      // 1. Find every path we want to draw and push the dash offset out of frame
       const svgPaths = gsap.utils.toArray<SVGPathElement>('.animate-svg-path');
       svgPaths.forEach(path => {
         const length = path.getTotalLength();
         gsap.set(path, { strokeDasharray: length, strokeDashoffset: length });
       });
 
-      // 2. Hide all SVG fills initially so we only see the laser lines
+      // Hide all SVG fills initially
       gsap.set('.svg-fill-group', { opacity: 0 });
 
       // CREATE THE MASTER SCROLL TIMELINE
@@ -37,33 +37,37 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
         scrollTrigger: {
           trigger: containerRef.current,
           start: 'top top',
-          end: '+=500%', // Increased slightly to give the animations more breathing room
+          end: '+=500%', 
           scrub: 1,      
           pin: true,     
         }
       });
 
       // --- CHAPTER 1: MYSPACE ---
-      // Draw the lines, fade in the colors, then scale down and fade out
       tl.to('#chapter-1 .animate-svg-path', { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" })
-        .to('#chapter-1 .svg-fill-group', { opacity: 1, duration: 0.5 }, ">") // > means play immediately after previous animation
-        .to(sectionsRef.current[0], { opacity: 0, scale: 0.9, duration: 1 }, "+=0.5") // +=0.5 gives the user a moment to look at it before it fades
+        .to('#chapter-1 .svg-fill-group', { opacity: 1, duration: 0.5 }, ">") 
+        // FLY-THROUGH EXIT: Scale massively and blur to fly past the camera
+        .to(sectionsRef.current[0], { opacity: 0, scale: 5, filter: "blur(20px)", duration: 1.5, ease: "power2.in" }, "+=0.5") 
       
       // --- CHAPTER 2: VVAGRAPHICS ---
-      // Scale in, draw the lines, fill colors, move up and fade out
-        .fromTo(sectionsRef.current[1], { opacity: 0, scale: 1.2 }, { opacity: 1, scale: 1, duration: 1 }, "<0.5")
+        // Enter from deep space
+        .fromTo(sectionsRef.current[1], { opacity: 0, scale: 0.2 }, { opacity: 1, scale: 1, duration: 1.5, ease: "power2.out" }, "<0.5")
         .to('#chapter-2 .animate-svg-path', { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" }, "<0.2")
         .to('#chapter-2 .svg-fill-group', { opacity: 1, duration: 0.5 }, ">")
-        .to(sectionsRef.current[1], { opacity: 0, y: -50, duration: 1 }, "+=0.5")
+        // FLY-THROUGH EXIT
+        .to(sectionsRef.current[1], { opacity: 0, scale: 5, filter: "blur(20px)", duration: 1.5, ease: "power2.in" }, "+=0.5")
 
       // --- CHAPTER 3: STRUCTURE & LOGIC ---
-        .fromTo(sectionsRef.current[2], { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 1 }, "<0.5")
+        // Enter from deep space
+        .fromTo(sectionsRef.current[2], { opacity: 0, scale: 0.2 }, { opacity: 1, scale: 1, duration: 1.5, ease: "power2.out" }, "<0.5")
         .to('#chapter-3 .animate-svg-path', { strokeDashoffset: 0, duration: 1.5, ease: "power1.inOut" }, "<0.2")
         .to('#chapter-3 .svg-fill-group', { opacity: 1, duration: 0.5 }, ">")
-        .to(sectionsRef.current[2], { opacity: 0, filter: "blur(10px)", duration: 1 }, "+=0.5")
+        // FLY-THROUGH EXIT
+        .to(sectionsRef.current[2], { opacity: 0, scale: 5, filter: "blur(20px)", duration: 1.5, ease: "power2.in" }, "+=0.5")
 
       // --- CHAPTER 4: THE EPIPHANY ---
-        .fromTo(sectionsRef.current[3], { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1 }, "<0.5")
+        // Enter from deep space
+        .fromTo(sectionsRef.current[3], { opacity: 0, scale: 0.2 }, { opacity: 1, scale: 1, duration: 1.5, ease: "power2.out" }, "<0.5")
         .to('#chapter-4 .animate-svg-path', { strokeDashoffset: 0, duration: 1.5, ease: "power2.inOut" }, "<0.5")
         .to('#chapter-4 .svg-fill-group', { opacity: 1, duration: 0.5 }, ">");
 
@@ -85,7 +89,8 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
       <div 
         id="chapter-1"
         ref={el => { sectionsRef.current[0] = el; }} 
-        className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center" 
+        // Added origin-center so the scale effect pulls directly to the screen center
+        className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center origin-center" 
       >
         <MySpaceSVG />
         <div className="bg-black/80 p-8 mt-4 rounded-xl backdrop-blur-sm border border-blue-500/30 shadow-2xl relative z-10">
@@ -98,9 +103,8 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
       <div 
         id="chapter-2"
         ref={el => { sectionsRef.current[1] = el; }} 
-        className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center opacity-0" 
+        className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center opacity-0 origin-center" 
       >
-        {/* We position the SVG absolutely behind the text */}
         <div className="absolute inset-0 z-0 flex items-center justify-center opacity-50">
             <VvaGraphicsSVG />
         </div>
@@ -114,7 +118,7 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
       <div 
         id="chapter-3"
         ref={el => { sectionsRef.current[2] = el; }} 
-        className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center opacity-0 bg-gradient-to-b from-black via-teal-950 to-black"
+        className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center opacity-0 bg-gradient-to-b from-black via-teal-950 to-black origin-center"
       >
         <div className="absolute inset-0 z-0 flex items-center justify-center opacity-40">
             <StructureLogicSVG />
@@ -129,18 +133,19 @@ export default function StoryScroll({ onStoryComplete }: StoryScrollProps) {
       <div 
         id="chapter-4"
         ref={el => { sectionsRef.current[3] = el; }} 
-        className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center opacity-0 bg-black"  
+        className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center opacity-0 bg-black origin-center"  
       >
         <EfandersonLogo />
         <div className="relative z-10 flex flex-col items-center mt-[-40px]">
             <h2 className="text-white text-8xl font-serif mb-4">THE EPIPHANY</h2>
             <p className="text-xl max-w-2xl text-gray-400 mb-12">The Masterpiece. Welcome to the Playground.</p>
-            <button 
-            onClick={onStoryComplete}
+            
+            <MagneticButton onClick={onStoryComplete}
             className="px-8 py-4 bg-white text-black font-bold uppercase tracking-widest hover:bg-gray-300 hover:scale-105 transition-all cursor-pointer pointer-events-auto shadow-[0_0_40px_rgba(255,255,255,0.3)]"
             >
             Enter the Museum
-            </button>
+            </MagneticButton>
+            
         </div>
       </div>
 

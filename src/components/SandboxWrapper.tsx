@@ -1,75 +1,137 @@
-import { useState } from 'react';
-import GraffitiCanvas from '../sandboxes/GraffitiCanvas';
-import GlassWalls from '../sandboxes/GlassWalls'; // <-- Imported!
-import InspirationGallery from './InspirationGallery'; // <-- Imported!
-
-type SandboxState = 'HUB' | 'GRAFFITI' | 'GLASS_WALLS';
+import { useEffect, useRef } from 'react';
+import Matter from 'matter-js';
+import gsap from 'gsap';
 
 export default function SandboxWrapper() {
-  const [activeSandbox, setActiveSandbox] = useState<SandboxState>('HUB');
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const engineRef = useRef<Matter.Engine | null>(null);
 
-  if (activeSandbox === 'GRAFFITI') {
-    return (
-      <div className="w-full h-screen flex flex-col relative">
-        <button 
-          onClick={() => setActiveSandbox('HUB')} 
-          className="absolute top-4 right-4 z-50 px-4 py-2 bg-black text-white border border-red-500 hover:bg-red-500 transition-colors font-mono uppercase text-sm"
-        >
-          Return to Hub
-        </button>
-        <div className="flex-1 w-full h-full">
-           <GraffitiCanvas />
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!sceneRef.current) return;
 
-  if (activeSandbox === 'GLASS_WALLS') {
-    return (
-      <div className="w-full h-screen bg-zinc-900 text-white flex flex-col relative">
-        <button 
-          onClick={() => setActiveSandbox('HUB')} 
-          className="absolute top-4 right-4 z-50 px-4 py-2 bg-black text-white border border-blue-500 hover:bg-blue-500 transition-colors font-mono uppercase text-sm"
-        >
-          Return to Hub
-        </button>
-        <div className="flex-1 w-full h-full">
-           {/* Component is now actually mounted here! */}
-           <GlassWalls /> 
-        </div>
-      </div>
-    );
-  }
+    // 1. Setup Matter.js Engine & Render
+    const Engine = Matter.Engine,
+          Render = Matter.Render,
+          Runner = Matter.Runner,
+          MouseConstraint = Matter.MouseConstraint,
+          Mouse = Matter.Mouse,
+          World = Matter.World,
+          Bodies = Matter.Bodies;
+
+    const engine = Engine.create();
+    engineRef.current = engine;
+    
+    // Slight gravity for a floaty, zero-g feel
+    engine.world.gravity.y = 0.5;
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    const render = Render.create({
+      element: sceneRef.current,
+      engine: engine,
+      options: {
+        width,
+        height,
+        wireframes: false,
+        background: '#050505', // Deep museum black
+        pixelRatio: window.devicePixelRatio
+      }
+    });
+
+    // 2. Create the Museum Walls (Static Bodies)
+    const wallOptions = { isStatic: true, render: { fillStyle: 'transparent' } };
+    const ground = Bodies.rectangle(width / 2, height + 50, width, 100, wallOptions);
+    const ceiling = Bodies.rectangle(width / 2, -50, width, 100, wallOptions);
+    const leftWall = Bodies.rectangle(-50, height / 2, 100, height, wallOptions);
+    const rightWall = Bodies.rectangle(width + 50, height / 2, 100, height, wallOptions);
+
+    World.add(engine.world, [ground, ceiling, leftWall, rightWall]);
+
+    // 3. Create Project Cards (Dynamic Bodies)
+    // These are placeholders for your actual project images/data
+    const projects = [
+      { color: '#3b82f6', label: 'MySpace Layouts' }, // Blue
+      { color: '#ef4444', label: 'VVA Graphics' },    // Red
+      { color: '#14b8a6', label: 'Full Stack App' },  // Teal
+      { color: '#a855f7', label: '3D Experience' },   // Purple
+      { color: '#f59e0b', label: 'Brand Identity' }   // Orange
+    ];
+
+    const projectBodies = projects.map((proj, i) => {
+      return Bodies.rectangle(
+        width / 2 + (Math.random() * 200 - 100), 
+        -200 - (i * 150), // Drop them from off-screen top
+        250, // Width of card
+        350, // Height of card
+        {
+          chamfer: { radius: 20 }, // Rounded corners
+          restitution: 0.6, // Bounciness
+          frictionAir: 0.02, // Air resistance
+          render: {
+            fillStyle: proj.color,
+            strokeStyle: '#ffffff',
+            lineWidth: 2
+          }
+        }
+      );
+    });
+
+    World.add(engine.world, projectBodies);
+
+    // 4. Add Mouse Interaction (Grab and Throw)
+    const mouse = Mouse.create(render.canvas);
+    const mouseConstraint = MouseConstraint.create(engine, {
+      mouse: mouse,
+      constraint: {
+        stiffness: 0.2,
+        render: { visible: false }
+      }
+    });
+
+    World.add(engine.world, mouseConstraint);
+    
+    // Keep mouse in sync with scrolling
+    render.mouse = mouse;
+
+    // 5. Run the Engine
+    Render.run(render);
+    const runner = Runner.create();
+    Runner.run(runner, engine);
+
+    // Intro Animation: Fade in the canvas
+    gsap.fromTo(sceneRef.current, { opacity: 0 }, { opacity: 1, duration: 2, ease: "power2.out" });
+
+    // Handle Resize
+    const handleResize = () => {
+      render.canvas.width = window.innerWidth;
+      render.canvas.height = window.innerHeight;
+      Matter.Body.setPosition(ground, { x: window.innerWidth / 2, y: window.innerHeight + 50 });
+      Matter.Body.setPosition(rightWall, { x: window.innerWidth + 50, y: window.innerHeight / 2 });
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      Render.stop(render);
+      Runner.stop(runner);
+      Engine.clear(engine);
+      render.canvas.remove();
+    };
+  }, []);
 
   return (
-    <div className="w-full min-h-screen bg-black text-white p-12">
-      <h1 className="text-5xl font-serif mb-2">The Interactive Museum</h1>
-      <p className="text-gray-400 mb-12">Leave your mark on web history.</p>
+    <div className="relative w-full h-screen overflow-hidden bg-[#050505]">
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
-        
-        {/* Card 1 */}
-        <div 
-          onClick={() => setActiveSandbox('GRAFFITI')}
-          className="border border-zinc-800 p-8 cursor-pointer hover:border-red-500 hover:bg-zinc-900 transition-all group"
-        >
-          <h2 className="text-3xl font-bold mb-4 group-hover:text-red-500">Digital Graffiti</h2>
-          <p className="text-gray-400">Spray the wall. Adjust thickness, pick your colors, and sign your masterpiece.</p>
-        </div>
-
-        {/* Card 2 */}
-        <div 
-          onClick={() => setActiveSandbox('GLASS_WALLS')}
-          className="border border-zinc-800 p-8 cursor-pointer hover:border-blue-500 hover:bg-zinc-900 transition-all group"
-        >
-          <h2 className="text-3xl font-bold mb-4 group-hover:text-blue-500">Sliding Glass Walls</h2>
-          <p className="text-gray-400">Customize your name with typography and sliding glass partitions.</p>
-        </div>
-
+      {/* HUD overlay */}
+      <div className="absolute top-8 left-8 z-10 pointer-events-none mix-blend-difference">
+        <h2 className="text-white text-4xl font-black uppercase tracking-tighter">The Sandbox</h2>
+        <p className="text-gray-400 font-mono text-sm mt-2">Grab. Drag. Throw.</p>
       </div>
 
-      {/* The Gallery is now mounted at the bottom of the Hub! */}
-      <InspirationGallery />
+      {/* Physics Canvas Mount Point */}
+      <div ref={sceneRef} className="absolute inset-0 z-0 cursor-grab active:cursor-grabbing" />
+      
     </div>
   );
 }
