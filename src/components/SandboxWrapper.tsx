@@ -13,7 +13,20 @@ export default function SandboxWrapper() {
   const engineRef = useRef<Matter.Engine | null>(null);
   const runnerRef = useRef<Matter.Runner | null>(null);
   
+  // --- NEW: Sound Pool Array ---
+  // We create multiple audio instances so rapid collisions don't cut each other off
+  const soundsRef = useRef<HTMLAudioElement[]>([]);
+  
   const [activeView, setActiveView] = useState<ActiveView>('MUSEUM');
+
+  useEffect(() => {
+    // Pre-load our collision sounds (Creating a pool of 10 concurrent sounds)
+    soundsRef.current = Array.from({ length: 10 }).map(() => {
+      const audio = new Audio('/audio/thud.mp3');
+      audio.volume = 0; // Start quiet
+      return audio;
+    });
+  }, []);
 
   useEffect(() => {
     if (!sceneRef.current) return;
@@ -35,7 +48,6 @@ export default function SandboxWrapper() {
         height,
         wireframes: false,
         background: '#050505', 
-        // FIX 1: Forcing pixelRatio to 1 perfectly aligns the mouse hitbox with the visual block on all screens
         pixelRatio: 1 
       }
     });
@@ -77,7 +89,6 @@ export default function SandboxWrapper() {
           plugin: { 
             viewType: proj.type, 
             label: proj.label,
-            // We store the original color here so we can revert to it after hovering
             originalColor: proj.color 
           } 
         }
@@ -103,10 +114,35 @@ export default function SandboxWrapper() {
       });
     });
 
-    // --- FIX 2: HOVER COLOR INVERSION (Visual Hitbox Feedback) ---
+    // --- NEW: DYNAMIC COLLISION SOUNDS ---
+    Events.on(engine, 'collisionStart', (event) => {
+      event.pairs.forEach((pair) => {
+        // Calculate how hard the objects hit each other
+        const speedA = pair.bodyA.speed;
+        const speedB = pair.bodyB.speed;
+        const impactVelocity = speedA + speedB;
+
+        // Only play a sound if the impact is hard enough (prevents "machine gun" noise when objects are just resting)
+        if (impactVelocity > 1.5) {
+          // Map impact velocity to a volume between 0.1 and 1.0
+          const volume = Math.min(1, impactVelocity / 20);
+          
+          // Find an audio object that isn't currently playing
+          const availableSound = soundsRef.current.find(audio => audio.paused || audio.ended);
+          
+          if (availableSound) {
+            availableSound.volume = volume;
+            // Slight randomization of pitch/playback speed makes it sound more natural and less repetitive!
+            availableSound.playbackRate = 0.8 + Math.random() * 0.4; 
+            availableSound.play().catch(() => {
+              // Ignore auto-play blocking errors from the browser
+            });
+          }
+        }
+      });
+    });
+
     Events.on(mouseConstraint, 'mousemove', (event) => {
-      
-      // Step 1: Reset ALL blocks to their default colors
       projectBodies.forEach(body => {
         if (body.plugin && body.plugin.originalColor) {
            body.render.fillStyle = body.plugin.originalColor;
@@ -115,14 +151,11 @@ export default function SandboxWrapper() {
         }
       });
 
-      // Step 2: Find the exact block we are hovering over
       const hoveredBodies = Query.point(engine.world.bodies, event.mouse.position);
       const target = hoveredBodies.find(b => b.plugin && b.plugin.viewType);
 
       if (target) {
         if (render.canvas) render.canvas.style.cursor = 'pointer';
-        
-        // Step 3: Flash the hovered block white, and make its border its original color!
         target.render.fillStyle = '#ffffff';
         target.render.strokeStyle = target.plugin.originalColor;
         target.render.lineWidth = 8;
@@ -131,10 +164,9 @@ export default function SandboxWrapper() {
       }
     });
 
-    // Hack the rendering loop to draw "ENTER" on the interactive blocks
     Events.on(render, 'afterRender', () => {
       const ctx = render.context;
-      ctx.font = '900 28px "Inter", sans-serif'; // Made it bolder and a bit larger
+      ctx.font = '900 28px "Inter", sans-serif'; 
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
@@ -144,19 +176,14 @@ export default function SandboxWrapper() {
           ctx.translate(body.position.x, body.position.y);
           ctx.rotate(body.angle);
           
-          // If the block is currently white (hovered), make the text the block's color.
-          // Otherwise, make the text white.
           const isHovered = body.render.fillStyle === '#ffffff';
           ctx.fillStyle = isHovered ? body.plugin.originalColor : 'rgba(255, 255, 255, 0.9)'; 
-          
           ctx.fillText('ENTER', 0, 0); 
-          
           ctx.restore();
         }
       });
     });
 
-    // Click Detection
     let mousedownPos = { x: 0, y: 0 };
     let mousedownTime = 0;
 
