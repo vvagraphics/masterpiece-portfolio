@@ -13,7 +13,6 @@ interface StoryScrollProps {
   toggleAudio: () => void;
 }
 
-// Updated: Larger sizes, brighter labels, and glow effects to make them pop
 const FlybyItem = ({ eraClass, z, x, y, rotate, label, imageUrl }: { 
   eraClass: string, 
   z: number, 
@@ -23,10 +22,11 @@ const FlybyItem = ({ eraClass, z, x, y, rotate, label, imageUrl }: {
   label: string,
   imageUrl: string
 }) => (
-  <div className={`${eraClass} absolute w-80 h-80 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md border border-white/30 rounded-2xl shadow-[0_0_40px_rgba(255,255,255,0.15)] text-center p-6 opacity-0`} 
-       style={{ transform: `translateZ(${z}px) rotateZ(${rotate}deg)`, top: y, left: x }}>
-    <img src={imageUrl} alt={label} className="w-56 h-56 object-contain mb-4 drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]" />
-    <span className="text-white font-black font-mono text-lg uppercase tracking-widest bg-black/80 px-5 py-2 rounded-full border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.4)]">{label}</span>
+  // Optimization: Removed backdrop-blur here as multiple overlapping blurs hurt performance
+  <div className={`${eraClass} absolute w-80 h-80 flex flex-col items-center justify-center bg-black/80 border border-white/20 rounded-2xl shadow-lg text-center p-6 opacity-0`} 
+       style={{ transform: `translateZ(${z}px) rotateZ(${rotate}deg)`, top: y, left: x, willChange: 'transform, opacity' }}>
+    <img src={imageUrl} alt={label} className="w-56 h-56 object-contain mb-4" />
+    <span className="text-white font-black font-mono text-lg uppercase tracking-widest bg-black/90 px-5 py-2 rounded-full border border-white/10">{label}</span>
   </div>
 );
 
@@ -46,7 +46,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         scrollTrigger: {
           trigger: containerRef.current,
           start: 'top top',
-          end: '+=10000%', // Extended for even more breathing room with the heavy zooms
+          end: '+=10000%', 
           scrub: 1,     
           pin: true,     
         }
@@ -60,9 +60,9 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         .addLabel('warp1')
         .to(cameraRigRef.current, { z: 0, ease: "power1.inOut", duration: 6 }, 'warp1')
         
-        // Flybys: Start small, grow to normal, then scale massively to fly past
-        .fromTo('.era-1-flyby', { opacity: 0, scale: 0.1 }, { opacity: 1, scale: 1, duration: 1.2, stagger: 0.7, ease: "power2.out" }, 'warp1+=0.5')
-        .to('.era-1-flyby', { opacity: 0, scale: 6, duration: 1.2, stagger: 0.7, ease: "power2.in" }, 'warp1+=1.5')
+        // Optimized Flybys: Start closer to normal size, slight scale up to pass
+        .fromTo('.era-1-flyby', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.2, stagger: 0.7, ease: "power2.out" }, 'warp1+=0.5')
+        .to('.era-1-flyby', { opacity: 0, scale: 1.5, duration: 1.2, stagger: 0.7, ease: "power2.in" }, 'warp1+=1.5')
         
         .to('.scene-1-wrapper', { opacity: 1, duration: 1.5 }, 'warp1+=4.5')
         .to({}, { duration: 0.5 }) 
@@ -82,11 +82,11 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         .addLabel('warp2')
         .to(cameraRigRef.current, { z: 5000, ease: "power1.inOut", duration: 6 }, 'warp2')
         
-        // FLY THROUGH THE SCREEN: Massively zoom into the previous scene to transition
-        .to('.scene-1-wrapper', { opacity: 0, scale: 15, filter: "blur(20px)", duration: 1.5, ease: "power2.in" }, 'warp2') 
+        // Optimized Scene Out: Lower scale (3 instead of 15), no blur filter
+        .to('.scene-1-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp2') 
         
-        .fromTo('.era-2-flyby', { opacity: 0, scale: 0.1 }, { opacity: 1, scale: 1, duration: 1.2, stagger: 0.7, ease: "power2.out" }, 'warp2+=1.5')
-        .to('.era-2-flyby', { opacity: 0, scale: 6, duration: 1.2, stagger: 0.7, ease: "power2.in" }, 'warp2+=2.5')
+        .fromTo('.era-2-flyby', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.2, stagger: 0.7, ease: "power2.out" }, 'warp2+=1.5')
+        .to('.era-2-flyby', { opacity: 0, scale: 1.5, duration: 1.2, stagger: 0.7, ease: "power2.in" }, 'warp2+=2.5')
         
         .to('.scene-2-wrapper', { opacity: 1, duration: 1.5 }, 'warp2+=4.5') 
         .to({}, { duration: 0.5 }) 
@@ -105,18 +105,19 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
       // ==========================================
         .addLabel('warp3')
         .to(cameraRigRef.current, { z: 10000, ease: "power1.inOut", duration: 6 }, 'warp3')
-        .to('.scene-2-wrapper', { opacity: 0, scale: 15, filter: "blur(20px)", duration: 1.5, ease: "power2.in" }, 'warp3') 
+        .to('.scene-2-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp3') 
         
-        .fromTo('.era-3-flyby', { opacity: 0, scale: 0.1 }, { opacity: 1, scale: 1, duration: 1.2, stagger: 0.7, ease: "power2.out" }, 'warp3+=1.5')
-        .to('.era-3-flyby', { opacity: 0, scale: 6, duration: 1.2, stagger: 0.7, ease: "power2.in" }, 'warp3+=2.5')
+        .fromTo('.era-3-flyby', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.2, stagger: 0.7, ease: "power2.out" }, 'warp3+=1.5')
+        .to('.era-3-flyby', { opacity: 0, scale: 1.5, duration: 1.2, stagger: 0.7, ease: "power2.in" }, 'warp3+=2.5')
         
         .to('.scene-3-wrapper', { opacity: 1, duration: 1.5 }, 'warp3+=4.5') 
         .to({}, { duration: 0.5 }) 
         
       // --- SCENE 3: PC PROFESSOR ---
-        .fromTo('.scene-3-part1', { opacity: 0, filter: "blur(20px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.5 })
+        // Optimization: Switched blur to opacity for the text pop-in to save performance
+        .fromTo('.scene-3-part1', { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5 })
         .to({}, { duration: 1.5 }) 
-        .to('.scene-3-part1', { opacity: 0, filter: "blur(10px)", duration: 0.4 })
+        .to('.scene-3-part1', { opacity: 0, scale: 1.1, duration: 0.4 })
 
         .fromTo('.scene-3-part2', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5 })
         .to({}, { duration: 1.5 }) 
@@ -127,10 +128,10 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
       // ==========================================
         .addLabel('warp4')
         .to(cameraRigRef.current, { z: 15000, ease: "power1.inOut", duration: 6 }, 'warp4')
-        .to('.scene-3-wrapper', { opacity: 0, scale: 15, filter: "blur(20px)", duration: 1.5, ease: "power2.in" }, 'warp4') 
+        .to('.scene-3-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp4') 
         
-        .fromTo('.era-4-flyby', { opacity: 0, scale: 0.1 }, { opacity: 1, scale: 1, duration: 1.2, stagger: 0.7, ease: "power2.out" }, 'warp4+=1.5')
-        .to('.era-4-flyby', { opacity: 0, scale: 6, duration: 1.2, stagger: 0.7, ease: "power2.in" }, 'warp4+=2.5')
+        .fromTo('.era-4-flyby', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.2, stagger: 0.7, ease: "power2.out" }, 'warp4+=1.5')
+        .to('.era-4-flyby', { opacity: 0, scale: 1.5, duration: 1.2, stagger: 0.7, ease: "power2.in" }, 'warp4+=2.5')
         
         .to('.scene-4-wrapper', { opacity: 1, duration: 1.5 }, 'warp4+=4.5') 
         .to({}, { duration: 0.5 }) 
@@ -149,10 +150,10 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
       // ==========================================
         .addLabel('warp5')
         .to(cameraRigRef.current, { z: 20000, ease: "power1.inOut", duration: 6 }, 'warp5')
-        .to('.scene-4-wrapper', { opacity: 0, scale: 15, filter: "blur(20px)", duration: 1.5, ease: "power2.in" }, 'warp5') 
+        .to('.scene-4-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp5') 
         
-        .fromTo('.era-5-flyby', { opacity: 0, scale: 0.1 }, { opacity: 1, scale: 1, duration: 1.2, stagger: 0.7, ease: "power2.out" }, 'warp5+=1.5')
-        .to('.era-5-flyby', { opacity: 0, scale: 6, duration: 1.2, stagger: 0.7, ease: "power2.in" }, 'warp5+=2.5')
+        .fromTo('.era-5-flyby', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.2, stagger: 0.7, ease: "power2.out" }, 'warp5+=1.5')
+        .to('.era-5-flyby', { opacity: 0, scale: 1.5, duration: 1.2, stagger: 0.7, ease: "power2.in" }, 'warp5+=2.5')
         
         .to('.scene-5-wrapper', { opacity: 1, duration: 1.5 }, 'warp5+=4.5') 
         .to({}, { duration: 0.5 }) 
@@ -161,22 +162,21 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         // Part 1: AI Assisted Coding
         .fromTo('.scene-5-part1', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" })
         .to({}, { duration: 1.5 })
-        .to('.scene-5-part1', { opacity: 0, filter: "blur(10px)", duration: 0.5 })
+        .to('.scene-5-part1', { opacity: 0, scale: 1.2, duration: 0.5 }) // Removed blur
 
         // Part 2: Autonomous Agents 
         .fromTo('.scene-5-part2', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.5, ease: "power2.out" })
         .to({}, { duration: 2.5 })
-        .to('.scene-5-part2', { opacity: 0, scale: 1.5, filter: "blur(20px)", duration: 0.8 })
+        .to('.scene-5-part2', { opacity: 0, scale: 1.5, duration: 0.8 }) // Removed blur
 
         // Part 3: THE QUESTION
         .fromTo('.scene-5-question', { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 1, ease: "back.out(1.5)" })
         .to({}, { duration: 2.5 })
-        // Fly THROUGH the question
-        .to('.scene-5-question', { opacity: 0, scale: 5, filter: "blur(20px)", duration: 1, ease: "power2.in" })
+        .to('.scene-5-question', { opacity: 0, scale: 3, duration: 1, ease: "power2.in" }) // Removed blur, reduced scale
 
         // Part 4: The 3 Futures Cliffhanger (Final Stop)
         .fromTo('.scene-5-part3', { opacity: 0 }, { opacity: 1, duration: 2, ease: "power2.inOut" })
-        .to({}, { duration: 5 }); // Hold at the end to allow clicking the museum button
+        .to({}, { duration: 5 }); 
 
     }, containerRef);
 
@@ -188,7 +188,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
     if (isAutoPlaying) {
       autoScrollTween = gsap.to(window, {
         scrollTo: "max",
-        duration: 130, // Updated duration for the longer scroll
+        duration: 130, 
         ease: "none",
       });
     }
@@ -226,12 +226,12 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
       </div>
 
       <div className="scroll-hint absolute inset-0 z-50 flex flex-col items-center justify-center pointer-events-none">
-        <h1 className="text-5xl font-light tracking-[0.3em] uppercase mb-4 opacity-80 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">The Temporal Journey</h1>
+        <h1 className="text-5xl font-light tracking-[0.3em] uppercase mb-4 opacity-80 drop-shadow-lg">The Temporal Journey</h1>
         <p className="text-sm tracking-widest uppercase text-gray-400 mb-8 animate-pulse">Scroll to Initiate Jump</p>
       </div>
 
       <div ref={cameraRigRef} className="absolute inset-0 w-full h-full"
-        style={{ transformStyle: "preserve-3d", transform: "translateZ(-4000px)" }}>
+        style={{ transformStyle: "preserve-3d", transform: "translateZ(-4000px)", willChange: "transform" }}>
         
         {/* ================= ERA 1 FLYBYS ================= */}
         <FlybyItem eraClass="era-1-flyby" z={3500} x="10%" y="15%" rotate={-15} label="Motorola Razr" imageUrl={`${imgBase}razr_v3_spinning.jpg`}/>
@@ -240,7 +240,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         <FlybyItem eraClass="era-1-flyby" z={500} x="75%" y="20%" rotate={25} label="Wii Remote" imageUrl={`${imgBase}wii_remote.jpg`}/>
 
         {/* ================= SCENE 1: BEDROOM ================= */}
-        <div className="scene-1-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(0px)" }}>
+        <div className="scene-1-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(0px)", willChange: "opacity, transform" }}>
           <img src={`${imgBase}scene1_bedroom_crt.jpg`} alt="90s Bedroom" className="absolute inset-0 w-full h-full object-cover opacity-80" />
           <div className="absolute top-[40%] left-[35%] w-[30%] h-[30%] flex items-center justify-center">
              
@@ -263,7 +263,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         <FlybyItem eraClass="era-2-flyby" z={-4000} x="15%" y="25%" rotate={-10} label="Pokéball" imageUrl={`${imgBase}pokeball.jpg`}/>
 
         {/* ================= SCENE 2: ITT TECH ================= */}
-        <div className="scene-2-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-5000px)" }}>
+        <div className="scene-2-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-5000px)", willChange: "opacity, transform" }}>
           <img src={`${imgBase}scene2_itt_chalkboard.jpg`} alt="ITT Tech Classroom" className="absolute inset-0 w-full h-full object-cover opacity-60" />
           <div className="absolute top-[25%] left-[25%] w-[50%] h-[40%] flex items-center justify-center">
              
@@ -286,12 +286,12 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         <FlybyItem eraClass="era-3-flyby" z={-9000} x="70%" y="60%" rotate={25} label="Llama Piñata" imageUrl={`${imgBase}fortnite_llama.jpg`}/>
 
         {/* ================= SCENE 3: PC PROFESSOR ================= */}
-        <div className="scene-3-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-10000px)" }}>
+        <div className="scene-3-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-10000px)", willChange: "opacity, transform" }}>
           <img src={`${imgBase}scene3_pcprof_board.jpg`} alt="PC Professor" className="absolute inset-0 w-full h-full object-cover opacity-60" />
           <div className="absolute top-[30%] left-[30%] w-[40%] h-[40%] flex items-center justify-center">
              
              <div className="scene-3-part1 absolute inset-0 flex flex-col items-center justify-center bg-teal-900/60 backdrop-blur-md border border-teal-500/50 rounded-xl p-8 opacity-0">
-                 <img src={`${imgBase}Two_interconnected_tech_stacks.jpg`} className="w-full h-32 object-cover mb-4 rounded-lg shadow-[0_0_20px_rgba(45,212,191,0.3)]" />
+                 <img src={`${imgBase}Two_interconnected_tech_stacks.jpg`} className="w-full h-32 object-cover mb-4 rounded-lg shadow-lg" />
                  <h2 className="text-teal-400 text-4xl font-semibold mb-2 drop-shadow-md">MEAN / MERN</h2>
              </div>
 
@@ -309,7 +309,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         <FlybyItem eraClass="era-4-flyby" z={-14000} x="15%" y="15%" rotate={-20} label="James Webb" imageUrl={`${imgBase}james_webb_mirror.jpg`}/>
 
         {/* ================= SCENE 4: GOOGLE UI/UX ================= */}
-        <div className="scene-4-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-15000px)" }}>
+        <div className="scene-4-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-15000px)", willChange: "opacity, transform" }}>
           <img src={`${imgBase}scene4_uiux_monitors.jpg`} alt="Workspace" className="absolute inset-0 w-full h-full object-cover opacity-60" />
           <div className="absolute top-[40%] left-[20%] w-[60%] h-[30%] flex items-center justify-center">
              
@@ -332,7 +332,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         <FlybyItem eraClass="era-5-flyby" z={-19000} x="70%" y="60%" rotate={20} label="Holographic UI" imageUrl={`${imgBase}holographic_ui_panels.jpg`}/>
 
         {/* ================= SCENE 5: AI FUTURE ================= */}
-        <div className="scene-5-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-20000px)" }}>
+        <div className="scene-5-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-20000px)", willChange: "opacity, transform" }}>
           <img src={`${imgBase}scene5_cyberpunk_ultrawide.jpg`} alt="AI Future" className="absolute inset-0 w-full h-full object-cover opacity-50" />
           <div className="absolute inset-0 flex items-center justify-center">
              
