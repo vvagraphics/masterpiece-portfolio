@@ -21,7 +21,7 @@ export default function WarpBackground() {
 
     const numStars = 1200; 
     const stars: any[] = [];
-    const speed = { current: 0.3 }; // Ambient drift speed
+    const speed = { current: 0.5 }; // Ambient drift speed slightly faster
     
     const crystalColors = [
       '255, 255, 255', 
@@ -41,7 +41,6 @@ export default function WarpBackground() {
       });
     }
 
-    // Velocity tracker: Boosted drastically for hyper-speed sensation
     const scrollObserver = ScrollTrigger.create({
       trigger: document.body,
       start: "top top",
@@ -49,12 +48,12 @@ export default function WarpBackground() {
       onUpdate: (self) => {
         const velocity = Math.abs(self.getVelocity());
         
-        // Lower divisor = MUCH faster acceleration. 
-        const targetSpeed = 0.3 + (velocity / 30); 
+        // DOUBLED SPEED SENSITIVITY
+        const targetSpeed = 0.5 + (velocity / 15); 
 
         gsap.to(speed, { 
-            current: Math.min(targetSpeed, 150), // Massive max speed cap
-            duration: 0.2, // Snaps to speed quickly
+            current: Math.min(targetSpeed, 300), // Massive max speed cap for true warp
+            duration: 0.2, 
             ease: "power2.out" 
         });
       }
@@ -63,7 +62,6 @@ export default function WarpBackground() {
     let animationFrameId: number;
 
     const render = () => {
-      // Blur trail effect
       ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'; 
       ctx.fillRect(0, 0, width, height);
 
@@ -72,9 +70,8 @@ export default function WarpBackground() {
 
       stars.forEach(star => {
         star.pz = star.z; 
-        star.z -= speed.current; // Move towards camera
+        star.z -= speed.current; 
 
-        // Reset star if it passes the camera lens
         if (star.z <= 0) {
           star.x = (Math.random() - 0.5) * width * 2;
           star.y = (Math.random() - 0.5) * height * 2;
@@ -97,7 +94,7 @@ export default function WarpBackground() {
         ctx.lineTo(x, y);
         
         ctx.strokeStyle = `rgba(${star.color}, ${opacity})`;
-        ctx.lineWidth = Math.max(0.5, (1 - star.z / width) * 5); // Thicker lines when close
+        ctx.lineWidth = Math.max(0.5, (1 - star.z / width) * 5);
         ctx.stroke();
       });
 
