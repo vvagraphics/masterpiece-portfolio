@@ -103,50 +103,52 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         .to('.scene-2-part2', { opacity: 0, scale: 1.1, duration: 0.4 })
 
       // ==========================================
-      // 3. WARP TO SCENE 3
+      // 3. WARP TO SCENE 3 (Camera Z: 5000 -> 10000)
       // ==========================================
         .addLabel('warp3')
         .to(cameraRigRef.current, { z: 10000, ease: "power1.inOut", duration: 6 }, 'warp3')
         .to('.scene-2-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp3') 
+        
         .fromTo('.era-3-flyby', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.2, stagger: 0.7, ease: "power2.out" }, 'warp3+=1.5')
         .to('.era-3-flyby', { opacity: 0, scale: 1.5, duration: 1.2, stagger: 0.7, ease: "power2.in" }, 'warp3+=2.5')
-        .to('.scene-3-wrapper', { opacity: 1, duration: 1.5 }, 'warp3+=4.5') 
         
-        // Scene 3 Background Pan & Zoom: Top left corner 
-        .to('.scene-3-bg', { scale: 1.6, xPercent: 15, yPercent: 18, duration: 2, ease: "power2.inOut" }, 'warp3+=5')
+        .to('.scene-3-wrapper', { opacity: 1, duration: 1.5 }, 'warp3+=4.5') 
         .to({}, { duration: 0.5 }) 
         
-      // --- SCENE 3: PC PROFESSOR ---
-        .fromTo('.scene-3-part1', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5 })
-        .to({}, { duration: 1.5 }) 
-        .to('.scene-3-part1', { opacity: 0, scale: 1.1, duration: 0.4 })
+      // --- SCENE 3: GOOGLE UI/UX ---
+        // Animation: Slide in from the left
+        .fromTo('.scene-3-part1', { opacity: 0, x: -100 }, { opacity: 1, x: 0, duration: 0.5 })
+        .to({}, { duration: 1.5 })
+        .to('.scene-3-part1', { opacity: 0, x: 100, duration: 0.4 })
 
-        .fromTo('.scene-3-part2', { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5 })
-        .to({}, { duration: 1.5 }) 
-        .to('.scene-3-part2', { opacity: 0, scale: 1.1, duration: 0.4 })
+        // Animation: Slide in from right with a slight bounce
+        .fromTo('.scene-3-part2', { opacity: 0, x: 100 }, { opacity: 1, x: 0, duration: 0.5, ease: "back.out(1.5)" })
+        .to({}, { duration: 1.5 })
+        .to('.scene-3-part2', { opacity: 0, scale: 1.2, duration: 0.4 })
 
       // ==========================================
-      // 4. WARP TO SCENE 4 
+      // 4. WARP TO SCENE 4 (Camera Z: 10000 -> 15000)
       // ==========================================
         .addLabel('warp4')
         .to(cameraRigRef.current, { z: 15000, ease: "power1.inOut", duration: 6 }, 'warp4')
         .to('.scene-3-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp4') 
+        
         .fromTo('.era-4-flyby', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1.2, stagger: 0.7, ease: "power2.out" }, 'warp4+=1.5')
         .to('.era-4-flyby', { opacity: 0, scale: 1.5, duration: 1.2, stagger: 0.7, ease: "power2.in" }, 'warp4+=2.5')
+        
         .to('.scene-4-wrapper', { opacity: 1, duration: 1.5 }, 'warp4+=4.5') 
         .to({}, { duration: 0.5 }) 
         
-      // --- SCENE 4: GOOGLE UI/UX ---
+      // --- SCENE 4: PC PROFESSOR ---
+        // Animation: Subtle scale/fade up
         .fromTo('.scene-4-part1', { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5 })
-        .to({}, { duration: 1.5 })
-        
-        .fromTo('.scene-4-part2', 
-            { opacity: 0, x: "100vw" }, 
-            { opacity: 1, x: 0, duration: 1, ease: "power3.inOut" }
-        )
-        .to({}, { duration: 2 })
-        .to('.scene-4-part2', { opacity: 0, x: "-100vw", duration: 0.8, ease: "power2.in" })
-        .to('.scene-4-part1', { opacity: 0, duration: 0.1 }, "<") 
+        .to({}, { duration: 1.5 }) 
+        .to('.scene-4-part1', { opacity: 0, scale: 1.1, duration: 0.4 })
+
+        // Animation: Slide up from slightly below
+        .fromTo('.scene-4-part2', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5 })
+        .to({}, { duration: 1.5 }) 
+        .to('.scene-4-part2', { opacity: 0, scale: 1.1, duration: 0.4 })
 
       // ==========================================
       // 5. WARP TO SCENE 5 
@@ -280,58 +282,62 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         <FlybyItem eraClass="era-3-flyby" z={-8000} x="5%" y="25%" rotate={-5} label="Glitch Logo" imageUrl={`${imgBase}tiktok_glitch_logo.jpg`}/>
         <FlybyItem eraClass="era-3-flyby" z={-9000} x="70%" y="60%" rotate={25} label="Llama Piñata" imageUrl={`${imgBase}fortnite_llama.jpg`}/>
 
-        {/* ================= SCENE 3: PC PROFESSOR ================= */}
-        <div className="scene-3-wrapper absolute inset-0 w-full h-full opacity-0" style={{ transform: "translateZ(-10000px)" }}>
-          <img src={`${imgBase}scene3_pcprof_board.jpg`} alt="PC Professor" className="scene-3-bg absolute inset-0 w-full h-full object-cover opacity-60" />
-          
-          <div className="absolute inset-0 flex items-center justify-center md:inset-auto md:top-[30%] md:left-[30%] md:w-[40%] md:h-[40%] p-4">
-             <div className="scene-3-part1 absolute w-[90%] md:w-full max-w-md flex flex-col items-center justify-center bg-teal-900/80 backdrop-blur-md border border-teal-500/50 rounded-xl p-6 md:p-8 opacity-0 shadow-2xl">
-                 <img src={`${imgBase}Two_interconnected_tech_stacks.jpg`} className="w-full h-32 md:h-40 object-cover mb-4 rounded-lg" />
-                 <h2 className="text-teal-400 text-2xl md:text-4xl font-semibold mb-2 drop-shadow-md text-center">MEAN / MERN</h2>
-             </div>
-
-             <div className="scene-3-part2 absolute w-[90%] md:w-full max-w-md flex flex-col items-center justify-center bg-teal-900/80 backdrop-blur-md border border-teal-500/50 rounded-xl p-6 md:p-8 opacity-0 shadow-2xl">
-                 <h2 className="text-teal-300 text-3xl md:text-5xl font-black tracking-widest drop-shadow-[0_0_15px_rgba(45,212,191,0.8)] text-center leading-tight">STRUCTURE<br/>& LOGIC</h2>
-                 <p className="text-sm md:text-lg text-teal-100 text-center mt-4 md:mt-6 bg-black/40 p-3 md:p-4 rounded w-full">SEO, Architecture & Full-Stack Mastery.</p>
-             </div>
-          </div>
-        </div>
-
-        {/* ================= ERA 4 FLYBYS ================= */}
-        <FlybyItem eraClass="era-4-flyby" z={-11000} x="60%" y="25%" rotate={5} label="Zoom Webcams" imageUrl={`${imgBase}zoom_webcams_grid.jpg`}/>
-        <FlybyItem eraClass="era-4-flyby" z={-12000} x="5%" y="55%" rotate={-10} label="Distancing" imageUrl={`${imgBase}masks_distancing.jpg`}/>
-        <FlybyItem eraClass="era-4-flyby" z={-13000} x="65%" y="65%" rotate={15} label="Bored Ape" imageUrl={`${imgBase}bored_ape_nft.jpg`}/>
-        <FlybyItem eraClass="era-4-flyby" z={-14000} x="10%" y="15%" rotate={-20} label="James Webb" imageUrl={`${imgBase}james_webb_mirror.jpg`}/>
-
-        {/* ================= SCENE 4: GOOGLE UI/UX ================= */}
-        <div className="scene-4-wrapper absolute inset-0 w-full h-full opacity-0 overflow-hidden" style={{ transform: "translateZ(-15000px)" }}>
+        {/* ================= SCENE 3: GOOGLE UI/UX ================= */}
+        <div className="scene-3-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-10000px)", willChange: "opacity, transform" }}>
           <img src={`${imgBase}scene4_uiux_monitors.jpg`} alt="Workspace" className="absolute inset-0 w-full h-full object-cover opacity-60" />
           
-          {/* Part 1: Small Centered Graphic */}
-          <div className="scene-4-part1 absolute inset-0 flex items-center justify-center p-4">
-             <div className="flex flex-col items-center justify-center bg-blue-900/80 backdrop-blur-md border border-blue-400/50 rounded-xl p-6 shadow-2xl w-[90%] max-w-md">
-                 <h2 className="text-blue-300 text-xl md:text-3xl font-mono uppercase tracking-widest text-center">Wireframing flows</h2>
-                 <img src={`${imgBase}UX_wireframe_flow_planning.jpg`} className="w-full h-32 md:h-48 object-cover mt-4 md:mt-6 rounded-lg opacity-90 border border-white/10" />
-             </div>
-          </div>
-
-          {/* Part 2: Floating Window */}
-          <div className="scene-4-part2 absolute top-[15%] bottom-[15%] left-[5%] right-[5%] md:top-[10%] md:bottom-[8%] bg-[#0f172a] flex flex-col items-center justify-center z-50 border border-blue-500/50 shadow-[0_0_50px_rgba(0,0,0,0.9)] opacity-0 rounded-xl overflow-hidden">
+          {/* Main Container - Restored to the original w-[60%] and perfectly centered/sized */}
+          <div className="absolute top-[4%] w-[95%] h-[90%] flex items-center justify-center">
              
-             <div className="absolute top-0 left-0 w-full h-8 md:h-10 bg-[#1e293b] flex items-center px-4 border-b border-blue-900/50">
-                <div className="flex gap-1 md:gap-2">
-                    <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500/80"></div>
-                    <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-500/80"></div>
-                    <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500/80"></div>
-                </div>
-                <div className="mx-auto text-[10px] md:text-xs text-blue-300/50 font-mono truncate px-4">google_collab_ui_v2.fig</div>
-             </div>
+             {/* Part 1: Floating Window 1 */}
+<div className="scene-3-part1 absolute inset-0 flex flex-col items-center justify-center opacity-0 bg-blue-900/60 backdrop-blur-md border-2 border-blue-400/50 rounded-xl p-8 shadow-2xl">
+    <h2 className="text-blue-300 text-4xl font-mono uppercase tracking-widest mb-6 drop-shadow-md">
+        Wireframing flows
+    </h2>
+    {/* Use flex-1 to fill space, object-contain to show full image */}
+    <div className="flex-1 w-full min-h-0">
+        <img 
+            src={`${imgBase}UX_wireframe_flow_planning.jpg`} 
+            className="w-full h-full object-contain rounded-lg border border-blue-400/30 opacity-90 shadow-inner" 
+        />
+    </div>
+</div>
 
-             <div className="w-full max-w-4xl px-4 md:px-8 text-center mt-6 md:mt-10">
-                 <h2 className="text-white text-3xl sm:text-5xl md:text-7xl font-black tracking-[0.1em] md:tracking-[0.2em] drop-shadow-[0_0_30px_rgba(59,130,246,0.8)] mb-4 md:mb-6">GOOGLE COLLAB</h2>
-                 <div className="w-16 md:w-32 h-1 bg-blue-500 mx-auto mb-4 md:mb-6 rounded-full"></div>
-                 <h3 className="text-blue-200 text-lg sm:text-xl md:text-3xl font-light tracking-wide uppercase">Military Grade UI/UX Architecture</h3>
-                 <p className="mt-4 md:mt-8 text-gray-400 font-mono text-xs sm:text-sm md:text-base max-w-2xl mx-auto">Scalable design systems. Component-driven development. Pixel-perfect execution.</p>
+{/* Part 2: Floating Window 2 */}
+<div className="scene-3-part2 absolute inset-0 flex flex-col items-center justify-center opacity-0 bg-blue-900/80 backdrop-blur-lg border-2 border-blue-400 shadow-[0_0_40px_rgba(59,130,246,0.8)] rounded-xl p-8">
+    <h2 className="text-white text-5xl font-black tracking-widest drop-shadow-2xl mb-2">GOOGLE COLLAB</h2>
+    <h3 className="text-blue-200 text-xl font-bold mb-6 tracking-wide">Military UI/UX Prototypes</h3>
+    {/* Wrapped in a div to control sizing without affecting the heading layout */}
+    <div className="flex-1 w-full min-h-0">
+        <img 
+            src={`${imgBase}UX_finished_product.jpg`} 
+            alt="Finished UI" 
+            className="w-full h-full object-contain rounded-lg border border-white/20 shadow-inner" 
+        />
+    </div>
+</div>
+        </div></div>
+
+        {/* ================= ERA 4 FLYBYS ================= */}
+        <FlybyItem eraClass="era-4-flyby" z={-11000} x="65%" y="25%" rotate={5} label="Zoom Webcams" imageUrl={`${imgBase}zoom_webcams_grid.jpg`}/>
+        <FlybyItem eraClass="era-4-flyby" z={-12000} x="10%" y="55%" rotate={-10} label="Masks & Space" imageUrl={`${imgBase}masks_distancing.jpg`}/>
+        <FlybyItem eraClass="era-4-flyby" z={-13000} x="75%" y="65%" rotate={15} label="Bored Ape NFT" imageUrl={`${imgBase}bored_ape_nft.jpg`}/>
+        <FlybyItem eraClass="era-4-flyby" z={-14000} x="15%" y="15%" rotate={-20} label="James Webb" imageUrl={`${imgBase}james_webb_mirror.jpg`}/>
+
+        {/* ================= SCENE 4: PC PROFESSOR ================= */}
+        <div className="scene-4-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-15000px)", willChange: "opacity, transform" }}>
+          <img src={`${imgBase}scene3_pcprof_board.jpg`} alt="PC Professor" className="absolute inset-0 w-full h-full object-cover opacity-60" />
+          <div className="absolute top-[30%] left-[30%] w-[40%] h-[40%] flex items-center justify-center">
+             
+             {/* PC Professor MEAN/MERN */}
+             <div className="scene-4-part1 absolute inset-0 flex flex-col items-center justify-center bg-teal-900/60 backdrop-blur-md border border-teal-500/50 rounded-xl p-8 opacity-0">
+                 <img src={`${imgBase}Two_interconnected_tech_stacks.jpg`} className="w-full h-32 object-cover mb-4 rounded-lg shadow-lg" />
+                 <h2 className="text-teal-400 text-4xl font-semibold mb-2 drop-shadow-md">MEAN / MERN</h2>
+             </div>
+              {/* PC Professor SEO */}
+             <div className="scene-4-part2 absolute inset-0 flex flex-col items-center justify-center bg-teal-900/60 backdrop-blur-md border border-teal-500/50 rounded-xl p-8 opacity-0">
+                 <h2 className="text-teal-300 text-5xl font-black tracking-widest drop-shadow-[0_0_15px_rgba(45,212,191,0.8)] text-center">STRUCTURE & LOGIC</h2>
+                 <p className="text-lg text-teal-100 text-center mt-4">SEO, Architecture & Full-Stack Mastery.</p>
              </div>
           </div>
         </div>
