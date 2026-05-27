@@ -203,16 +203,16 @@ export default function GraffitiCanvas() {
   };
 
   return (
+    // <div 
+    //   ref={containerRef}
+    //   className="relative w-full h-full bg-cover bg-center overflow-hidden overscroll-none touch-none"
+    //   style={{ backgroundImage: "url('https://mr3anderson.pro/masterpiece-portfolio/first_web-background.jpg')" }}
+    // >
     <div 
       ref={containerRef}
       className="relative w-full h-full bg-cover bg-center overflow-hidden overscroll-none touch-none"
-      style={{ backgroundImage: "url('https://mr3anderson.pro/masterpiece-portfolio/first_web-background.jpg')" }}
-    >
-    {/* // <div 
-    //   ref={containerRef}
-    //   className="relative w-full h-full bg-cover bg-center overflow-hidden overscroll-none touch-none"
-    //   style={{ backgroundImage: "url('/first_web-background.jpg')" }}
-    // > */}
+      style={{ backgroundImage: "url('/first_website.jpg')" }}
+    > 
       <CitySilhouette />
 
       {!isCapturing && (

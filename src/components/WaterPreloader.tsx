@@ -40,7 +40,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     const assetsToLoad = [
       '/audio/water_start.mp3', 
       '/audio/water_stop.mp3',        
-      '/audio/water-splash.mp3',
+      '/audio/thundertorain.mp3',
       '/logoblkstroke.svg',
       'https://mr3anderson.pro/masterpiece-portfolio/first_web-background.jpg'
     ];
@@ -86,7 +86,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     });
 
     splashAudioRef.current = new Howl({
-      src: ['/audio/water-splash.mp3'],
+      src: ['/audio/thundertorain.mp3'],
       volume: 0.9
     });
 
