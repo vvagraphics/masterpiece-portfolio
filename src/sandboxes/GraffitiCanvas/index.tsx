@@ -4,66 +4,180 @@ import * as htmlToImage from 'html-to-image';
 import { supabase, dataUrlToBlob } from '../../lib/supabase';
 import CitySilhouette from '../../components/CitySilhouette';
 import { Howl } from 'howler';
+import localforage from 'localforage';
 
 const GRAFFITI_COLORS = [
   '#000000', '#FFFFFF', '#FF0033', '#00E5FF', '#FF00FF', '#FFEA00', '#39FF14'
 ];
 
 const TEXTURES = {
-  black: '', // Empty string explicitly falls back to the bg-black container
-  brick: 'https://images.unsplash.com/photo-1517231425774-05cf3232c662?w=1200&q=80',
-  concrete: 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?w=1200&q=80'
+  black: '', 
+  brick: 'https://mr3anderson.pro/masterpiece-portfolio/graffiticanvas/brick.jpg',
+  concrete: 'https://mr3anderson.pro/masterpiece-portfolio/graffiticanvas/concrete.jpg'
 };
 
 type LayoutMode = 'FULL' | 'SPLIT_VERT' | 'SPLIT_HORIZ';
+type CapType = 'SKINNY' | 'STANDARD' | 'FAT';
+
+interface CapProfile {
+  size: number;
+  density: number;
+  scatter: number;
+  opacity: number;
+  name: string;
+}
+
+const CAP_PROFILES: Record<CapType, CapProfile> = {
+  SKINNY: { size: 4, density: 3, scatter: 2, opacity: 0.8, name: 'Skinny Cap' },
+  STANDARD: { size: 12, density: 5, scatter: 8, opacity: 0.5, name: 'Standard Cap' },
+  FAT: { size: 35, density: 8, scatter: 20, opacity: 0.15, name: 'NY Fat Cap' }
+};
+
+const hexToRgb = (hex: string) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 255, g: 255, b: 255 };
+};
 
 export default function GraffitiCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Audio Refs (Kept exactly as you had them for your sprite testing)
   const spraySound = useRef<Howl | null>(null);
   const shakeSound = useRef<Howl | null>(null);
   
   const lastPosRef = useRef<{ x: number, y: number } | null>(null);
   const isDrawingRef = useRef(false);
   const historyRef = useRef<ImageData[]>([]);
+  const brushStampRef = useRef<HTMLCanvasElement | null>(null);
+  const poolingAnimationFrameRef = useRef<number | null>(null);
 
+  const [sessionId, setSessionId] = useState<string>('');
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState(GRAFFITI_COLORS[2]);
-  const [brushSize, setBrushSize] = useState(25);
-  
+  const [activeCap, setActiveCap] = useState<CapType>('STANDARD');
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('FULL');
-  const [activeTexture, setActiveTexture] = useState<string>(TEXTURES.black); // Default to Black
+  const [activeTexture, setActiveTexture] = useState<string>(TEXTURES.black);
   
+  // Loading States
   const [isCapturing, setIsCapturing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'IDLE' | 'SAVING' | 'SUCCESS' | 'ERROR'>('IDLE');
+  const [wipSaveStatus, setWipSaveStatus] = useState<'IDLE' | 'SAVING' | 'SUCCESS' | 'ERROR'>('IDLE');
+  const [wipLoadStatus, setWipLoadStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR' | 'NOT_FOUND'>('IDLE');
 
+  // --- 1. Session ID Generator ---
+  useEffect(() => {
+    const initSession = async () => {
+      let storedId = await localforage.getItem<string>('portfolio_session_id');
+      if (!storedId) {
+        storedId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        await localforage.setItem('portfolio_session_id', storedId);
+      }
+      setSessionId(storedId);
+    };
+    initSession();
+  }, []);
+
+  // --- 2. Local Draft Auto-Save ---
+  const saveDraftToBrowser = async (currentLayout: LayoutMode, currentTexture: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    try {
+      const paintData = canvas.toDataURL('image/png');
+      const existingDrafts: any = await localforage.getItem('portfolio_drafts') || {};
+      const updatedDrafts = {
+        ...existingDrafts,
+        graffiti: {
+          ...(existingDrafts.graffiti || {}),
+          [currentLayout]: { paintData, texture: currentTexture, width: canvas.width, height: canvas.height, lastUpdated: Date.now() }
+        }
+      };
+      await localforage.setItem('portfolio_drafts', updatedDrafts);
+    } catch (err) {
+      console.error('Local save failed:', err);
+    }
+  };
+
+  // --- 3. Local Draft Auto-Load ---
+  useEffect(() => {
+    const loadDraft = async () => {
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d', { willReadFrequently: true });
+      if (!canvas || !ctx) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      historyRef.current = [];
+
+      try {
+        const drafts: any = await localforage.getItem('portfolio_drafts');
+        const myDraft = drafts?.graffiti?.[layoutMode];
+
+        if (myDraft) {
+          setActiveTexture(myDraft.texture);
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0);
+            saveState(); 
+          };
+          img.src = myDraft.paintData;
+        } else {
+          saveState(); 
+        }
+      } catch (err) {
+        console.error('Local load failed:', err);
+      }
+    };
+    loadDraft();
+  }, [layoutMode]);
+
+  // Brush Generation
+  useEffect(() => {
+    const profile = CAP_PROFILES[activeCap];
+    const stampSize = profile.size * 2 + profile.scatter * 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = stampSize;
+    canvas.height = stampSize;
+    const ctx = canvas.getContext('2d');
+    
+    if (ctx) {
+      const rgb = hexToRgb(color);
+      const center = stampSize / 2;
+
+      const grad = ctx.createRadialGradient(center, center, 0, center, center, profile.size);
+      grad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${profile.opacity})`);
+      grad.addColorStop(0.4, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${profile.opacity * 0.5})`);
+      grad.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, stampSize, stampSize);
+
+      ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.min(1, profile.opacity + 0.4)})`;
+      const speckleCount = profile.size * profile.density;
+      for (let i = 0; i < speckleCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.pow(Math.random(), 1.5) * (profile.size + profile.scatter);
+        ctx.fillRect(center + Math.cos(angle) * distance, center + Math.sin(angle) * distance, 1, 1);
+      }
+    }
+    brushStampRef.current = canvas;
+  }, [color, activeCap]);
+
+  // Audio & Resize Setup
   useEffect(() => {
     spraySound.current = new Howl({
       src: ['/audio/spray_sprite.mp3'], 
-      sprite: {
-        start: [100, 300],             
-        loop: [300, 900, true],     
-        end: [1200, 1500]             
-      },
+      sprite: { start: [100, 300], loop: [300, 900, true], end: [1200, 1500] },
       volume: 0.6,
     });
-
-    shakeSound.current = new Howl({
-      src: ['/audio/shake.mp3'],
-      volume: 0.8,
-    });
+    shakeSound.current = new Howl({ src: ['/audio/shake.mp3'], volume: 0.8 });
 
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    
-    saveState();
 
     const handleResize = () => {
       const tempCanvas = document.createElement('canvas');
@@ -74,7 +188,8 @@ export default function GraffitiCanvas() {
 
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      ctx.drawImage(tempCanvas, 0, 0);
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.drawImage(tempCanvas, 0, 0);
     };
 
     window.addEventListener('resize', handleResize);
@@ -82,6 +197,7 @@ export default function GraffitiCanvas() {
       window.removeEventListener('resize', handleResize);
       spraySound.current?.unload();
       shakeSound.current?.unload();
+      if (poolingAnimationFrameRef.current) cancelAnimationFrame(poolingAnimationFrameRef.current);
     };
   }, []);
 
@@ -89,7 +205,6 @@ export default function GraffitiCanvas() {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx || canvas.width === 0 || canvas.height === 0) return;
-    
     const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
     historyRef.current.push(data);
     if (historyRef.current.length > 20) historyRef.current.shift();
@@ -99,28 +214,26 @@ export default function GraffitiCanvas() {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx || historyRef.current.length <= 1) return;
-
     historyRef.current.pop(); 
     const previousState = historyRef.current[historyRef.current.length - 1];
     ctx.putImageData(previousState, 0, 0);
+    saveDraftToBrowser(layoutMode, activeTexture);
   };
 
   const clearWall = () => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
-    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     saveState();
+    saveDraftToBrowser(layoutMode, activeTexture);
   };
 
   const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
-    
     const rect = canvas.getBoundingClientRect();
     let clientX, clientY;
-
     if ('touches' in e) {
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
@@ -128,65 +241,48 @@ export default function GraffitiCanvas() {
       clientX = (e as React.MouseEvent).clientX;
       clientY = (e as React.MouseEvent).clientY;
     }
-
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
-    };
+    return { x: clientX - rect.left, y: clientY - rect.top };
   };
 
-  // NEW SHIELD LOGIC: Prevents drawing on the background image when split
   const isInsideActiveArea = (x: number, y: number) => {
     if (layoutMode === 'FULL') return true;
-    
     const canvas = canvasRef.current;
     if (!canvas) return false;
-
-    if (layoutMode === 'SPLIT_VERT') {
-      return x >= canvas.width / 2; // Right half only
-    }
-    
-    if (layoutMode === 'SPLIT_HORIZ') {
-      return y >= canvas.height / 2; // Bottom half only
-    }
-
+    if (layoutMode === 'SPLIT_VERT') return x >= canvas.width / 2; 
+    if (layoutMode === 'SPLIT_HORIZ') return y >= canvas.height / 2; 
     return false;
   };
 
   const handleColorSelect = (newColor: string) => {
     setColor(newColor);
-    if (shakeSound.current) {
-      shakeSound.current.play();
+    if (shakeSound.current) shakeSound.current.play();
+  };
+
+  const poolPaint = () => {
+    if (isDrawingRef.current && lastPosRef.current && brushStampRef.current) {
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      const { x, y } = lastPosRef.current;
+
+      if (ctx && isInsideActiveArea(x, y)) {
+        ctx.globalAlpha = 0.2; 
+        ctx.drawImage(brushStampRef.current, x - brushStampRef.current.width / 2, y - brushStampRef.current.height / 2);
+        ctx.globalAlpha = 1.0;
+      }
+      poolingAnimationFrameRef.current = requestAnimationFrame(poolPaint);
     }
   };
 
-  const spray = (x: number, y: number) => {
+  const applyStamp = (x: number, y: number) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
-    if (!ctx) return;
-
-    const density = brushSize * 3; 
-    ctx.fillStyle = color;
-
-    for (let i = 0; i < density; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const radius = (Math.random() * Math.random()) * brushSize; 
-      
-      const offsetX = Math.cos(angle) * radius;
-      const offsetY = Math.sin(angle) * radius;
-
-      ctx.globalAlpha = 0.4; 
-      ctx.fillRect(x + offsetX, y + offsetY, 1, 1);
-    }
-    ctx.globalAlpha = 1.0;
+    if (!ctx || !brushStampRef.current) return;
+    ctx.drawImage(brushStampRef.current, x - brushStampRef.current.width / 2, y - brushStampRef.current.height / 2);
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     if (isDrawingRef.current) return; 
-
     const coords = getCoordinates(e);
-
-    // Block the spray immediately if clicking outside the active zone
     if (!isInsideActiveArea(coords.x, coords.y)) return;
 
     setIsDrawing(true);
@@ -196,13 +292,12 @@ export default function GraffitiCanvas() {
     if (spraySound.current) {
       const startId = spraySound.current.play('start');
       spraySound.current.once('end', () => {
-        if (isDrawingRef.current && spraySound.current) {
-          spraySound.current.play('loop');
-        }
+        if (isDrawingRef.current && spraySound.current) spraySound.current.play('loop');
       }, startId);
     }
     
-    spray(coords.x, coords.y);
+    applyStamp(coords.x, coords.y);
+    poolPaint(); 
   };
 
   const stopDrawing = () => {
@@ -211,11 +306,11 @@ export default function GraffitiCanvas() {
     isDrawingRef.current = false;
     lastPosRef.current = null;
     
-    if (spraySound.current) {
-      spraySound.current.stop();    
-    }
+    if (poolingAnimationFrameRef.current) cancelAnimationFrame(poolingAnimationFrameRef.current);
+    if (spraySound.current) spraySound.current.stop();    
     
     saveState();
+    saveDraftToBrowser(layoutMode, activeTexture); 
   };
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
@@ -227,64 +322,40 @@ export default function GraffitiCanvas() {
 
     const distance = Math.hypot(currentPos.x - lastPos.x, currentPos.y - lastPos.y);
     const angle = Math.atan2(currentPos.y - lastPos.y, currentPos.x - lastPos.x);
-
-    const step = Math.max(5, brushSize / 2); 
+    const step = Math.max(1, CAP_PROFILES[activeCap].size / 3); 
 
     for (let i = 0; i < distance; i += step) {
       const x = lastPos.x + (Math.cos(angle) * i);
       const y = lastPos.y + (Math.sin(angle) * i);
-      
-      // Restrict interpolation dots to the active zone
-      if (isInsideActiveArea(x, y)) {
-        spray(x, y);
-      }
+      if (isInsideActiveArea(x, y)) applyStamp(x, y);
     }
-
     lastPosRef.current = currentPos;
   };
 
-  const handleCloudSave = async () => {
+  // --- CLOUD PUBLISH (Gallery) ---
+  const handleCloudSave = async () => { 
     if (!containerRef.current || saveStatus === 'SAVING') return;
-    
     setSaveStatus('SAVING');
     setIsCapturing(true); 
-    
     try {
       await new Promise(resolve => setTimeout(resolve, 100)); 
       const dataUrl = await htmlToImage.toPng(containerRef.current, { quality: 0.95, pixelRatio: 2 });
-      
       const blob = await dataUrlToBlob(dataUrl);
       const fileName = `artwork_${Date.now()}.png`;
 
-      const { error: uploadError } = await supabase
-        .storage
-        .from('gallery')
-        .upload(`public/${fileName}`, blob);
-
+      const { error: uploadError } = await supabase.storage.from('gallery').upload(`public/${fileName}`, blob);
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase
-        .storage
-        .from('gallery')
-        .getPublicUrl(`public/${fileName}`);
-
-      const { error: dbError } = await supabase
-        .from('creations')
-        .insert([
-          { 
-            image_url: publicUrl, 
-            sandbox_type: 'GRAFFITI',
-            created_at: new Date().toISOString()
-          }
-        ]);
-
+      const { data: { publicUrl } } = supabase.storage.from('gallery').getPublicUrl(`public/${fileName}`);
+      const { error: dbError } = await supabase.from('creations').insert([
+          { image_url: publicUrl, sandbox_type: 'GRAFFITI', created_at: new Date().toISOString() }
+      ]);
       if (dbError) throw dbError;
       
       setSaveStatus('SUCCESS');
       setTimeout(() => setSaveStatus('IDLE'), 4000);
-
     } catch (err) {
-      console.error('Upload failed:', err);
+      console.error('Gallery Upload failed:', err);
       setSaveStatus('ERROR');
       setTimeout(() => setSaveStatus('IDLE'), 4000);
     } finally {
@@ -292,49 +363,117 @@ export default function GraffitiCanvas() {
     }
   };
 
-  // Dynamic UI Positioning Classes to keep out of the way of the canvas & museum button
+  // --- CLOUD DRAFT SAVE (Supabase WIPs) ---
+  const handleSaveForLater = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !sessionId || wipSaveStatus === 'SAVING') return;
+    setWipSaveStatus('SAVING');
+    
+    try {
+      const paintData = canvas.toDataURL('image/png');
+      const blob = await dataUrlToBlob(paintData);
+      const fileName = `${sessionId}_${layoutMode}.png`;
+
+      // 1. Upload/Overwrite image in wip-drafts bucket
+      const { error: uploadError } = await supabase.storage
+        .from('wip-drafts')
+        .upload(fileName, blob, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from('wip-drafts').getPublicUrl(fileName);
+
+      // 2. Upsert record in wip_sessions table
+      const { error: dbError } = await supabase.from('wip_sessions').upsert({
+        session_id: sessionId,
+        layout: layoutMode,
+        texture: activeTexture,
+        image_url: `${publicUrl}?t=${Date.now()}`, // Cache buster
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'session_id, layout' });
+      
+      if (dbError) throw dbError;
+
+      setWipSaveStatus('SUCCESS');
+      setTimeout(() => setWipSaveStatus('IDLE'), 4000);
+    } catch (err) {
+      console.error('Cloud Draft Save failed:', err);
+      setWipSaveStatus('ERROR');
+      setTimeout(() => setWipSaveStatus('IDLE'), 4000);
+    }
+  };
+
+  // --- CLOUD DRAFT LOAD (Supabase WIPs) ---
+  const handleLoadFromCloud = async () => {
+    if (!sessionId || wipLoadStatus === 'LOADING') return;
+    setWipLoadStatus('LOADING');
+
+    try {
+      const { data, error } = await supabase
+        .from('wip_sessions')
+        .select('*')
+        .eq('session_id', sessionId)
+        .eq('layout', layoutMode)
+        .single();
+
+      if (error || !data) {
+        setWipLoadStatus('NOT_FOUND');
+        setTimeout(() => setWipLoadStatus('IDLE'), 4000);
+        return;
+      }
+
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext('2d');
+      if (!canvas || !ctx) return;
+
+      // Restore Texture
+      setActiveTexture(data.texture);
+
+      // Restore Paint
+      const img = new Image();
+      img.crossOrigin = "anonymous"; // Prevent canvas tainting from Supabase URL
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        saveState();
+        saveDraftToBrowser(layoutMode, data.texture); // Sync loaded data back to local browser storage
+        setWipLoadStatus('SUCCESS');
+        setTimeout(() => setWipLoadStatus('IDLE'), 4000);
+      };
+      img.src = data.image_url;
+
+    } catch (err) {
+      console.error('Cloud Draft Load failed:', err);
+      setWipLoadStatus('ERROR');
+      setTimeout(() => setWipLoadStatus('IDLE'), 4000);
+    }
+  };
+
   const uiPositionClass = layoutMode === 'SPLIT_HORIZ' ? 'top-20' : 'bottom-8';
   const uiWidthClass = layoutMode === 'SPLIT_VERT' ? 'max-w-[45vw]' : 'max-w-[90vw]';
 
   return (
-    <div 
-      ref={containerRef}
-      className="relative w-screen h-screen bg-black overflow-hidden touch-none overscroll-none"
-    >
-      {/* 1. Background Image Container */}
-      <div 
-        className={`absolute top-0 left-0 transition-all duration-500 ease-in-out ${
+    <div ref={containerRef} className="relative w-screen h-screen bg-black overflow-hidden touch-none overscroll-none">
+      
+      <div className={`absolute top-0 left-0 transition-all duration-500 ease-in-out ${
           layoutMode === 'FULL' ? 'w-full h-full' : 
-          layoutMode === 'SPLIT_VERT' ? 'w-1/2 h-full' : 
-          'w-full h-1/2'
+          layoutMode === 'SPLIT_VERT' ? 'w-1/2 h-full' : 'w-full h-1/2'
         }`}
       >
-        <div 
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/first_website.jpg')" }}
-        />
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/first_website.jpg')" }} />
         <CitySilhouette />
       </div>
 
-      {/* 2. Visual Canvas Background Container (Only renders when split) */}
       {layoutMode !== 'FULL' && (
-        <div 
-          className={`absolute bottom-0 right-0 bg-black transition-all duration-500 ease-in-out ${
-            layoutMode === 'SPLIT_VERT' ? 'w-1/2 h-full border-l-4 border-zinc-900' : 
-            'w-full h-1/2 border-t-4 border-zinc-900'
+        <div className={`absolute bottom-0 right-0 bg-black transition-all duration-500 ease-in-out ${
+            layoutMode === 'SPLIT_VERT' ? 'w-1/2 h-full border-l-4 border-zinc-900' : 'w-full h-1/2 border-t-4 border-zinc-900'
           }`}
         >
-          {/* Explicitly checks if activeTexture exists before applying url() */}
           {activeTexture && (
-            <div 
-              className="absolute inset-0 bg-cover bg-center opacity-40 pointer-events-none" 
-              style={{ backgroundImage: `url(${activeTexture})` }} 
-            />
+            <div className="absolute inset-0 bg-cover bg-center opacity-40 pointer-events-none" style={{ backgroundImage: `url(${activeTexture})` }} />
           )}
         </div>
       )}
 
-      {/* 3. The Unified Full-Screen Drawing Layer */}
       <canvas
         ref={canvasRef}
         onMouseDown={startDrawing}
@@ -348,7 +487,6 @@ export default function GraffitiCanvas() {
         className="absolute inset-0 w-full h-full z-10 cursor-crosshair touch-none"
       />
 
-      {/* 4. Smart UI Controls */}
       {!isCapturing && (
         <div className={`absolute z-20 left-4 md:left-8 transition-all duration-500 ease-in-out ${uiPositionClass} ${uiWidthClass} bg-black/80 p-4 border border-zinc-700 rounded text-white flex flex-col gap-4 shadow-xl backdrop-blur-sm overflow-y-auto max-h-[80vh]`}>
           
@@ -382,47 +520,74 @@ export default function GraffitiCanvas() {
               </div>
             </div>
 
-            <label className="flex items-center gap-2">
-              <span className="hidden sm:inline text-sm text-zinc-400">Cap Size:</span>
-              <input 
-                type="range" 
-                min="10" 
-                max="60" 
-                value={brushSize} 
-                onChange={(e) => setBrushSize(Number(e.target.value))}
-                className="w-24 accent-red-500"
-              />
-            </label>
-
-            <div className="h-6 w-px bg-zinc-700 mx-2 hidden sm:block"></div>
-
-            <button onClick={undo} disabled={historyRef.current.length <= 1} className="text-sm font-bold uppercase tracking-wider hover:text-red-400 disabled:opacity-50 transition-colors">
-              Undo
-            </button>
-            <button onClick={clearWall} className="text-sm font-bold uppercase tracking-wider hover:text-red-400 transition-colors">
-              Clear
-            </button>
-            
-            <div className="relative">
-              <button 
-                onClick={handleCloudSave} 
-                disabled={saveStatus === 'SAVING'}
-                className="bg-red-600 hover:bg-red-500 disabled:bg-red-800 px-4 py-1 rounded font-bold transition-colors uppercase tracking-wider"
-              >
-                {saveStatus === 'SAVING' ? 'UPLOADING...' : 'Save'}
-              </button>
-
-              {saveStatus === 'SUCCESS' && (
-                <span className="absolute top-full left-0 mt-2 w-max text-green-400 font-mono text-xs tracking-widest animate-pulse">
-                  SAVED TO ARCHIVES
-                </span>
-              )}
-              {saveStatus === 'ERROR' && (
-                <span className="absolute top-full left-0 mt-2 w-max text-red-400 font-mono text-xs tracking-widest">
-                  UPLOAD FAILED
-                </span>
-              )}
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:inline text-sm text-zinc-400">Caps:</span>
+              {(Object.keys(CAP_PROFILES) as CapType[]).map((cap) => (
+                <button
+                  key={cap}
+                  onClick={() => setActiveCap(cap)}
+                  className={`px-3 py-1 text-xs font-bold rounded border transition-colors ${
+                    activeCap === cap ? 'bg-zinc-200 text-black border-white' : 'border-zinc-600 hover:border-zinc-400'
+                  }`}
+                  title={CAP_PROFILES[cap].name}
+                >
+                  {cap}
+                </button>
+              ))}
             </div>
+
+            <div className="h-6 w-px bg-zinc-700 mx-2 hidden lg:block"></div>
+
+            <div className="flex gap-4">
+              <button onClick={undo} disabled={historyRef.current.length <= 1} className="text-sm font-bold uppercase tracking-wider hover:text-red-400 disabled:opacity-50 transition-colors">Undo</button>
+              <button onClick={clearWall} className="text-sm font-bold uppercase tracking-wider hover:text-red-400 transition-colors">Clear</button>
+            </div>
+            
+            <div className="h-6 w-px bg-zinc-700 mx-2 hidden lg:block"></div>
+
+            {/* Cloud Save & Load Controls */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              
+              <div className="flex gap-2">
+                <div className="relative">
+                  <button 
+                    onClick={handleSaveForLater} 
+                    disabled={wipSaveStatus === 'SAVING' || wipLoadStatus === 'LOADING'}
+                    className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 disabled:bg-zinc-900 px-3 py-1 rounded font-bold transition-colors uppercase tracking-wider text-xs"
+                  >
+                    {wipSaveStatus === 'SAVING' ? 'SAVING...' : 'Save WIP'}
+                  </button>
+                  {wipSaveStatus === 'SUCCESS' && <span className="absolute bottom-full left-0 mb-1 w-max text-green-400 font-mono text-xs tracking-widest">CLOUD SAVED</span>}
+                  {wipSaveStatus === 'ERROR' && <span className="absolute bottom-full left-0 mb-1 w-max text-red-400 font-mono text-xs tracking-widest">SAVE FAILED</span>}
+                </div>
+
+                <div className="relative">
+                  <button 
+                    onClick={handleLoadFromCloud} 
+                    disabled={wipLoadStatus === 'LOADING' || wipSaveStatus === 'SAVING'}
+                    className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 disabled:bg-zinc-900 px-3 py-1 rounded font-bold transition-colors uppercase tracking-wider text-xs"
+                  >
+                    {wipLoadStatus === 'LOADING' ? 'LOADING...' : 'Load WIP'}
+                  </button>
+                  {wipLoadStatus === 'SUCCESS' && <span className="absolute bottom-full left-0 mb-1 w-max text-green-400 font-mono text-xs tracking-widest">RESTORED</span>}
+                  {wipLoadStatus === 'NOT_FOUND' && <span className="absolute bottom-full left-0 mb-1 w-max text-zinc-400 font-mono text-xs tracking-widest">NO DRAFT FOUND</span>}
+                  {wipLoadStatus === 'ERROR' && <span className="absolute bottom-full left-0 mb-1 w-max text-red-400 font-mono text-xs tracking-widest">LOAD FAILED</span>}
+                </div>
+              </div>
+
+              <div className="relative ml-auto">
+                <button 
+                  onClick={handleCloudSave} 
+                  disabled={saveStatus === 'SAVING'}
+                  className="bg-red-600 hover:bg-red-500 disabled:bg-red-800 px-4 py-1 rounded font-bold transition-colors uppercase tracking-wider"
+                >
+                  {saveStatus === 'SAVING' ? 'PUBLISHING...' : 'Publish'}
+                </button>
+                {saveStatus === 'SUCCESS' && <span className="absolute top-full left-0 mt-2 w-max text-green-400 font-mono text-xs tracking-widest animate-pulse">ADDED TO GALLERY</span>}
+                {saveStatus === 'ERROR' && <span className="absolute top-full left-0 mt-2 w-max text-red-400 font-mono text-xs tracking-widest">PUBLISH FAILED</span>}
+              </div>
+            </div>
+
           </div>
 
           <div className="h-px w-full bg-zinc-700"></div>
@@ -430,48 +595,39 @@ export default function GraffitiCanvas() {
           <div className="flex flex-col xl:flex-row gap-6 items-start xl:items-center">
             <div className="flex gap-2">
               <span className="text-xs text-zinc-400 uppercase tracking-widest self-center mr-2">Playground:</span>
-              <button 
-                onClick={() => { setLayoutMode('FULL'); clearWall(); }}
-                className={`px-3 py-1 text-xs font-bold rounded border transition-colors ${layoutMode === 'FULL' ? 'bg-red-600 border-red-500' : 'border-zinc-600 hover:border-zinc-400'}`}
-              >
-                FULL SCREEN
-              </button>
-              <button 
-                onClick={() => { setLayoutMode('SPLIT_VERT'); clearWall(); }}
-                className={`px-3 py-1 text-xs font-bold rounded border transition-colors ${layoutMode === 'SPLIT_VERT' ? 'bg-red-600 border-red-500' : 'border-zinc-600 hover:border-zinc-400'}`}
-              >
-                VERTICAL SPLIT
-              </button>
-              <button 
-                onClick={() => { setLayoutMode('SPLIT_HORIZ'); clearWall(); }}
-                className={`px-3 py-1 text-xs font-bold rounded border transition-colors ${layoutMode === 'SPLIT_HORIZ' ? 'bg-red-600 border-red-500' : 'border-zinc-600 hover:border-zinc-400'}`}
-              >
-                HORIZONTAL SPLIT
-              </button>
+              {(['FULL', 'SPLIT_VERT', 'SPLIT_HORIZ'] as LayoutMode[]).map((mode) => (
+                <button 
+                  key={mode}
+                  onClick={() => {
+                    if (mode === 'FULL') setActiveTexture(TEXTURES.black);
+                    setLayoutMode(mode); 
+                  }}
+                  className={`px-3 py-1 text-xs font-bold rounded border transition-colors ${layoutMode === mode ? 'bg-red-600 border-red-500' : 'border-zinc-600 hover:border-zinc-400'}`}
+                >
+                  {mode.replace('_', ' ')}
+                </button>
+              ))}
             </div>
 
             {layoutMode !== 'FULL' && (
                <div className="flex gap-2 items-center">
                  <span className="text-xs text-zinc-400 uppercase tracking-widest mr-2">Surface:</span>
-                 <button 
-                   onClick={() => setActiveTexture(TEXTURES.black)} 
-                   className={`w-6 h-6 bg-black border-2 rounded transition-colors ${activeTexture === TEXTURES.black ? 'border-white' : 'border-transparent hover:border-white/50'}`}
-                   title="Black Wall"
-                 ></button>
-                 <button 
-                   onClick={() => setActiveTexture(TEXTURES.brick)} 
-                   className={`w-6 h-6 bg-red-900 border-2 rounded transition-colors ${activeTexture === TEXTURES.brick ? 'border-white' : 'border-transparent hover:border-white/50'}`}
-                   title="Brick Wall"
-                 ></button>
-                 <button 
-                   onClick={() => setActiveTexture(TEXTURES.concrete)} 
-                   className={`w-6 h-6 bg-zinc-600 border-2 rounded transition-colors ${activeTexture === TEXTURES.concrete ? 'border-white' : 'border-transparent hover:border-white/50'}`}
-                   title="Concrete Wall"
-                 ></button>
+                 {Object.entries(TEXTURES).map(([name, url]) => (
+                    <button 
+                      key={name}
+                      onClick={() => {
+                        setActiveTexture(url);
+                        saveDraftToBrowser(layoutMode, url); 
+                      }} 
+                      className={`w-6 h-6 border-2 rounded transition-colors ${
+                        activeTexture === url ? 'border-white' : 'border-transparent hover:border-white/50'
+                      } ${name === 'black' ? 'bg-black' : name === 'brick' ? 'bg-red-900' : 'bg-zinc-600'}`}
+                      title={`${name} Wall`}
+                    />
+                 ))}
                </div>
             )}
           </div>
-          
         </div>
       )}
 

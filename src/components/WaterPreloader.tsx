@@ -269,7 +269,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
 
     const bgImg = new Image();
     bgImg.crossOrigin = "Anonymous"; 
-    bgImg.src = 'https://mr3anderson.pro/masterpiece-portfolio/first_web-background.jpg'; 
+    bgImg.src = 'https://mr3anderson.pro/masterpiece-portfolio/the_ultimate_background.jpg'; 
 
     bgImg.onload = () => {
       const canvasRatio = width / height;
