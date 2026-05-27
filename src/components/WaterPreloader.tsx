@@ -42,7 +42,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       '/audio/water_stop.mp3',        
       '/audio/thundertorain.mp3',
       '/logoblkstroke.svg',
-      'https://mr3anderson.pro/masterpiece-portfolio/first_web-background.jpg'
     ];
 
     let loadedCount = 0;
