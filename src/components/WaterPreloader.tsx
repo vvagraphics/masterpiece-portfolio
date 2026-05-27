@@ -23,10 +23,12 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
   // --- PHYSICS & SYNC REFS ---
   const targetVolumeRef = useRef(0);
   const currentVolumeRef = useRef(0);
+  const targetRateRef = useRef(0.9);
+  const currentRateRef = useRef(0.9);
   const lastMousePosRef = useRef({ x: 0, y: 0 });
   const lastMoveTimeRef = useRef(0);
   const isMovingRef = useRef(false);
-  const isFirstMoveRef = useRef(true); // NEW: Prevents the teleportation splash
+  const isFirstMoveRef = useRef(true); 
   
   // --- RAIN STORM REFS ---
   const triggerRainstormRef = useRef<(() => void) | null>(null);
@@ -36,8 +38,8 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
   // --- ASSET PRELOADER ---
   useEffect(() => {
     const assetsToLoad = [
-      '/audio/water_start.mp3', // Reverted to exact file in your repo
-      '/audio/water_stop.mp3',        // Reverted to exact file in your repo
+      '/audio/water_start.mp3', 
+      '/audio/water_stop.mp3',        
       '/audio/water-splash.mp3',
       '/logoblkstroke.svg',
       'https://mr3anderson.pro/masterpiece-portfolio/first_web-background.jpg'
@@ -125,6 +127,8 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       // --- 1. ZERO-DELAY FRAME-SYNCED AUDIO LOGIC ---
       if (now - lastMoveTimeRef.current > 50) {
         targetVolumeRef.current = 0;
+        targetRateRef.current = 0.85; // Return to resting pitch
+        
         if (isMovingRef.current) {
           isMovingRef.current = false;
           if (isAudioEnabled && settleAudioRef.current) {
@@ -138,15 +142,17 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           hoverAudioRef.current.play();
         }
         
-        currentVolumeRef.current += (targetVolumeRef.current - currentVolumeRef.current) * 0.3;
+        // Smoothly interpolate volume
+        currentVolumeRef.current += (targetVolumeRef.current - currentVolumeRef.current) * 0.15;
         const newVolume = Math.min(1, Math.max(0, currentVolumeRef.current));
         hoverAudioRef.current.volume(newVolume);
         
+        // Smoothly interpolate pitch/rate based on mouse velocity
         if (targetVolumeRef.current > 0) {
-           hoverAudioRef.current.rate(0.9 + (newVolume * 0.3));
+           currentRateRef.current += (targetRateRef.current - currentRateRef.current) * 0.1;
+           hoverAudioRef.current.rate(currentRateRef.current);
         }
       } else if (hoverAudioRef.current && hoverAudioRef.current.playing()) {
-         // Force pause if user mutes while moving
          hoverAudioRef.current.pause();
          currentVolumeRef.current = 0;
       }
@@ -160,7 +166,8 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           const rx = Math.floor(Math.random() * (physicsWidth - 2)) + 1;
           const ry = Math.floor(Math.random() * (physicsHeight - 2)) + 1;
           const idx = rx + ry * physicsWidth;
-          previous[idx] = 300 + Math.random() * 800; 
+          //controls the Raindrop lighting
+          previous[idx] = 150 + Math.random() * 400; 
         }
         
         stormIntensityRef.current += 0.4;
@@ -176,6 +183,16 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           ) / 2 - current[i];
           current[i] *= DAMPING;
         }
+      }
+
+      // ERADICATE ARTIFACTS: Force boundaries to remain absolutely still
+      for (let i = 0; i < physicsWidth; i++) {
+        current[i] = 0; // Top edge
+        current[i + (physicsHeight - 1) * physicsWidth] = 0; // Bottom edge
+      }
+      for (let i = 0; i < physicsHeight; i++) {
+        current[i * physicsWidth] = 0; // Left edge
+        current[(physicsWidth - 1) + i * physicsWidth] = 0; // Right edge
       }
 
       const baseData = baseImageData.data;
@@ -197,12 +214,13 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
               const diffY = current[pi + physicsWidth] - current[pi - physicsWidth];
               dx += Math.floor(diffX * 1.5);
               dy += Math.floor(diffY * 1.5);
-
-              shading = (diffX - diffY) * 0.4; 
+//Handles the lighting on the water 1 of 2parts
+              shading = (diffX - diffY) * 0.25; 
           }
 
-          dx = Math.max(0, Math.min(width - 1, dx));
-          dy = Math.max(0, Math.min(height - 1, dy));
+          // Aggressive clamping to ensure no boundary tearing
+          dx = Math.max(5, Math.min(width - 6, dx));
+          dy = Math.max(5, Math.min(height - 6, dy));
 
           const outIndex = (x + y * width) * 4;
           const inIndex = (dx + dy * width) * 4;
@@ -217,12 +235,12 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
             g *= darkness;
             b *= darkness;
           }
-
+//controls the lighting on the ripple 2 of 2 parts
           if (shading > 0) {
-            r += shading;
-            g += shading * 1.1; 
-            b += shading * 1.3; 
-          } else {
+  r += shading;
+  g += shading * 1.05; 
+  b += shading * 1.15; 
+} else {
             r += shading;
             g += shading;
             b += shading;
@@ -298,7 +316,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
 
     // --- 5. THE FIX: MOUSE INTERPOLATION FOR FLUIDITY ---
     const handleMouseMove = (e: MouseEvent) => {
-      // PREVENT TELEPORTATION GLITCH ON FIRST HOVER
       if (isFirstMoveRef.current) {
         isFirstMoveRef.current = false;
         lastMousePosRef.current = { x: e.clientX, y: e.clientY };
@@ -345,7 +362,12 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       if (!isMovingRef.current) {
         isMovingRef.current = true;
       }
-      targetVolumeRef.current = 0.6; 
+
+      // --- VELOCITY AUDIO LOGIC ---
+      const speed = Math.min(1, distance / 40); 
+      //CONTROLS THE VOLUME OF THE RIPPLE HOVER OVER
+      targetVolumeRef.current = 0.8 + (speed * 0.5); 
+      targetRateRef.current = 0.85 + (speed * 0.2); 
     };
 
     triggerRainstormRef.current = () => {
@@ -358,13 +380,12 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
       canvas.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [isAudioEnabled]); // Re-bind effect when audio state changes
+  }, [isAudioEnabled]); 
 
   const triggerBucketSplash = () => {
     if (!isReady || isSplashing) return; 
     setIsSplashing(true);
     
-    // FORCE UNLOCK BROWSER AUDIO API ON CLICK
     setIsAudioEnabled(true);
     if (Howler.ctx && Howler.ctx.state === 'suspended') {
       Howler.ctx.resume();
@@ -395,7 +416,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       <button
         onClick={(e) => {
           e.stopPropagation(); 
-          // EXPLICITLY TELL BROWSER TO UNLOCK AUDIO ON MUTE BUTTON CLICK
           if (!isAudioEnabled && Howler.ctx && Howler.ctx.state === 'suspended') {
             Howler.ctx.resume();
           }
