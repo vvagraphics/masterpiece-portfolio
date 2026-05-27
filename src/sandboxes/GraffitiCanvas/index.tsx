@@ -5,12 +5,12 @@ import { supabase, dataUrlToBlob } from '../../lib/supabase';
 import CitySilhouette from '../../components/CitySilhouette';
 import { Howl } from 'howler';
 
-// Curated Graffiti Colors are back!
 const GRAFFITI_COLORS = [
   '#000000', '#FFFFFF', '#FF0033', '#00E5FF', '#FF00FF', '#FFEA00', '#39FF14'
 ];
 
 const TEXTURES = {
+  black: '', // Empty string explicitly falls back to the bg-black container
   brick: 'https://images.unsplash.com/photo-1517231425774-05cf3232c662?w=1200&q=80',
   concrete: 'https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?w=1200&q=80'
 };
@@ -19,38 +19,33 @@ type LayoutMode = 'FULL' | 'SPLIT_VERT' | 'SPLIT_HORIZ';
 
 export default function GraffitiCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasContainerRef = useRef<HTMLDivElement>(null); 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Audio Refs
+  // Audio Refs (Kept exactly as you had them for your sprite testing)
   const spraySound = useRef<Howl | null>(null);
   const shakeSound = useRef<Howl | null>(null);
   
-  // State Refs for tracking drawing & coordinates perfectly
   const lastPosRef = useRef<{ x: number, y: number } | null>(null);
   const isDrawingRef = useRef(false);
   const historyRef = useRef<ImageData[]>([]);
 
-  // UI State
   const [isDrawing, setIsDrawing] = useState(false);
   const [color, setColor] = useState(GRAFFITI_COLORS[2]);
   const [brushSize, setBrushSize] = useState(25);
   
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('FULL');
-  const [activeTexture, setActiveTexture] = useState<string>(TEXTURES.brick);
+  const [activeTexture, setActiveTexture] = useState<string>(TEXTURES.black); // Default to Black
   
   const [isCapturing, setIsCapturing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'IDLE' | 'SAVING' | 'SUCCESS' | 'ERROR'>('IDLE');
 
   useEffect(() => {
-    // Correct Audio Sprite implementation
-    // IMPORTANT: Make sure your spray.mp3 is edited to actually have these sections!
     spraySound.current = new Howl({
       src: ['/audio/spray_sprite.mp3'], 
       sprite: {
-        start: [100, 300],             // First 300ms is the start
-        loop: [300, 900, true],     // 300ms to 1500ms loops infinitely (the 'true' makes it loop)
-        end: [1200, 1500]             // The final 300ms hiss decay
+        start: [100, 300],             
+        loop: [300, 900, true],     
+        end: [1200, 1500]             
       },
       volume: 0.6,
     });
@@ -65,48 +60,26 @@ export default function GraffitiCanvas() {
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
-    // Initialize Canvas Size
-    canvas.width = canvas.parentElement?.clientWidth || window.innerWidth;
-    canvas.height = canvas.parentElement?.clientHeight || window.innerHeight;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     
     saveState();
 
-    const resizeCanvas = (newWidth: number, newHeight: number) => {
-      if (newWidth === 0 || newHeight === 0) return;
+    const handleResize = () => {
       const tempCanvas = document.createElement('canvas');
       const tempCtx = tempCanvas.getContext('2d');
       tempCanvas.width = canvas.width;
       tempCanvas.height = canvas.height;
       if (tempCtx) tempCtx.drawImage(canvas, 0, 0);
 
-      canvas.width = newWidth;
-      canvas.height = newHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
       ctx.drawImage(tempCanvas, 0, 0);
     };
 
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (let entry of entries) {
-        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-          resizeCanvas(entry.contentRect.width, entry.contentRect.height);
-        }
-      }
-    });
-
-    if (canvasContainerRef.current) {
-      resizeObserver.observe(canvasContainerRef.current);
-    }
-
-    const handleWindowResize = () => {
-      if (canvasContainerRef.current) {
-         resizeCanvas(canvasContainerRef.current.clientWidth, canvasContainerRef.current.clientHeight);
-      }
-    };
-    
-    window.addEventListener('resize', handleWindowResize);
-    
+    window.addEventListener('resize', handleResize);
     return () => {
-      window.removeEventListener('resize', handleWindowResize);
-      resizeObserver.disconnect();
+      window.removeEventListener('resize', handleResize);
       spraySound.current?.unload();
       shakeSound.current?.unload();
     };
@@ -141,15 +114,11 @@ export default function GraffitiCanvas() {
     saveState();
   };
 
-  // Fixed coordinates to handle split dimensions perfectly
   const getCoordinates = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
     let clientX, clientY;
 
     if ('touches' in e) {
@@ -161,9 +130,27 @@ export default function GraffitiCanvas() {
     }
 
     return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY
+      x: clientX - rect.left,
+      y: clientY - rect.top
     };
+  };
+
+  // NEW SHIELD LOGIC: Prevents drawing on the background image when split
+  const isInsideActiveArea = (x: number, y: number) => {
+    if (layoutMode === 'FULL') return true;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return false;
+
+    if (layoutMode === 'SPLIT_VERT') {
+      return x >= canvas.width / 2; // Right half only
+    }
+    
+    if (layoutMode === 'SPLIT_HORIZ') {
+      return y >= canvas.height / 2; // Bottom half only
+    }
+
+    return false;
   };
 
   const handleColorSelect = (newColor: string) => {
@@ -195,17 +182,19 @@ export default function GraffitiCanvas() {
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    // FIX: Prevent touch & mouse events from firing simultaneously and causing double-audio
     if (isDrawingRef.current) return; 
+
+    const coords = getCoordinates(e);
+
+    // Block the spray immediately if clicking outside the active zone
+    if (!isInsideActiveArea(coords.x, coords.y)) return;
 
     setIsDrawing(true);
     isDrawingRef.current = true;
-    const coords = getCoordinates(e);
     lastPosRef.current = coords;
 
     if (spraySound.current) {
       const startId = spraySound.current.play('start');
-      
       spraySound.current.once('end', () => {
         if (isDrawingRef.current && spraySound.current) {
           spraySound.current.play('loop');
@@ -223,8 +212,7 @@ export default function GraffitiCanvas() {
     lastPosRef.current = null;
     
     if (spraySound.current) {
-      spraySound.current.stop();     // Immediately halt the loop
-      // spraySound.current.play('end');
+      spraySound.current.stop();    
     }
     
     saveState();
@@ -240,28 +228,30 @@ export default function GraffitiCanvas() {
     const distance = Math.hypot(currentPos.x - lastPos.x, currentPos.y - lastPos.y);
     const angle = Math.atan2(currentPos.y - lastPos.y, currentPos.x - lastPos.x);
 
-    // FIX: Dynamic step size prevents browser lag from drawing tens of thousands of particles at once
     const step = Math.max(5, brushSize / 2); 
 
     for (let i = 0; i < distance; i += step) {
       const x = lastPos.x + (Math.cos(angle) * i);
       const y = lastPos.y + (Math.sin(angle) * i);
-      spray(x, y);
+      
+      // Restrict interpolation dots to the active zone
+      if (isInsideActiveArea(x, y)) {
+        spray(x, y);
+      }
     }
 
     lastPosRef.current = currentPos;
   };
 
   const handleCloudSave = async () => {
-    const targetRef = layoutMode === 'FULL' ? containerRef : canvasContainerRef;
-    if (!targetRef.current || saveStatus === 'SAVING') return;
+    if (!containerRef.current || saveStatus === 'SAVING') return;
     
     setSaveStatus('SAVING');
     setIsCapturing(true); 
     
     try {
       await new Promise(resolve => setTimeout(resolve, 100)); 
-      const dataUrl = await htmlToImage.toPng(targetRef.current, { quality: 0.95, pixelRatio: 2 });
+      const dataUrl = await htmlToImage.toPng(containerRef.current, { quality: 0.95, pixelRatio: 2 });
       
       const blob = await dataUrlToBlob(dataUrl);
       const fileName = `artwork_${Date.now()}.png`;
@@ -302,17 +292,19 @@ export default function GraffitiCanvas() {
     }
   };
 
+  // Dynamic UI Positioning Classes to keep out of the way of the canvas & museum button
+  const uiPositionClass = layoutMode === 'SPLIT_HORIZ' ? 'top-20' : 'bottom-8';
+  const uiWidthClass = layoutMode === 'SPLIT_VERT' ? 'max-w-[45vw]' : 'max-w-[90vw]';
+
   return (
     <div 
       ref={containerRef}
-      className={`w-screen h-screen bg-black overflow-hidden flex touch-none overscroll-none ${
-        layoutMode === 'SPLIT_HORIZ' ? 'flex-col' : 'flex-row'
-      }`}
+      className="relative w-screen h-screen bg-black overflow-hidden touch-none overscroll-none"
     >
-      {/* Container 1: The Original Background Scene */}
+      {/* 1. Background Image Container */}
       <div 
-        className={`relative ${
-          layoutMode === 'FULL' ? 'w-full h-full absolute inset-0 z-0' : 
+        className={`absolute top-0 left-0 transition-all duration-500 ease-in-out ${
+          layoutMode === 'FULL' ? 'w-full h-full' : 
           layoutMode === 'SPLIT_VERT' ? 'w-1/2 h-full' : 
           'w-full h-1/2'
         }`}
@@ -322,44 +314,43 @@ export default function GraffitiCanvas() {
           style={{ backgroundImage: "url('/first_website.jpg')" }}
         />
         <CitySilhouette />
-        {/* FIX: Removed the duplicate <canvas> from here! */}
       </div>
 
-      {/* Container 2: The Independent Drawing Playground */}
-      <div 
-        ref={canvasContainerRef}
-        className={`relative overflow-hidden ${
-          layoutMode === 'FULL' ? 'w-full h-full absolute inset-0 z-10 bg-transparent' : 
-          layoutMode === 'SPLIT_VERT' ? 'w-1/2 h-full border-l-4 border-zinc-900 bg-zinc-900' : 
-          'w-full h-1/2 border-t-4 border-zinc-900 bg-zinc-900'
-        }`}
-      >
-        {/* Render wall texture only when split */}
-        {layoutMode !== 'FULL' && (
-          <div 
-            className="absolute inset-0 bg-cover bg-center opacity-60 pointer-events-none"
-            style={{ backgroundImage: `url(${activeTexture})` }}
-          />
-        )}
+      {/* 2. Visual Canvas Background Container (Only renders when split) */}
+      {layoutMode !== 'FULL' && (
+        <div 
+          className={`absolute bottom-0 right-0 bg-black transition-all duration-500 ease-in-out ${
+            layoutMode === 'SPLIT_VERT' ? 'w-1/2 h-full border-l-4 border-zinc-900' : 
+            'w-full h-1/2 border-t-4 border-zinc-900'
+          }`}
+        >
+          {/* Explicitly checks if activeTexture exists before applying url() */}
+          {activeTexture && (
+            <div 
+              className="absolute inset-0 bg-cover bg-center opacity-40 pointer-events-none" 
+              style={{ backgroundImage: `url(${activeTexture})` }} 
+            />
+          )}
+        </div>
+      )}
 
-        {/* FIX: The Canvas lives here PERMANENTLY, no conditional rendering. */}
-        <canvas
-          ref={canvasRef}
-          onMouseDown={startDrawing}
-          onMouseUp={stopDrawing}
-          onMouseOut={stopDrawing}
-          onMouseMove={draw}
-          onTouchStart={startDrawing}
-          onTouchEnd={stopDrawing}
-          onTouchCancel={stopDrawing}
-          onTouchMove={draw}
-          className="absolute inset-0 w-full h-full z-10 cursor-crosshair touch-none"
-        />
-      </div>
+      {/* 3. The Unified Full-Screen Drawing Layer */}
+      <canvas
+        ref={canvasRef}
+        onMouseDown={startDrawing}
+        onMouseUp={stopDrawing}
+        onMouseOut={stopDrawing}
+        onMouseMove={draw}
+        onTouchStart={startDrawing}
+        onTouchEnd={stopDrawing}
+        onTouchCancel={stopDrawing}
+        onTouchMove={draw}
+        className="absolute inset-0 w-full h-full z-10 cursor-crosshair touch-none"
+      />
 
-      {/* --- UI Controls --- */}
+      {/* 4. Smart UI Controls */}
       {!isCapturing && (
-        <div className="absolute top-4 left-4 z-20 bg-black/80 p-4 border border-zinc-700 rounded text-white flex flex-col gap-4 shadow-xl backdrop-blur-sm max-w-[90vw]">
+        <div className={`absolute z-20 left-4 md:left-8 transition-all duration-500 ease-in-out ${uiPositionClass} ${uiWidthClass} bg-black/80 p-4 border border-zinc-700 rounded text-white flex flex-col gap-4 shadow-xl backdrop-blur-sm overflow-y-auto max-h-[80vh]`}>
           
           <div className="flex flex-wrap gap-6 items-center">
             <h3 className="font-bold uppercase tracking-widest text-red-500 hidden sm:block">Graffiti Tools</h3>
@@ -367,7 +358,6 @@ export default function GraffitiCanvas() {
             <div className="flex items-center gap-2">
               <span className="hidden sm:inline text-sm text-zinc-400">Can:</span>
               <div className="flex gap-2 items-center">
-                {/* Curated Graffiti Palette */}
                 {GRAFFITI_COLORS.map((c) => (
                   <button
                     key={c}
@@ -379,7 +369,6 @@ export default function GraffitiCanvas() {
                   />
                 ))}
                 
-                {/* Custom Color Wheel Fallback */}
                 <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-transparent hover:border-white transition-colors ml-2 cursor-pointer shadow-inner">
                   <div className="absolute inset-0 bg-gradient-to-tr from-red-500 via-green-500 to-blue-500 pointer-events-none"></div>
                   <input 
@@ -438,7 +427,7 @@ export default function GraffitiCanvas() {
 
           <div className="h-px w-full bg-zinc-700"></div>
 
-          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+          <div className="flex flex-col xl:flex-row gap-6 items-start xl:items-center">
             <div className="flex gap-2">
               <span className="text-xs text-zinc-400 uppercase tracking-widest self-center mr-2">Playground:</span>
               <button 
@@ -464,6 +453,11 @@ export default function GraffitiCanvas() {
             {layoutMode !== 'FULL' && (
                <div className="flex gap-2 items-center">
                  <span className="text-xs text-zinc-400 uppercase tracking-widest mr-2">Surface:</span>
+                 <button 
+                   onClick={() => setActiveTexture(TEXTURES.black)} 
+                   className={`w-6 h-6 bg-black border-2 rounded transition-colors ${activeTexture === TEXTURES.black ? 'border-white' : 'border-transparent hover:border-white/50'}`}
+                   title="Black Wall"
+                 ></button>
                  <button 
                    onClick={() => setActiveTexture(TEXTURES.brick)} 
                    className={`w-6 h-6 bg-red-900 border-2 rounded transition-colors ${activeTexture === TEXTURES.brick ? 'border-white' : 'border-transparent hover:border-white/50'}`}
