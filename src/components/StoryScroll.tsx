@@ -37,6 +37,8 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
   const imgBase = "http://mr3anderson.pro/masterpiece-portfolio/";
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  const [hoveredFuture, setHoveredFuture] = useState<number | null>(null);
+
   useLayoutEffect(() => {
     if (!cameraRigRef.current || !containerRef.current || prefersReducedMotion) return;
 
@@ -372,76 +374,100 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         <FlybyItem eraClass="era-5-flyby" z={-18000} x="15%" y="65%" rotate={-15} label="Robotic Hand" imageUrl={`${imgBase}robotic_hand.jpg`}/>
         <FlybyItem eraClass="era-5-flyby" z={-19000} x="65%" y="60%" rotate={20} label="Hologram UI" imageUrl={`${imgBase}holographic_ui_panels.jpg`}/>
 
-        {/* ================= SCENE 5: AI FUTURE (UNTOUCHED PER REQUEST) ================= */}
+        {/* ================= SCENE 5: AI FUTURE ================= */}
         <div className="scene-5-wrapper absolute inset-0 w-full h-full opacity-0" style={{ transform: "translateZ(-20000px)" }}>
-          <div className="scene-5-pan-zoom absolute inset-0 w-full h-full origin-center">
-            <img src={`${imgBase}scene5_cyberpunk_ultrawide.jpg`} alt="AI Future" className="absolute inset-0 w-full h-full object-cover opacity-50" />
-            
-            <div className="absolute inset-0 flex items-center justify-center p-4">
-               
-               {/* Part 1: Autonomous Agents Terminal */}
-               <div className="scene-5-part1 absolute w-[95%] md:w-full max-w-3xl flex flex-col items-center justify-center opacity-0 z-30">
-                   <div className="w-full bg-[#1e1e1e] rounded-xl overflow-hidden shadow-[0_0_50px_rgba(168,85,247,0.4)] border border-gray-700">
-                      <div className="bg-[#2d2d2d] px-3 md:px-4 py-1.5 md:py-2 flex items-center gap-1.5 md:gap-2">
-                          <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500"></div>
-                          <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-500"></div>
-                          <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500"></div>
-                          <span className="text-gray-400 font-mono text-[10px] md:text-xs ml-2 md:ml-4">ai_agents_deploy.sh</span>
-                      </div>
-                      <div className="p-1 bg-black relative">
-                          <img src={`${imgBase}ai_agents_terminal.gif`} alt="AI Agents Working" className="w-full h-auto object-cover opacity-90 mix-blend-screen" />
-                      </div>
-                   </div>
-                   <h2 className="text-purple-400 text-2xl sm:text-3xl md:text-5xl font-mono mt-6 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">AUTONOMOUS AGENTS</h2>
-                   <p className="text-sm md:text-lg text-gray-400 mt-2 md:mt-4 font-mono text-center">The machines write the code. I architect the reality.</p>
-               </div>
+          <img src={`${imgBase}scene5_cyberpunk_ultrawide.jpg`} alt="AI Future" className="absolute inset-0 w-full h-full object-cover opacity-50" />
+          
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+             
+             {/* Part 1: Autonomous Agents Terminal */}
+             <div className="scene-5-part1 absolute w-[95%] md:w-full max-w-3xl flex flex-col items-center justify-center opacity-0 z-30 pointer-events-none">
+                 <div className="w-full bg-[#1e1e1e] rounded-xl overflow-hidden shadow-[0_0_50px_rgba(168,85,247,0.4)] border border-gray-700">
+                    <div className="bg-[#2d2d2d] px-3 md:px-4 py-1.5 md:py-2 flex items-center gap-1.5 md:gap-2">
+                        <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500"></div>
+                        <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-500"></div>
+                        <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500"></div>
+                        <span className="text-gray-400 font-mono text-[10px] md:text-xs ml-2 md:ml-4">ai_agents_deploy.sh</span>
+                    </div>
+                    <div className="p-1 bg-black relative">
+                        <img src={`${imgBase}ai_agents_terminal.gif`} alt="AI Agents Working" className="w-full h-auto object-cover opacity-90 mix-blend-screen" />
+                    </div>
+                 </div>
+                 <h2 className="text-purple-400 text-2xl sm:text-3xl md:text-5xl font-mono mt-6 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">AUTONOMOUS AGENTS</h2>
+                 <p className="text-sm md:text-lg text-gray-400 mt-2 md:mt-4 font-mono text-center">The machines write the code. I architect the reality.</p>
+             </div>
 
-               {/* Part 2: The Question */}
-               <div className="scene-5-question absolute inset-0 flex flex-col items-center justify-center bg-black opacity-0 z-40">
-                   <h2 className="text-white text-3xl sm:text-4xl md:text-7xl font-black uppercase tracking-[0.1em] md:tracking-[0.2em] text-center max-w-5xl leading-tight drop-shadow-[0_0_25px_rgba(255,255,255,0.7)] px-4">
-                      What is our future<br/>with AI?
-                   </h2>
-               </div>
-               
-               {/* Part 3: The 3 Futures Cliffhanger */}
-               <div className="scene-5-part3 absolute inset-0 flex items-center justify-center bg-black/90 opacity-0 z-50">
-                   <div className="absolute inset-0 flex flex-col md:flex-row w-full h-full opacity-60">
-                      <div className="flex-1 relative group h-full">
-                          <img src={`${imgBase}future_tools.jpg`} alt="AI as Tools" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-700 md:group-hover:grayscale-0 md:group-hover:scale-105" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
-                          <div className="absolute inset-x-0 left-[20%] bottom-4 md:bottom-1/4 flex justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 z-10">
-                              <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl">Mere Tools</span>
-                          </div>
-                      </div>
-                      <div className="flex-1 relative group h-full md:border-l md:border-r border-t md:border-t-0 border-white/20 z-10">
-                          <img src={`${imgBase}future_colleagues.jpg`} alt="AI as Colleagues" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-700 md:group-hover:grayscale-0 md:group-hover:scale-105" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
-                          <div className="absolute inset-x-0 bottom-4 md:bottom-1/4 flex justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 z-10">
-                              <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl">Side by Side</span>
-                          </div>
-                      </div>
-                      <div className="flex-1 relative group h-full border-t md:border-t-0 border-white/20">
-                          <img src={`${imgBase}future_downfall.jpg`} alt="AI as Downfall" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-700 md:group-hover:grayscale-0 md:group-hover:scale-105" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
-                          <div className="absolute inset-x-0 left-[-20%] bottom-4 md:bottom-1/4 flex justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-500 z-10">
-                              <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl">Our Downfall?</span>
-                          </div>
-                      </div>
-                   </div>
+             {/* Part 2: The Question */}
+             <div className="scene-5-question absolute inset-0 flex flex-col items-center justify-center bg-black opacity-0 z-40 pointer-events-none">
+                 <h2 className="text-white text-3xl sm:text-4xl md:text-7xl font-black uppercase tracking-[0.1em] md:tracking-[0.2em] text-center max-w-5xl leading-tight drop-shadow-[0_0_25px_rgba(255,255,255,0.7)] px-4">
+                    What is our future<br/>with AI?
+                 </h2>
+             </div>
+             
+             {/* Part 3: The 3 Futures Cliffhanger */}
+             <div className="scene-5-part3 absolute inset-0 flex items-center justify-center bg-black/90 opacity-0 z-50">
+                 <div className="absolute inset-0 flex flex-col md:flex-row w-full h-full opacity-60">
+                    
+                    {/* min-w-0 stops layout snapping, ease-out makes transition smoother */}
+                    <div 
+                        className={`relative group h-full border-b md:border-b-0 md:border-r border-white/20 transition-all duration-500 ease-out cursor-pointer overflow-hidden min-w-0 ${
+                            hoveredFuture === 0 ? 'flex-[3]' : hoveredFuture !== null ? 'flex-[0.5]' : 'flex-1'
+                        }`}
+                        onMouseEnter={() => setHoveredFuture(0)}
+                        onMouseLeave={() => setHoveredFuture(null)}
+                        onClick={() => setHoveredFuture(hoveredFuture === 0 ? null : 0)}
+                    >
+                        <img src={`${imgBase}future_tools.jpg`} alt="AI as Tools" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-500 group-hover:grayscale-0 group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
+                        {/* Title changed to absolute bottom placement to lower it */}
+                        <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
+                            <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Mere Tools</span>
+                        </div>
+                    </div>
 
-                   <div className="relative z-20 flex flex-col items-center p-6 md:p-12 bg-black/70 backdrop-blur-md rounded-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.9)] w-[90%] md:w-auto">
-                      <h3 className="text-gray-300 text-xs sm:text-sm md:text-xl uppercase tracking-[0.3em] md:tracking-[0.6em] mb-6 md:mb-12 font-light text-center drop-shadow-md">The Choice is Ours</h3>
-                      <button onClick={onStoryComplete} className="px-6 md:px-14 py-3 md:py-6 bg-white text-black font-black text-sm md:text-2xl uppercase tracking-[0.1em] md:tracking-[0.3em] hover:bg-purple-600 hover:text-white hover:scale-105 transition-all duration-300 rounded-sm pointer-events-auto shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.8)] whitespace-nowrap">
-                          Enter the Museum
-                      </button>
-                   </div>
-               </div>
+                    <div 
+                        className={`relative group h-full border-b md:border-b-0 md:border-r border-white/20 z-10 transition-all duration-500 ease-out cursor-pointer overflow-hidden min-w-0 ${
+                            hoveredFuture === 1 ? 'flex-[3]' : hoveredFuture !== null ? 'flex-[0.5]' : 'flex-1'
+                        }`}
+                        onMouseEnter={() => setHoveredFuture(1)}
+                        onMouseLeave={() => setHoveredFuture(null)}
+                        onClick={() => setHoveredFuture(hoveredFuture === 1 ? null : 1)}
+                    >
+                        <img src={`${imgBase}future_colleagues.jpg`} alt="AI as Colleagues" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-500 group-hover:grayscale-0 group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
+                        <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
+                            <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Side by Side</span>
+                        </div>
+                    </div>
 
-            </div>
-          </div>
-        </div>
+                    <div 
+                        className={`relative group h-full transition-all duration-500 ease-out cursor-pointer overflow-hidden min-w-0 ${
+                            hoveredFuture === 2 ? 'flex-[3]' : hoveredFuture !== null ? 'flex-[0.5]' : 'flex-1'
+                        }`}
+                        onMouseEnter={() => setHoveredFuture(2)}
+                        onMouseLeave={() => setHoveredFuture(null)}
+                        onClick={() => setHoveredFuture(hoveredFuture === 2 ? null : 2)}
+                    >
+                        <img src={`${imgBase}future_downfall2.jpg`} alt="AI as Downfall" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-500 group-hover:grayscale-0 group-hover:scale-105" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
+                        <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
+                            <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Our Downfall?</span>
+                        </div>
+                    </div>
 
-      </div>
+                 </div>
+
+                 {/* Hovering over this container resets the background accordion effect */}
+                 <div 
+                    className="relative z-20 flex flex-col items-center p-6 md:p-14 bg-black/70  rounded-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.9)] w-[90%] md:w-auto"
+                    onMouseEnter={() => setHoveredFuture(null)}
+                 >
+                    <h3 className="text-gray-300 text-xs sm:text-sm md:text-xl uppercase tracking-[0.3em] md:tracking-[0.6em] mb-6 md:mb-12 font-light text-center drop-shadow-md">The Choice is Ours</h3>
+                    <button onClick={onStoryComplete} className="px-6 md:px-14 py-3 md:py-6 bg-white text-black font-black text-sm md:text-2xl uppercase tracking-[0.1em] md:tracking-[0.3em] hover:bg-purple-600 hover:text-white hover:scale-105 transition-all duration-300 rounded-sm pointer-events-auto shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.8)] whitespace-nowrap">
+                        Enter the Museum
+                    </button>
+                 </div>
+             </div></div></div></div>
       
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.9)_100%)] z-10"></div>
     </div>
