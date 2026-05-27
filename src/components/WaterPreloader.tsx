@@ -1,6 +1,6 @@
 // src/components/WaterPreloader.tsx
 import { useEffect, useRef, useState } from 'react';
-import { Howl } from 'howler';
+import { Howl, Howler } from 'howler';
 
 interface WaterPreloaderProps {
   onSplashComplete: (audioEnabled: boolean) => void;
@@ -15,19 +15,29 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
   const [isReady, setIsReady] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
 
-  // --- AUDIO REFS (Updated for Howler & TypeScript) ---
+  // --- AUDIO REFS ---
   const hoverAudioRef = useRef<Howl | null>(null);
+  const settleAudioRef = useRef<Howl | null>(null);
   const splashAudioRef = useRef<Howl | null>(null);
+  
+  // --- PHYSICS & SYNC REFS ---
   const targetVolumeRef = useRef(0);
   const currentVolumeRef = useRef(0);
-  const mouseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastMousePosRef = useRef({ x: 0, y: 0 });
+  const lastMoveTimeRef = useRef(0);
+  const isMovingRef = useRef(false);
+  const isFirstMoveRef = useRef(true); // NEW: Prevents the teleportation splash
+  
+  // --- RAIN STORM REFS ---
+  const triggerRainstormRef = useRef<(() => void) | null>(null);
+  const stormIntensityRef = useRef(0);
+  const blackoutRef = useRef(0);
 
   // --- ASSET PRELOADER ---
   useEffect(() => {
     const assetsToLoad = [
-      '/audio/thud.mp3',
-      '/audio/spray.mp3',
-      '/audio/water-hover.mp3', 
+      '/audio/water_start.mp3', // Reverted to exact file in your repo
+      '/audio/water_stop.mp3',        // Reverted to exact file in your repo
       '/audio/water-splash.mp3',
       '/logostefand.svg',
       'https://mr3anderson.pro/masterpiece-portfolio/first_web-background.jpg'
@@ -44,7 +54,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       }
     };
 
-    // Native Audio is fine here just for tracking load progress
     assetsToLoad.forEach(url => {
       if (url.endsWith('.mp3')) {
         const audio = new Audio();
@@ -61,53 +70,32 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     });
   }, []);
 
-  // --- AUDIO INITIALIZATION & CLEANUP (Howler) ---
+  // --- AUDIO INITIALIZATION ---
   useEffect(() => {
     hoverAudioRef.current = new Howl({
-      src: ['/audio/water-hover.mp3'],
+      src: ['/audio/water_start.mp3'], 
       loop: true,
       volume: 0
     });
 
-    splashAudioRef.current = new Howl({
-      src: ['/audio/water-splash.mp3'],
-      volume: 0.8
+    settleAudioRef.current = new Howl({
+      src: ['/audio/water_stop.mp3'], 
+      volume: 0.3 
     });
 
-    // Unload completely destroys the audio instances so they never leak to the Story
+    splashAudioRef.current = new Howl({
+      src: ['/audio/water-splash.mp3'],
+      volume: 0.9
+    });
+
     return () => {
       if (hoverAudioRef.current) hoverAudioRef.current.unload();
+      if (settleAudioRef.current) settleAudioRef.current.unload();
       if (splashAudioRef.current) splashAudioRef.current.unload();
     };
   }, []);
 
-  // --- VOLUME FADE LOOP ---
-  useEffect(() => {
-    if (!isAudioEnabled) {
-      if (hoverAudioRef.current) hoverAudioRef.current.pause();
-      return;
-    }
-
-    if (hoverAudioRef.current && !hoverAudioRef.current.playing()) {
-      hoverAudioRef.current.play();
-    }
-
-    const fadeInterval = setInterval(() => {
-      if (!hoverAudioRef.current) return;
-      
-      currentVolumeRef.current += (targetVolumeRef.current - currentVolumeRef.current) * 0.1;
-      
-      const newVolume = Math.min(1, Math.max(0, currentVolumeRef.current));
-      
-      // FIX: Use Howler's method, not assignment
-      hoverAudioRef.current.volume(newVolume);
-      
-    }, 50);
-
-    return () => clearInterval(fadeInterval);
-  }, [isAudioEnabled]);
-
-  // --- WATER PHYSICS ENGINE ---
+  // --- WATER PHYSICS & 60FPS RENDERING ENGINE ---
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -131,57 +119,54 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     let outputImageData = ctx.createImageData(width, height);
     let animationFrameId: number | null = null;
 
-    const startWater = () => {
-  if (animationFrameId) return;
-  // const startWater = () => {
-  //     if (!animationFrameId) {
-  //       baseImageData = ctx.getImageData(0, 0, width, height);
-  //       processWater();
-  //     }
-  //   };
-const ctx = canvasRef.current?.getContext('2d');
-  if (!ctx) return;
-
-  baseImageData = ctx.getImageData(0, 0, width, height);
-  processWater();
-};
-
-    const logo = new Image();
-    
-    logo.onload = () => {
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, width, height);
-
-      const logoWidth = Math.min(width * 0.6, 600); 
-      const logoHeight = (logo.height / logo.width) * logoWidth;
-      const x = (width - logoWidth) / 2;
-      const y = (height - logoHeight) / 2;
-      
-      ctx.drawImage(logo, x, y - 40, logoWidth, logoHeight);
-      startWater(); 
-    };
-
-    logo.onerror = () => {
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, width, height);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 48px "Inter", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('STEFANDERSON', width / 2, height / 2 - 40);
-      startWater(); 
-    };
-
-    logo.src = '/logostefand.svg'; 
-    
-    setTimeout(() => {
-      if (!animationFrameId) {
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, width, height);
-        startWater();
-      }
-    }, 1000);
-
     const processWater = () => {
+      const now = performance.now();
+
+      // --- 1. ZERO-DELAY FRAME-SYNCED AUDIO LOGIC ---
+      if (now - lastMoveTimeRef.current > 50) {
+        targetVolumeRef.current = 0;
+        if (isMovingRef.current) {
+          isMovingRef.current = false;
+          if (isAudioEnabled && settleAudioRef.current) {
+            settleAudioRef.current.play();
+          }
+        }
+      }
+
+      if (isAudioEnabled && hoverAudioRef.current) {
+        if (!hoverAudioRef.current.playing() && targetVolumeRef.current > 0) {
+          hoverAudioRef.current.play();
+        }
+        
+        currentVolumeRef.current += (targetVolumeRef.current - currentVolumeRef.current) * 0.3;
+        const newVolume = Math.min(1, Math.max(0, currentVolumeRef.current));
+        hoverAudioRef.current.volume(newVolume);
+        
+        if (targetVolumeRef.current > 0) {
+           hoverAudioRef.current.rate(0.9 + (newVolume * 0.3));
+        }
+      } else if (hoverAudioRef.current && hoverAudioRef.current.playing()) {
+         // Force pause if user mutes while moving
+         hoverAudioRef.current.pause();
+         currentVolumeRef.current = 0;
+      }
+
+      // --- 2. RAINSTORM LOGIC ---
+      if (stormIntensityRef.current > 0) {
+        blackoutRef.current = Math.min(1, blackoutRef.current + 0.015);
+        
+        const drops = Math.floor(stormIntensityRef.current);
+        for (let i = 0; i < drops; i++) {
+          const rx = Math.floor(Math.random() * (physicsWidth - 2)) + 1;
+          const ry = Math.floor(Math.random() * (physicsHeight - 2)) + 1;
+          const idx = rx + ry * physicsWidth;
+          previous[idx] = 300 + Math.random() * 800; 
+        }
+        
+        stormIntensityRef.current += 0.4;
+      }
+
+      // --- 3. WATER MATH ---
       for (let y = 1; y < physicsHeight - 1; y++) {
         for (let x = 1; x < physicsWidth - 1; x++) {
           const i = x + y * physicsWidth;
@@ -196,6 +181,7 @@ const ctx = canvasRef.current?.getContext('2d');
       const baseData = baseImageData.data;
       const outData = outputImageData.data;
 
+      // --- 4. RENDER PIXELS ---
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const px = Math.floor(x / scale);
@@ -204,12 +190,15 @@ const ctx = canvasRef.current?.getContext('2d');
 
           let dx = x;
           let dy = y;
+          let shading = 0;
 
           if (px > 0 && px < physicsWidth - 1 && py > 0 && py < physicsHeight - 1) {
               const diffX = current[pi + 1] - current[pi - 1];
               const diffY = current[pi + physicsWidth] - current[pi - physicsWidth];
               dx += Math.floor(diffX * 1.5);
               dy += Math.floor(diffY * 1.5);
+
+              shading = (diffX - diffY) * 0.4; 
           }
 
           dx = Math.max(0, Math.min(width - 1, dx));
@@ -218,9 +207,30 @@ const ctx = canvasRef.current?.getContext('2d');
           const outIndex = (x + y * width) * 4;
           const inIndex = (dx + dy * width) * 4;
 
-          outData[outIndex] = baseData[inIndex];         
-          outData[outIndex + 1] = baseData[inIndex + 1]; 
-          outData[outIndex + 2] = baseData[inIndex + 2]; 
+          let r = baseData[inIndex];         
+          let g = baseData[inIndex + 1]; 
+          let b = baseData[inIndex + 2]; 
+
+          if (blackoutRef.current > 0) {
+            const darkness = 1 - blackoutRef.current;
+            r *= darkness;
+            g *= darkness;
+            b *= darkness;
+          }
+
+          if (shading > 0) {
+            r += shading;
+            g += shading * 1.1; 
+            b += shading * 1.3; 
+          } else {
+            r += shading;
+            g += shading;
+            b += shading;
+          }
+
+          outData[outIndex] = Math.max(0, Math.min(255, r));         
+          outData[outIndex + 1] = Math.max(0, Math.min(255, g)); 
+          outData[outIndex + 2] = Math.max(0, Math.min(255, b)); 
           outData[outIndex + 3] = 255;                   
         }
       }
@@ -234,28 +244,112 @@ const ctx = canvasRef.current?.getContext('2d');
       animationFrameId = requestAnimationFrame(processWater); 
     };
 
+    const startWater = () => {
+      if (animationFrameId) return;
+      baseImageData = ctx.getImageData(0, 0, width, height);
+      processWater();
+    };
+
+    const bgImg = new Image();
+    bgImg.crossOrigin = "Anonymous"; 
+    bgImg.src = 'https://mr3anderson.pro/masterpiece-portfolio/first_web-background.jpg'; 
+
+    bgImg.onload = () => {
+      const canvasRatio = width / height;
+      const imgRatio = bgImg.width / bgImg.height;
+      let drawWidth, drawHeight, offsetX, offsetY;
+
+      if (canvasRatio > imgRatio) {
+        drawWidth = width;
+        drawHeight = width / imgRatio;
+        offsetX = 0;
+        offsetY = (height - drawHeight) / 2;
+      } else {
+        drawWidth = height * imgRatio;
+        drawHeight = height;
+        offsetX = (width - drawWidth) / 2;
+        offsetY = 0;
+      }
+      ctx.drawImage(bgImg, offsetX, offsetY, drawWidth, drawHeight);
+      loadLogoAndStart();
+    };
+
+    bgImg.onerror = () => {
+      ctx.fillStyle = '#0a192f'; 
+      ctx.fillRect(0, 0, width, height);
+      loadLogoAndStart();
+    };
+
+    const loadLogoAndStart = () => {
+      const logo = new Image();
+      logo.src = '/logostefand.svg';
+      
+      logo.onload = () => {
+        const logoWidth = Math.min(width * 0.6, 600); 
+        const logoHeight = (logo.height / logo.width) * logoWidth;
+        const x = (width - logoWidth) / 2;
+        const y = (height - logoHeight) / 2;
+        ctx.drawImage(logo, x, y - 40, logoWidth, logoHeight);
+        startWater(); 
+      };
+
+      logo.onerror = () => startWater(); 
+    };
+
+    // --- 5. THE FIX: MOUSE INTERPOLATION FOR FLUIDITY ---
     const handleMouseMove = (e: MouseEvent) => {
-      const px = Math.floor(e.clientX / scale);
-      const py = Math.floor(e.clientY / scale);
+      // PREVENT TELEPORTATION GLITCH ON FIRST HOVER
+      if (isFirstMoveRef.current) {
+        isFirstMoveRef.current = false;
+        lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+        lastMoveTimeRef.current = performance.now();
+        return; 
+      }
+
+      lastMoveTimeRef.current = performance.now();
+      
+      const currentX = e.clientX;
+      const currentY = e.clientY;
+      
+      const prevX = lastMousePosRef.current.x;
+      const prevY = lastMousePosRef.current.y;
+      
+      const distanceX = currentX - prevX;
+      const distanceY = currentY - prevY;
+      const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+      
+      const steps = Math.max(1, Math.floor(distance / 4));
       const radius = 2;
-      for (let y = -radius; y <= radius; y++) {
-        for (let x = -radius; x <= radius; x++) {
-          if (x*x + y*y <= radius*radius) {
-            const idx = (px + x) + (py + y) * physicsWidth;
-            if (idx >= 0 && idx < size) {
-              previous[idx] = 255; 
+      
+      for (let i = 0; i <= steps; i++) {
+        const interpX = prevX + (distanceX * (i / steps));
+        const interpY = prevY + (distanceY * (i / steps));
+        
+        const px = Math.floor(interpX / scale);
+        const py = Math.floor(interpY / scale);
+        
+        for (let y = -radius; y <= radius; y++) {
+          for (let x = -radius; x <= radius; x++) {
+            if (x*x + y*y <= radius*radius) {
+              const idx = (px + x) + (py + y) * physicsWidth;
+              if (idx >= 0 && idx < size) {
+                previous[idx] = 180; 
+              }
             }
           }
         }
       }
 
-      targetVolumeRef.current = 0.5; 
-      
-      if (mouseTimeoutRef.current) clearTimeout(mouseTimeoutRef.current);
-      
-      mouseTimeoutRef.current = setTimeout(() => {
-        targetVolumeRef.current = 0; 
-      }, 150);
+      lastMousePosRef.current = { x: currentX, y: currentY };
+
+      if (!isMovingRef.current) {
+        isMovingRef.current = true;
+      }
+      targetVolumeRef.current = 0.6; 
+    };
+
+    triggerRainstormRef.current = () => {
+      stormIntensityRef.current = 1; 
     };
 
     canvas.addEventListener('mousemove', handleMouseMove);
@@ -264,37 +358,50 @@ const ctx = canvasRef.current?.getContext('2d');
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
       canvas.removeEventListener('mousemove', handleMouseMove);
     };
-  }, []);
+  }, [isAudioEnabled]); // Re-bind effect when audio state changes
 
   const triggerBucketSplash = () => {
     if (!isReady || isSplashing) return; 
     setIsSplashing(true);
     
-    // Play splash sound via Howler
-    if (isAudioEnabled && splashAudioRef.current) {
+    // FORCE UNLOCK BROWSER AUDIO API ON CLICK
+    setIsAudioEnabled(true);
+    if (Howler.ctx && Howler.ctx.state === 'suspended') {
+      Howler.ctx.resume();
+    }
+    
+    if (splashAudioRef.current) {
       splashAudioRef.current.play();
     }
-
-    targetVolumeRef.current = 0; 
+    
+    if (triggerRainstormRef.current) {
+      triggerRainstormRef.current();
+    }
     
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    canvas.style.transition = 'transform 1.2s cubic-bezier(0.55, 0.085, 0.68, 0.53), opacity 1.2s ease-in';
-    canvas.style.transform = 'translateY(100vh) scale(1.1) rotate(5deg)';
-    canvas.style.opacity = '0';
+    if (canvas) {
+      canvas.style.transition = 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1) 1.5s';
+      canvas.style.opacity = '0'; 
+    }
 
     setTimeout(() => {
-      onSplashComplete(isAudioEnabled);
-    }, 1200);
+      onSplashComplete(true);
+    }, 2500); 
   };
 
   return (
     <div className={`relative w-full h-screen bg-black overflow-hidden ${isReady ? 'cursor-pointer' : 'cursor-wait'}`}>
       
       <button
-        onClick={() => setIsAudioEnabled(!isAudioEnabled)}
-        className="absolute top-8 right-8 z-50 flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 hover:scale-110"
+        onClick={(e) => {
+          e.stopPropagation(); 
+          // EXPLICITLY TELL BROWSER TO UNLOCK AUDIO ON MUTE BUTTON CLICK
+          if (!isAudioEnabled && Howler.ctx && Howler.ctx.state === 'suspended') {
+            Howler.ctx.resume();
+          }
+          setIsAudioEnabled(!isAudioEnabled);
+        }}
+        className={`absolute top-8 right-8 z-50 flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 hover:scale-110 ${isSplashing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
         style={{
           borderColor: isAudioEnabled ? '#ef4444' : '#52525b',
           color: isAudioEnabled ? '#ef4444' : '#52525b',
@@ -317,7 +424,7 @@ const ctx = canvasRef.current?.getContext('2d');
         )}
       </button>
 
-      <div className="absolute inset-0 z-20 flex flex-col items-center justify-end pb-32 pointer-events-none mix-blend-difference">
+      <div className={`absolute inset-0 z-20 flex flex-col items-center justify-end pb-32 pointer-events-none mix-blend-difference transition-opacity duration-500 ${isSplashing ? 'opacity-0' : 'opacity-100'}`}>
         {!isReady ? (
           <div className="text-zinc-500 font-mono text-sm tracking-[0.5em] animate-pulse">
             INITIALIZING CORE ASSETS [ {loadProgress}% ]
@@ -332,8 +439,8 @@ const ctx = canvasRef.current?.getContext('2d');
       <canvas 
         ref={canvasRef} 
         onClick={triggerBucketSplash}
-        className="absolute top-0 left-0 w-full h-full z-10 origin-bottom"
-        style={{ willChange: 'transform, opacity' }}
+        className="absolute top-0 left-0 w-full h-full z-10 origin-center"
+        style={{ willChange: 'opacity' }}
       />
     </div>
   );
