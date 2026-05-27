@@ -39,7 +39,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       '/audio/water_start.mp3', // Reverted to exact file in your repo
       '/audio/water_stop.mp3',        // Reverted to exact file in your repo
       '/audio/water-splash.mp3',
-      '/logostefand.svg',
+      '/logoblkstroke.svg',
       'https://mr3anderson.pro/masterpiece-portfolio/first_web-background.jpg'
     ];
 
@@ -275,14 +275,14 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     };
 
     bgImg.onerror = () => {
-      ctx.fillStyle = '#0a192f'; 
+      ctx.fillStyle = '#000000'; 
       ctx.fillRect(0, 0, width, height);
       loadLogoAndStart();
     };
 
     const loadLogoAndStart = () => {
       const logo = new Image();
-      logo.src = '/logostefand.svg';
+      logo.src = '/logoblkstroke.svg';
       
       logo.onload = () => {
         const logoWidth = Math.min(width * 0.6, 600); 
