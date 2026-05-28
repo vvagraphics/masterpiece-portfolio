@@ -39,9 +39,10 @@ const PlayIcon = () => (
 );
 
 const PauseIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
-    <rect x="6" y="4" width="4" height="16"></rect>
-    <rect x="14" y="4" width="4" height="16"></rect>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    {/* Use a simple CSS class for the animation */}
+    <path className="animate-slide-left" d="M13 5l7 7-7 7" />
+    <path className="animate-slide-left" style={{ animationDelay: '0.5s' }} d="M5 5l7 7-7 7" />
   </svg>
 );
 
@@ -56,8 +57,8 @@ const MutedIcon = () => (
 const AudioOnIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" className="animate-pulse stroke-red-400" />
-    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" className="animate-pulse stroke-red-500" style={{ animationDelay: '0.2s' }} />
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" className="animate-pulse stroke-red-600" />
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" className="animate-pulse stroke-red-800" style={{ animationDelay: '0.5s' }} />
   </svg>
 );
 
@@ -88,6 +89,8 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
       });
 
       tl.to('.scroll-hint', { opacity: 0, duration: 0.5, ease: "power2.out" })
+
+      // change 'warp+=time' move around sections   
 
       // ==========================================
       // 1. APPROACH SCENE 1
@@ -235,10 +238,9 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         .to({}, { duration: 0.5 }) 
         
       // --- SCENE 5: AI FUTURE ---
-        
-        // 1. AI Assist Image
-        .fromTo('.scene-5-assist', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" })
-        .to({}, { duration: 2.0 })
+      // 1. AI Assist Image
+        .fromTo('.scene-5-assist', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 'warp5+=5.2')
+        .to({}, { duration: 0.5 })
         .to('.scene-5-assist', { opacity: 0, scale: 1.1, duration: 0.5 })
 
         // 2. Autonomous Agents Terminal
