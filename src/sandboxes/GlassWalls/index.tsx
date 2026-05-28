@@ -1,8 +1,7 @@
 // src/sandboxes/GlassWalls/index.tsx
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Center, Text3D, MeshTransmissionMaterial, Environment, Caustics, Float } from '@react-three/drei';
-
 import { Howl } from 'howler';
 
 import SandboxControls, { type ControlDef } from '../../components/SandboxControls';
@@ -11,8 +10,16 @@ interface Props {
   isAudioEnabled?: boolean;
 }
 
-// --- Define our schema for the Control Panel ---
+// Map user-friendly names to Three.js Font JSON files
+const FONTS: Record<string, string> = {
+  Modern: 'https://threejs.org/examples/fonts/helvetiker_bold.typeface.json',
+  Classic: 'https://threejs.org/examples/fonts/gentilis_regular.typeface.json',
+  Script: 'https://threejs.org/examples/fonts/optimer_regular.typeface.json'
+};
+
 const GLASS_SCHEMA: ControlDef[] = [
+  { id: 'signature', type: 'text', label: 'Signature', defaultValue: 'VVA' },
+  { id: 'font', type: 'select', label: 'Font Style', options: ['Modern', 'Classic', 'Script'], defaultValue: 'Modern' },
   { id: 'ior', type: 'slider', label: 'Refractive Index (n)', min: 1.0, max: 2.5, step: 0.01, defaultValue: 1.5 },
   { id: 'chromaticAberration', type: 'slider', label: 'Chromatic Aberration', min: 0, max: 1, step: 0.01, defaultValue: 0.15 },
   { id: 'roughness', type: 'slider', label: 'Surface Etching', min: 0, max: 0.5, step: 0.01, defaultValue: 0.05 },
@@ -21,11 +28,17 @@ const GLASS_SCHEMA: ControlDef[] = [
 ];
 
 // --- The 3D Scene Component ---
-// Separating this from the parent prevents the whole canvas from tearing down on state changes
-function GlassScene({ controlsRef }: { controlsRef: React.MutableRefObject<any> }) {
+function GlassScene({ 
+  controlsRef, 
+  signatureText, 
+  fontStyle 
+}: { 
+  controlsRef: React.MutableRefObject<any>;
+  signatureText: string;
+  fontStyle: string;
+}) {
   const materialRef = useRef<any>(null);
 
-  // The render loop: Directly mutate the material on the GPU based on our UI refs
   useFrame(() => {
     if (materialRef.current) {
       materialRef.current.ior = controlsRef.current.ior;
@@ -35,24 +48,27 @@ function GlassScene({ controlsRef }: { controlsRef: React.MutableRefObject<any> 
     }
   });
 
+  const activeFontUrl = FONTS[fontStyle] || FONTS.Modern;
+
   const GlassObject = (
     <Text3D 
-      font="https://threejs.org/examples/fonts/helvetiker_bold.typeface.json" 
+      font={activeFontUrl} 
       size={2.5}
       height={1}
-      curveSegments={32}
+      curveSegments={24} // PERFORMANCE: Reduced from 32
       bevelEnabled
       bevelThickness={0.1}
-      bevelSize={0.1}
-      bevelSegments={16}
+      bevelSize={0.05} // Narrowed bevel slightly for cleaner edges
+      bevelSegments={8} // PERFORMANCE: Reduced from 16
     >
-      VVA
+      {signatureText || " "} {/* Prevents crashing if input is totally empty */}
       <MeshTransmissionMaterial 
         ref={materialRef}
         clearcoat={1}
         clearcoatRoughness={0.1}
         transmission={1}
-        resolution={1024}
+        resolution={256} // PERFORMANCE: Huge frame saver. 256 is usually enough for refraction
+        samples={4}      // PERFORMANCE: Controls raycasting blur density
         color="#ffffff"
       />
     </Text3D>
@@ -62,12 +78,11 @@ function GlassScene({ controlsRef }: { controlsRef: React.MutableRefObject<any> 
     <>
       <color attach="background" args={['#050505']} />
       
-      {/* Studio lighting environment for reflections */}
       <Environment preset="city" />
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 5]} intensity={2} />
 
-      <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
+      <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.5}>
         <Center>
           {controlsRef.current.showCaustics ? (
             <Caustics
@@ -79,6 +94,7 @@ function GlassScene({ controlsRef }: { controlsRef: React.MutableRefObject<any> 
               ior={controlsRef.current.ior}
               causticsOnly={false}
               backside={false}
+              resolution={512} // PERFORMANCE: Lower caustics map size
             >
               {GlassObject}
             </Caustics>
@@ -88,7 +104,7 @@ function GlassScene({ controlsRef }: { controlsRef: React.MutableRefObject<any> 
         </Center>
       </Float>
 
-      {/* Background shape to refract through the glass */}
+      {/* Background shapes to refract through the glass */}
       <mesh position={[-3, -1, -5]}>
         <sphereGeometry args={[2, 64, 64]} />
         <meshStandardMaterial color="#ef4444" roughness={0.2} />
@@ -104,7 +120,7 @@ function GlassScene({ controlsRef }: { controlsRef: React.MutableRefObject<any> 
 
 // --- The Main Sandbox Component ---
 export default function GlassWalls({ isAudioEnabled = false }: Props) {
-  // Holds the current control values to feed the WebGL loop
+  // Sliders map to Ref for 60fps WebGL updates
   const controlsRef = useRef<Record<string, any>>({
     ior: 1.5,
     chromaticAberration: 0.15,
@@ -113,14 +129,16 @@ export default function GlassWalls({ isAudioEnabled = false }: Props) {
     showCaustics: true
   });
 
+  // Text/Font map to State because Geometry needs to rebuild
+  const [signatureText, setSignatureText] = useState('VVA');
+  const [fontStyle, setFontStyle] = useState('Modern');
+
   const envSoundRef = useRef<Howl | null>(null);
-  // Optional local mute just like the Graffiti canvas
   const [isEnvAudioMuted, setIsEnvAudioMuted] = useState(false);
 
-  // Audio Lifecycle
   useEffect(() => {
     envSoundRef.current = new Howl({
-      src: ['/audio/ambient.mp3'], // Add a glass/ambient track to public/audio/
+      src: ['/audio/ambient.mp3'], 
       loop: true,
       volume: 0,
     });
@@ -135,7 +153,6 @@ export default function GlassWalls({ isAudioEnabled = false }: Props) {
     };
   }, []);
 
-  // Audio Playback Handler
   useEffect(() => {
     if (!envSoundRef.current) return;
     const currentVol = typeof envSoundRef.current.volume() === 'number' ? envSoundRef.current.volume() as number : 0;
@@ -148,29 +165,39 @@ export default function GlassWalls({ isAudioEnabled = false }: Props) {
     }
   }, [isAudioEnabled, isEnvAudioMuted]);
 
-  // Handle updates from SandboxControls
   const handleControlChange = (id: string, value: any) => {
-    controlsRef.current[id] = value;
+    if (id === 'signature') {
+      setSignatureText(value);
+    } else if (id === 'font') {
+      setFontStyle(value);
+    } else {
+      controlsRef.current[id] = value;
+    }
   };
 
   return (
     <div className="relative w-full h-full bg-black">
       
-      {/* 3D Canvas Layer */}
+      {/* PERFORMANCE: dpr={...} clamping prevents 4K retina displays from tanking FPS */}
       <div className="absolute inset-0 z-10">
-        <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-          <GlassScene controlsRef={controlsRef} />
+        <Canvas camera={{ position: [0, 0, 8], fov: 45 }} dpr={[1, 1.5]}>
+          {/* Suspense is required when loading fonts/textures asynchronously in R3F */}
+          <Suspense fallback={null}>
+             <GlassScene 
+                controlsRef={controlsRef} 
+                signatureText={signatureText}
+                fontStyle={fontStyle}
+             />
+          </Suspense>
         </Canvas>
       </div>
 
-      {/* Dynamic UI Controls Layer */}
       <SandboxControls 
-        title="Glass Physics" 
+        title="Glass Sandbox" 
         schema={GLASS_SCHEMA} 
         onChange={handleControlChange} 
       />
 
-      {/* Audio Mute Button (Optional, keeping consistent with Graffiti UI) */}
       <div className="absolute bottom-8 left-8 z-30">
         <button
           onClick={() => setIsEnvAudioMuted(!isEnvAudioMuted)}

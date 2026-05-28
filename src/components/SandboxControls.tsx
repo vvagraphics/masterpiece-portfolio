@@ -5,7 +5,8 @@ import { useState } from 'react';
 export type ControlDef =
   | { id: string; type: 'slider'; label: string; min: number; max: number; step: number; defaultValue: number }
   | { id: string; type: 'toggle'; label: string; defaultValue: boolean }
-  | { id: string; type: 'select'; label: string; options: string[]; defaultValue: string };
+  | { id: string; type: 'select'; label: string; options: string[]; defaultValue: string }
+  | { id: string; type: 'text'; label: string; defaultValue: string }; // NEW: Text input
 
 type SandboxControlsProps = {
   title?: string;
@@ -37,6 +38,20 @@ export default function SandboxControls({ title = "Property Inspector", schema, 
       <div className="space-y-6">
         {schema.map((ctrl) => {
           switch (ctrl.type) {
+            case 'text':
+              return (
+                <div key={ctrl.id} className="flex flex-col text-xs text-zinc-400 uppercase tracking-wider font-bold">
+                  <span className="mb-2">{ctrl.label}</span>
+                  <input
+                    type="text"
+                    value={values[ctrl.id]}
+                    onChange={(e) => handleChange(ctrl.id, e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-700 text-white rounded p-2 focus:border-teal-500 outline-none placeholder-zinc-600 font-mono"
+                    placeholder="Enter signature..."
+                    maxLength={15} // Prevents massively wide 3D geometry
+                  />
+                </div>
+              );
             case 'slider':
               return (
                 <div key={ctrl.id} className="flex flex-col">
