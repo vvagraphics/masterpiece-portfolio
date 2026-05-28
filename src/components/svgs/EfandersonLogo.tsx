@@ -1,10 +1,12 @@
-export default function EfandersonLogo() {
+import type { SVGProps } from 'react';
+
+export default function EfandersonLogo(props: SVGProps<SVGSVGElement>) {
   return (
     <div className="w-full max-w-3xl h-[40vh] flex items-center justify-center">
       <svg 
         xmlns="http://www.w3.org/2000/svg" 
         viewBox="0 0 800 600" // Change this to match your exported SVG's viewBox!
-        className="w-full h-full object-contain drop-shadow-[0_0_40px_rgba(255,255,255,0.6)]"
+        className="w-full h-full object-contain drop-shadow-[0_0_40px_rgba(255,255,255,0.6)]"{...props}
       >
         {/* 1. Paste your SVG paths inside this <g> tag.
           2. Ensure every path has className="animate-svg-path"

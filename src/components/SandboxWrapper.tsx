@@ -3,23 +3,65 @@ import { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
 import gsap from 'gsap';
 import { Howl } from 'howler';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'; 
+import { motion, AnimatePresence } from 'framer-motion'; 
 
 import GraffitiCanvas from '../sandboxes/GraffitiCanvas';
 import GlassWalls from '../sandboxes/GlassWalls';
 import InspirationGallery from './InspirationGallery';
+import TornadoTransition from './TornadoTransition'; 
 
 type ActiveView = 'MUSEUM' | 'GRAFFITI' | 'GLASS_WALLS' | 'GALLERY';
+const SANDBOX_ORDER: ActiveView[] = ['GRAFFITI', 'GLASS_WALLS', 'GALLERY'];
 
 export default function SandboxWrapper() {
   const sceneRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
   const runnerRef = useRef<Matter.Runner | null>(null);
   
-  // Only keeping the Thud sound for collisions. Hover sound removed.
   const thudSoundRef = useRef<Howl | null>(null);
   
+  // State Machine for Transitions
   const [activeView, setActiveView] = useState<ActiveView>('MUSEUM');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [nextView, setNextView] = useState<ActiveView | null>(null);
 
+  // --- Navigation Handlers ---
+  const handleNavigation = (targetView: ActiveView) => {
+    setNextView(targetView);
+    setIsTransitioning(true);
+  };
+
+  const handleNext = () => {
+    if (isTransitioning) return;
+    const currentIndex = SANDBOX_ORDER.indexOf(activeView);
+    if (currentIndex < SANDBOX_ORDER.length - 1) {
+      handleNavigation(SANDBOX_ORDER[currentIndex + 1]);
+    }
+  };
+
+  const handlePrev = () => {
+    if (isTransitioning) return;
+    const currentIndex = SANDBOX_ORDER.indexOf(activeView);
+    if (currentIndex > 0) {
+      handleNavigation(SANDBOX_ORDER[currentIndex - 1]);
+    }
+  };
+
+  const handleReturnToMuseum = () => {
+    if (isTransitioning) return;
+    handleNavigation('MUSEUM');
+  };
+
+  const handleTransitionComplete = () => {
+    if (nextView) {
+      setActiveView(nextView);
+      setNextView(null);
+      setIsTransitioning(false);
+    }
+  };
+
+  // --- Audio Setup ---
   useEffect(() => {
     thudSoundRef.current = new Howl({
       src: ['/audio/thud.mp3'],
@@ -31,6 +73,7 @@ export default function SandboxWrapper() {
     }
   }, []);
 
+  // --- Matter.js Museum Setup ---
   useEffect(() => {
     if (!sceneRef.current) return;
 
@@ -51,7 +94,7 @@ export default function SandboxWrapper() {
         height,
         wireframes: false,
         background: '#050505', 
-        pixelRatio: 1 
+        pixelRatio: window.devicePixelRatio || 1 
       }
     });
 
@@ -194,7 +237,7 @@ export default function SandboxWrapper() {
         const target = clickedBodies.find(b => b.plugin && b.plugin.viewType);
         
         if (target && target.plugin) {
-          setActiveView(target.plugin.viewType as ActiveView);
+          handleNavigation(target.plugin.viewType as ActiveView);
         }
       }
     });
@@ -223,44 +266,90 @@ export default function SandboxWrapper() {
     };
   }, []);
 
+  // Pause Matter.js when not in museum to save CPU
   useEffect(() => {
     if (!runnerRef.current || !engineRef.current) return;
-    Matter.Runner.stop(runnerRef.current);
-    if (activeView === 'MUSEUM') {
+    if (activeView === 'MUSEUM' && !isTransitioning) {
       Matter.Runner.run(runnerRef.current, engineRef.current);
+    } else {
+      Matter.Runner.stop(runnerRef.current);
     }
-  }, [activeView]);
+  }, [activeView, isTransitioning]);
+
+  const currentIndex = SANDBOX_ORDER.indexOf(activeView);
+  const showPrev = currentIndex > 0;
+  const showNext = currentIndex !== -1 && currentIndex < SANDBOX_ORDER.length - 1;
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-[#050505]">
       
-      {activeView !== 'MUSEUM' && (
-        <button 
-          onClick={() => setActiveView('MUSEUM')}
-          className="fixed top-6 right-6 z-50 px-6 py-2 bg-white text-black text-sm font-bold tracking-widest uppercase border border-white hover:bg-black hover:text-white transition-colors duration-300 shadow-[0_0_15px_rgba(255,255,255,0.3)]"
-        >
-          Return to Museum
-        </button>
+      {/* 1. Global Navigation Overlay */}
+      {activeView !== 'MUSEUM' && !isTransitioning && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 pointer-events-none z-50">
+          <div className="absolute top-6 right-6 flex gap-4 pointer-events-auto">
+            <button 
+              onClick={handleReturnToMuseum}
+              className="flex items-center gap-2 px-6 py-2 bg-[#111] text-white text-sm font-bold tracking-widest uppercase border border-white/20 rounded-full hover:bg-white hover:text-black transition-colors duration-300"
+            >
+              <X size={16} /> Return to Museum
+            </button>
+          </div>
+
+          <div className="absolute inset-y-0 left-0 flex items-center">
+            {showPrev && (
+              <button 
+                onClick={handlePrev} 
+                className="pointer-events-auto ml-6 p-4 rounded-full bg-[#111] hover:bg-white hover:text-black border border-white/20 transition-all duration-300 text-white"
+              >
+                <ChevronLeft size={28} />
+              </button>
+            )}
+          </div>
+          <div className="absolute inset-y-0 right-0 flex items-center">
+             {showNext && (
+               <button 
+                onClick={handleNext} 
+                className="pointer-events-auto mr-6 p-4 rounded-full bg-[#111] hover:bg-white hover:text-black border border-white/20 transition-all duration-300 text-white"
+               >
+                 <ChevronRight size={28} />
+               </button>
+             )}
+          </div>
+        </motion.div>
       )}
 
-      <div className={`absolute inset-0 transition-opacity duration-500 ${activeView === 'GRAFFITI' ? 'z-40 opacity-100' : '-z-10 opacity-0 pointer-events-none'}`}>
-        {activeView === 'GRAFFITI' && <GraffitiCanvas />}
-      </div>
-
-      <div className={`absolute inset-0 transition-opacity duration-500 ${activeView === 'GLASS_WALLS' ? 'z-40 opacity-100' : '-z-10 opacity-0 pointer-events-none'}`}>
-        {activeView === 'GLASS_WALLS' && <GlassWalls />}
-      </div>
-
-      <div className={`absolute inset-0 bg-black transition-opacity duration-500 ${activeView === 'GALLERY' ? 'z-40 opacity-100 overflow-y-auto' : '-z-10 opacity-0 pointer-events-none'}`}>
-        {activeView === 'GALLERY' && (
-          <div className="pt-24 px-8">
-            <h1 className="text-white text-6xl font-black uppercase mb-8">The Archives</h1>
-            <InspirationGallery />
-          </div>
+      {/* 2. The Interstitial Loading Screen (Tornado) */}
+      <AnimatePresence>
+        {isTransitioning && nextView && (
+          <TornadoTransition 
+            fromView={activeView} 
+            toView={nextView} 
+            onComplete={handleTransitionComplete} 
+          />
         )}
-      </div>
+      </AnimatePresence>
 
-      <div className={`absolute inset-0 transition-opacity duration-700 ${activeView === 'MUSEUM' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
+      {/* 3. The Active Sandbox */}
+      {!isTransitioning && activeView !== 'MUSEUM' && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="absolute inset-0 z-40"
+        >
+          {activeView === 'GRAFFITI' && <GraffitiCanvas />}
+          {activeView === 'GLASS_WALLS' && <GlassWalls />}
+          {activeView === 'GALLERY' && (
+            <div className="w-full h-full bg-black pt-24 px-8 overflow-y-auto">
+              <h1 className="text-white text-6xl font-black uppercase mb-8">The Archives</h1>
+              <InspirationGallery />
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* 4. The Matter.js Museum Canvas */}
+      <div className={`absolute inset-0 transition-opacity duration-700 ${activeView === 'MUSEUM' && !isTransitioning ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
         <div className="absolute top-8 left-8 z-20 pointer-events-none mix-blend-difference">
           <h2 className="text-white text-4xl font-black uppercase tracking-tighter">The Sandbox</h2>
           <p className="text-gray-400 font-mono text-sm mt-2">Grab. Drag. Throw. Click to Enter.</p>
