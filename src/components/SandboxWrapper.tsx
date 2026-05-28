@@ -41,6 +41,7 @@ export default function SandboxWrapper({
   const [activeView, setActiveView] = useState<ActiveView>('MUSEUM');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [nextView, setNextView] = useState<ActiveView | null>(null);
+  const [graffitiLayout, setGraffitiLayout] = useState<'FULL' | 'SPLIT_VERT' | 'SPLIT_HORIZ'>('FULL');
 
   // --- Ambient Audio Fade Management ---
   useEffect(() => {
@@ -133,7 +134,7 @@ export default function SandboxWrapper({
         height,
         wireframes: false,
         background: '#050505', 
-        pixelRatio: 1 // Kept at 1 so mouse alignment stays perfect
+        pixelRatio: 1 
       }
     });
 
@@ -205,7 +206,6 @@ export default function SandboxWrapper({
         const speedB = pair.bodyB.speed;
         const impactVelocity = speedA + speedB;
 
-        // Change 'isAudioEnabled' to 'isAudioEnabledRef.current'
         if (impactVelocity > 1.5 && thudSoundRef.current && isAudioEnabledRef.current) {
           const volume = Math.min(1, impactVelocity / 20);
           const rate = 0.8 + Math.random() * 0.4; 
@@ -323,18 +323,9 @@ export default function SandboxWrapper({
   return (
     <div className="relative w-full h-screen overflow-hidden bg-[#050505]">
       
-      {/* 1. Global Navigation Overlay */}
+      {/* 1. Global Navigation Overlay (Left/Right Arrows) */}
       {activeView !== 'MUSEUM' && !isTransitioning && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 pointer-events-none z-50">
-          <div className="absolute top-6 right-6 flex gap-4 pointer-events-auto">
-            <button 
-              onClick={handleReturnToMuseum}
-              className="flex items-center gap-2 px-6 py-2 bg-[#111] text-white text-sm font-bold tracking-widest uppercase border border-white/20 rounded-full hover:bg-white hover:text-black transition-colors duration-300"
-            >
-              <X size={16} /> Museum
-            </button>
-          </div>
-
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 pointer-events-none z-40">
           <div className="absolute inset-y-0 left-0 flex items-center">
             {showPrev && (
               <button 
@@ -358,17 +349,40 @@ export default function SandboxWrapper({
         </motion.div>
       )}
 
-      {/* Global Audio Toggle (Visible everywhere in Sandbox Wrapper) */}
-      <div className="absolute bottom-6 right-6 z-50 pointer-events-auto">
+      {/* 2. Global Top-Right Controls: Museum Return & Audio Toggle */}
+      <div className={`absolute z-50 flex items-center gap-4 pointer-events-auto transition-all duration-700 ease-in-out ${
+        activeView === 'GRAFFITI' && graffitiLayout === 'SPLIT_VERT' 
+          ? 'top-8 left-8'  
+          : 'top-8 right-8' 
+      }`}>
+        {/* Render Museum button next to Audio button only when in a sandbox */}
+        {activeView !== 'MUSEUM' && !isTransitioning && (
+          <motion.button 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={handleReturnToMuseum}
+            className="flex items-center gap-2 px-6 h-12 bg-[#111] text-white text-sm font-bold tracking-widest uppercase border border-white/20 rounded-full hover:bg-white hover:text-black transition-colors duration-300 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+          >
+            <X size={16} /> Return to Museum
+          </motion.button>
+        )}
+
+        {/* Audio Toggle styled exactly like WaterPreloader */}
         <button 
           onClick={toggleAudio}
-          className="p-4 rounded-full bg-[#111] hover:bg-white hover:text-black border border-white/20 transition-all duration-300 text-white shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+          className="flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 hover:scale-110 bg-[#111] shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+          style={{
+            borderColor: isAudioEnabled ? '#ef4444' : '#52525b',
+            color: isAudioEnabled ? '#ef4444' : '#52525b',
+            backgroundColor: isAudioEnabled ? 'rgba(239, 68, 68, 0.1)' : '#111'
+          }}
+          title={isAudioEnabled ? "Mute Audio" : "Enable Audio"}
         >
           {isAudioEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
         </button>
       </div>
 
-      {/* 2. The Interstitial Loading Screen (Tornado) */}
+      {/* 3. The Interstitial Loading Screen (Tornado) */}
       <AnimatePresence>
         {isTransitioning && nextView && (
           <TornadoTransition 
@@ -379,16 +393,21 @@ export default function SandboxWrapper({
         )}
       </AnimatePresence>
 
-      {/* 3. The Active Sandbox */}
+      {/* 4. The Active Sandbox */}
       {!isTransitioning && activeView !== 'MUSEUM' && (
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }} 
           animate={{ opacity: 1, scale: 1 }} 
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="absolute inset-0 z-40"
+          className="absolute inset-0 z-30"
         >
           {/* PASSED AUDIO STATE TO SANDBOXES */}
-          {activeView === 'GRAFFITI' && <GraffitiCanvas isAudioEnabled={isAudioEnabled} />}
+          {activeView === 'GRAFFITI' && (
+            <GraffitiCanvas 
+              isAudioEnabled={isAudioEnabled} 
+              onLayoutChange={setGraffitiLayout} 
+            />
+          )}
           {activeView === 'GLASS_WALLS' && <GlassWalls isAudioEnabled={isAudioEnabled} />}
           {activeView === 'GALLERY' && (
             <div className="w-full h-full bg-black pt-24 px-8 overflow-y-auto">
@@ -399,7 +418,7 @@ export default function SandboxWrapper({
         </motion.div>
       )}
 
-      {/* 4. The Matter.js Museum Canvas */}
+      {/* 5. The Matter.js Museum Canvas */}
       <div className={`absolute inset-0 transition-opacity duration-700 ${activeView === 'MUSEUM' && !isTransitioning ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
         <div className="absolute top-8 left-8 z-20 pointer-events-none mix-blend-difference">
           <h2 className="text-white text-4xl font-black uppercase tracking-tighter">The Sandbox</h2>

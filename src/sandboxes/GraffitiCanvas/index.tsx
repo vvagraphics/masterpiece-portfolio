@@ -46,9 +46,10 @@ const hexToRgb = (hex: string) => {
 // ADDED PROP to receive audio state from SandboxWrapper
 interface Props {
   isAudioEnabled?: boolean;
+  onLayoutChange?: (layout: LayoutMode) => void;
 }
 
-export default function GraffitiCanvas({ isAudioEnabled = false }: Props) {
+export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
@@ -695,6 +696,7 @@ export default function GraffitiCanvas({ isAudioEnabled = false }: Props) {
                   onClick={() => {
                     if (mode === 'FULL') setActiveTexture(TEXTURES.black);
                     setLayoutMode(mode); 
+                    if (onLayoutChange) onLayoutChange(mode); // <-- Add this to notify the parent!
                   }}
                   className={`px-3 py-1 text-xs font-bold rounded border transition-colors ${layoutMode === mode ? 'bg-red-600 border-red-500' : 'border-zinc-600 hover:border-zinc-400'}`}
                 >

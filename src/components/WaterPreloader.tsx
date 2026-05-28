@@ -108,7 +108,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     canvas.width = width;
     canvas.height = height;
 
-    const DAMPING = 0.96; 
+    const DAMPING = 0.90; // Lowered from 0.96 for cleaner stopping
     const scale = 4;
     const physicsWidth = Math.floor(width / scale);
     const physicsHeight = Math.floor(height / scale);
@@ -181,6 +181,11 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
             previous[i - physicsWidth] + previous[i + physicsWidth]
           ) / 2 - current[i];
           current[i] *= DAMPING;
+
+          // ERADICATE ARTIFACTS: Force microscopic waves to zero so water settles
+          if (Math.abs(current[i]) < 0.05) {
+            current[i] = 0;
+          }
         }
       }
 
@@ -213,7 +218,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
               const diffY = current[pi + physicsWidth] - current[pi - physicsWidth];
               dx += Math.floor(diffX * 1.5);
               dy += Math.floor(diffY * 1.5);
-//Handles the lighting on the water 1 of 2parts
+              //Handles the lighting on the water 1 of 2parts
               shading = (diffX - diffY) * 0.25; 
           }
 
@@ -234,12 +239,13 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
             g *= darkness;
             b *= darkness;
           }
-//controls the lighting on the ripple 2 of 2 parts
+          
+          //controls the lighting on the ripple 2 of 2 parts
           if (shading > 0) {
-  r += shading;
-  g += shading * 1.05; 
-  b += shading * 1.15; 
-} else {
+            r += shading;
+            g += shading * 1.05; 
+            b += shading * 1.15; 
+          } else {
             r += shading;
             g += shading;
             b += shading;
@@ -267,37 +273,12 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       processWater();
     };
 
-    const bgImg = new Image();
-    bgImg.crossOrigin = "Anonymous"; 
-    bgImg.src = 'https://mr3anderson.pro/masterpiece-portfolio/the_ultimate_background.jpg'; 
-
-    bgImg.onload = () => {
-      const canvasRatio = width / height;
-      const imgRatio = bgImg.width / bgImg.height;
-      let drawWidth, drawHeight, offsetX, offsetY;
-
-      if (canvasRatio > imgRatio) {
-        drawWidth = width;
-        drawHeight = width / imgRatio;
-        offsetX = 0;
-        offsetY = (height - drawHeight) / 2;
-      } else {
-        drawWidth = height * imgRatio;
-        drawHeight = height;
-        offsetX = (width - drawWidth) / 2;
-        offsetY = 0;
-      }
-      ctx.drawImage(bgImg, offsetX, offsetY, drawWidth, drawHeight);
-      loadLogoAndStart();
-    };
-
-    bgImg.onerror = () => {
-      ctx.fillStyle = '#000000'; 
-      ctx.fillRect(0, 0, width, height);
-      loadLogoAndStart();
-    };
-
     const loadLogoAndStart = () => {
+      // Instantly paint the background black
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, width, height);
+
+      // Load your black SVG logo
       const logo = new Image();
       logo.src = '/logoblkstroke.svg';
       
@@ -310,8 +291,14 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
         startWater(); 
       };
 
-      logo.onerror = () => startWater(); 
+      logo.onerror = () => {
+        console.warn("Logo failed to load, starting water on plain black background.");
+        startWater(); 
+      };
     };
+
+    // Call it immediately instead of fetching the external background
+    loadLogoAndStart();
 
     // --- 5. THE FIX: MOUSE INTERPOLATION FOR FLUIDITY ---
     const handleMouseMove = (e: MouseEvent) => {
@@ -440,8 +427,15 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
             <line x1="23" y1="9" x2="17" y2="15"></line>
             <line x1="17" y1="9" x2="23" y2="15"></line>
           </svg>
-        )}<p className={`absolute top-0 right-15 z-50 flex items-center text-red-500 text-xs justify-center w-15 h-12 transition-all duration-300 hover:scale-110 `}> no animation?click me</p>
+        )}
       </button>
+
+      {/* Styled Interaction Text moved outside of the button */}
+      <div className={`absolute top-10 right-[85px] z-50 transition-opacity duration-500 pointer-events-none ${isSplashing ? 'opacity-0' : 'opacity-70'}`}>
+        <span className="text-red-500 font-mono text-xs tracking-widest bg-red-950/30 px-3 py-1 rounded-full border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+          NO ANIMATION? CLICK AUDIO —{'>'}
+        </span>
+      </div>
 
       <div className={`absolute inset-0 z-20 flex flex-col items-center justify-end pb-32 pointer-events-none mix-blend-difference transition-opacity duration-500 ${isSplashing ? 'opacity-0' : 'opacity-100'}`}>
         {!isReady ? (
