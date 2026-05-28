@@ -363,40 +363,73 @@ export default function GraffitiCanvas() {
     }
   };
 
-  // --- CLOUD DRAFT SAVE (Supabase WIPs) ---
+  // Helper: Checks if canvas has any non-transparent pixels
+  const isCanvasEmpty = (canvas: HTMLCanvasElement) => {
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return true;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    // Check if any pixel has an alpha value > 0
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] > 0) return false;
+    }
+    return true;
+  };
+
   const handleSaveForLater = async () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !sessionId || wipSaveStatus === 'SAVING') return;
+    if (!sessionId || wipSaveStatus === 'SAVING') return;
     setWipSaveStatus('SAVING');
     
     try {
-      const paintData = canvas.toDataURL('image/png');
-      const blob = await dataUrlToBlob(paintData);
-      const fileName = `${sessionId}_${layoutMode}.png`;
+      const allDrafts: any = await localforage.getItem('portfolio_drafts');
+      if (!allDrafts?.graffiti) throw new Error('No draft data found.');
 
-      // 1. Upload/Overwrite image in wip-drafts bucket
-      const { error: uploadError } = await supabase.storage
-        .from('wip-drafts')
-        .upload(fileName, blob, { upsert: true });
-      if (uploadError) throw uploadError;
+      const layouts = Object.keys(allDrafts.graffiti);
+      let savedCount = 0;
 
-      const { data: { publicUrl } } = supabase.storage.from('wip-drafts').getPublicUrl(fileName);
+      for (const layout of layouts) {
+        const draft = allDrafts.graffiti[layout];
+        
+        // --- EDGE CASE: Check if draft has content ---
+        // We create a temporary image to check emptiness
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = draft.width;
+        tempCanvas.height = draft.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        const img = new Image();
+        img.src = draft.paintData;
+        await img.decode();
+        tempCtx?.drawImage(img, 0, 0);
 
-      // 2. Upsert record in wip_sessions table
-      const { error: dbError } = await supabase.from('wip_sessions').upsert({
-        session_id: sessionId,
-        layout: layoutMode,
-        texture: activeTexture,
-        image_url: `${publicUrl}?t=${Date.now()}`, // Cache buster
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'session_id, layout' });
-      
-      if (dbError) throw dbError;
+        if (isCanvasEmpty(tempCanvas)) {
+          console.log(`Skipping empty draft for: ${layout}`);
+          continue; // Don't waste storage on empty canvases
+        }
 
+        // Proceed with upload for non-empty drafts
+        const blob = await dataUrlToBlob(draft.paintData);
+        const fileName = `${sessionId}_${layout}.png`;
+
+        await supabase.storage.from('wip-drafts').upload(fileName, blob, { upsert: true });
+        const { data: { publicUrl } } = supabase.storage.from('wip-drafts').getPublicUrl(fileName);
+
+        await supabase.from('wip_sessions').upsert({
+          session_id: sessionId,
+          layout: layout,
+          texture: draft.texture,
+          image_url: `${publicUrl}?t=${Date.now()}`,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'session_id, layout' });
+        
+        savedCount++;
+      }
+
+      alert(savedCount > 0 ? `Saved ${savedCount} sections successfully.` : "Nothing to save (all canvases empty).");
       setWipSaveStatus('SUCCESS');
       setTimeout(() => setWipSaveStatus('IDLE'), 4000);
-    } catch (err) {
-      console.error('Cloud Draft Save failed:', err);
+    } catch (err: any) {
+      console.error('Cloud Save Error:', err);
+      // ... (keep your error handling logic from before)
       setWipSaveStatus('ERROR');
       setTimeout(() => setWipSaveStatus('IDLE'), 4000);
     }
@@ -459,7 +492,11 @@ export default function GraffitiCanvas() {
           layoutMode === 'SPLIT_VERT' ? 'w-1/2 h-full' : 'w-full h-1/2'
         }`}
       >
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/first_website.jpg')" }} />
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/first_website.jpg')",
+    backgroundSize: 'contain',
+    backgroundPosition: 'top center',
+    backgroundRepeat: 'no-repeat'
+  }}  />
         <CitySilhouette />
       </div>
 
@@ -638,4 +675,12 @@ export default function GraffitiCanvas() {
       )}
     </div>
   );
+  
 }
+{/* Mobile Orientation Lock Overlay */}
+<div className="rotate-warning">
+  <div className="text-center p-6">
+    <h2 className="text-xl font-bold uppercase tracking-widest text-red-500">Rotate Device</h2>
+    <p className="text-sm text-zinc-400 mt-2">Please rotate to Landscape to paint.</p>
+  </div>
+</div>

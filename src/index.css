@@ -13,3 +13,29 @@ body {
   width: 100%;
   min-height: 100vh;
 }
+/* Disable rotation interactions on the Graffiti Canvas page */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+  /* This prevents the canvas area from being used if they are in portrait */
+  .touch-none {
+    touch-action: none;
+    -webkit-overflow-scrolling: none;
+  }
+}
+
+/* Optional: Show a UI overlay telling them to rotate */
+.rotate-warning {
+  display: none;
+}
+
+@media screen and (max-width: 768px) and (orientation: portrait) {
+  .rotate-warning {
+    display: flex; /* Force them to rotate to landscape */
+    position: fixed;
+    inset: 0;
+    background: black;
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    color: white;
+  }
+}
