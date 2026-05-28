@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
 import gsap from 'gsap';
 import { Howl } from 'howler';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'; 
+import { ChevronLeft, ChevronRight, X, Volume2, VolumeX } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion'; 
 
 import GraffitiCanvas from '../sandboxes/GraffitiCanvas';
@@ -14,17 +14,56 @@ import TornadoTransition from './TornadoTransition';
 type ActiveView = 'MUSEUM' | 'GRAFFITI' | 'GLASS_WALLS' | 'GALLERY';
 const SANDBOX_ORDER: ActiveView[] = ['GRAFFITI', 'GLASS_WALLS', 'GALLERY'];
 
-export default function SandboxWrapper() {
+// Added props to accept the global audio state from App.tsx
+type SandboxWrapperProps = {
+  isAudioEnabled?: boolean;
+  toggleAudio?: () => void;
+  ambientAudioRef?: React.MutableRefObject<Howl | null>;
+};
+
+export default function SandboxWrapper({ 
+  isAudioEnabled = false, 
+  toggleAudio, 
+  ambientAudioRef 
+}: SandboxWrapperProps) {
+  
   const sceneRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
   const runnerRef = useRef<Matter.Runner | null>(null);
   
   const thudSoundRef = useRef<Howl | null>(null);
+  const isAudioEnabledRef = useRef(isAudioEnabled);
+  useEffect(() => {
+    isAudioEnabledRef.current = isAudioEnabled;
+  }, [isAudioEnabled]);
   
   // State Machine for Transitions
   const [activeView, setActiveView] = useState<ActiveView>('MUSEUM');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [nextView, setNextView] = useState<ActiveView | null>(null);
+
+  // --- Ambient Audio Fade Management ---
+  useEffect(() => {
+    if (!ambientAudioRef?.current) return;
+
+    // Get the actual current volume so we don't spike the audio!
+    const currentVol = typeof ambientAudioRef.current.volume() === 'number' 
+      ? ambientAudioRef.current.volume() as number 
+      : 0.3;
+
+    // If we are transitioning, OR we are inside a Sandbox, fade the ambient music OUT
+    if (activeView !== 'MUSEUM' || isTransitioning) {
+      if (currentVol > 0) {
+        ambientAudioRef.current.fade(currentVol, 0, 1500);
+      }
+    } 
+    // If we are safely back in the Museum and not transitioning, fade it IN
+    else if (activeView === 'MUSEUM' && !isTransitioning) {
+      if (isAudioEnabled && currentVol < 0.3) {
+        ambientAudioRef.current.fade(currentVol, 0.3, 1500);
+      }
+    }
+  }, [activeView, isTransitioning, isAudioEnabled, ambientAudioRef]);
 
   // --- Navigation Handlers ---
   const handleNavigation = (targetView: ActiveView) => {
@@ -61,7 +100,7 @@ export default function SandboxWrapper() {
     }
   };
 
-  // --- Audio Setup ---
+  // --- Audio Setup (Physics Thuds) ---
   useEffect(() => {
     thudSoundRef.current = new Howl({
       src: ['/audio/thud.mp3'],
@@ -94,7 +133,7 @@ export default function SandboxWrapper() {
         height,
         wireframes: false,
         background: '#050505', 
-        pixelRatio: window.devicePixelRatio || 1 
+        pixelRatio: 1 // Kept at 1 so mouse alignment stays perfect
       }
     });
 
@@ -166,7 +205,8 @@ export default function SandboxWrapper() {
         const speedB = pair.bodyB.speed;
         const impactVelocity = speedA + speedB;
 
-        if (impactVelocity > 1.5 && thudSoundRef.current) {
+        // Change 'isAudioEnabled' to 'isAudioEnabledRef.current'
+        if (impactVelocity > 1.5 && thudSoundRef.current && isAudioEnabledRef.current) {
           const volume = Math.min(1, impactVelocity / 20);
           const rate = 0.8 + Math.random() * 0.4; 
           
@@ -264,7 +304,7 @@ export default function SandboxWrapper() {
       Engine.clear(engine);
       if (render.canvas) render.canvas.remove();
     };
-  }, []);
+  }, []); 
 
   // Pause Matter.js when not in museum to save CPU
   useEffect(() => {
@@ -291,7 +331,7 @@ export default function SandboxWrapper() {
               onClick={handleReturnToMuseum}
               className="flex items-center gap-2 px-6 py-2 bg-[#111] text-white text-sm font-bold tracking-widest uppercase border border-white/20 rounded-full hover:bg-white hover:text-black transition-colors duration-300"
             >
-              <X size={16} /> Return to Museum
+              <X size={16} /> Museum
             </button>
           </div>
 
@@ -318,6 +358,16 @@ export default function SandboxWrapper() {
         </motion.div>
       )}
 
+      {/* Global Audio Toggle (Visible everywhere in Sandbox Wrapper) */}
+      <div className="absolute bottom-6 right-6 z-50 pointer-events-auto">
+        <button 
+          onClick={toggleAudio}
+          className="p-4 rounded-full bg-[#111] hover:bg-white hover:text-black border border-white/20 transition-all duration-300 text-white shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+        >
+          {isAudioEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
+        </button>
+      </div>
+
       {/* 2. The Interstitial Loading Screen (Tornado) */}
       <AnimatePresence>
         {isTransitioning && nextView && (
@@ -337,8 +387,9 @@ export default function SandboxWrapper() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="absolute inset-0 z-40"
         >
-          {activeView === 'GRAFFITI' && <GraffitiCanvas />}
-          {activeView === 'GLASS_WALLS' && <GlassWalls />}
+          {/* PASSED AUDIO STATE TO SANDBOXES */}
+          {activeView === 'GRAFFITI' && <GraffitiCanvas isAudioEnabled={isAudioEnabled} />}
+          {activeView === 'GLASS_WALLS' && <GlassWalls isAudioEnabled={isAudioEnabled} />}
           {activeView === 'GALLERY' && (
             <div className="w-full h-full bg-black pt-24 px-8 overflow-y-auto">
               <h1 className="text-white text-6xl font-black uppercase mb-8">The Archives</h1>

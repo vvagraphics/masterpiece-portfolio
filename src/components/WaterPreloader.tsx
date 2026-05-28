@@ -440,7 +440,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
             <line x1="23" y1="9" x2="17" y2="15"></line>
             <line x1="17" y1="9" x2="23" y2="15"></line>
           </svg>
-        )}
+        )}<p className={`absolute top-2 right-15 z-50 flex items-center text-red-500 text-xs justify-center w-30 h-12 transition-all duration-300 hover:scale-110 `}> no animation?click me</p>
       </button>
 
       <div className={`absolute inset-0 z-20 flex flex-col items-center justify-end pb-32 pointer-events-none mix-blend-difference transition-opacity duration-500 ${isSplashing ? 'opacity-0' : 'opacity-100'}`}>

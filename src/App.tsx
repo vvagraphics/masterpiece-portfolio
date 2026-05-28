@@ -121,7 +121,11 @@ function App() {
       )}
 
       {currentPhase === 'PLAYGROUND' && (
-        <SandboxWrapper />
+        <SandboxWrapper 
+          isAudioEnabled={isAudioUnlocked} 
+          toggleAudio={() => setIsAudioUnlocked(!isAudioUnlocked)}
+          ambientAudioRef={ambientAudioRef} 
+        />
       )}
 
       {currentPhase === 'STORY' && (

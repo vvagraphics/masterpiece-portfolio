@@ -5,6 +5,7 @@ import { supabase, dataUrlToBlob } from '../../lib/supabase';
 import CitySilhouette from '../../components/CitySilhouette';
 import { Howl } from 'howler';
 import localforage from 'localforage';
+import { Volume2, VolumeX } from 'lucide-react'; // Added for the new local audio control
 
 const GRAFFITI_COLORS = [
   '#000000', '#FFFFFF', '#FF0033', '#00E5FF', '#FF00FF', '#FFEA00', '#39FF14'
@@ -42,12 +43,18 @@ const hexToRgb = (hex: string) => {
   } : { r: 255, g: 255, b: 255 };
 };
 
-export default function GraffitiCanvas() {
+// ADDED PROP to receive audio state from SandboxWrapper
+interface Props {
+  isAudioEnabled?: boolean;
+}
+
+export default function GraffitiCanvas({ isAudioEnabled = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const spraySound = useRef<Howl | null>(null);
   const shakeSound = useRef<Howl | null>(null);
+  const envSoundRef = useRef<Howl | null>(null);
   
   const lastPosRef = useRef<{ x: number, y: number } | null>(null);
   const isDrawingRef = useRef(false);
@@ -62,6 +69,9 @@ export default function GraffitiCanvas() {
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('FULL');
   const [activeTexture, setActiveTexture] = useState<string>(TEXTURES.black);
   
+  // NEW: Local state specifically for the City Environment loop
+  const [isEnvAudioMuted, setIsEnvAudioMuted] = useState(false);
+
   // Loading States
   const [isCapturing, setIsCapturing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'IDLE' | 'SAVING' | 'SUCCESS' | 'ERROR'>('IDLE');
@@ -133,7 +143,7 @@ export default function GraffitiCanvas() {
     loadDraft();
   }, [layoutMode]);
 
-  // Brush Generation
+  // --- Brush Generation ---
   useEffect(() => {
     const profile = CAP_PROFILES[activeCap];
     const stampSize = profile.size * 2 + profile.scatter * 2;
@@ -164,14 +174,22 @@ export default function GraffitiCanvas() {
     brushStampRef.current = canvas;
   }, [color, activeCap]);
 
-  // Audio & Resize Setup
+  // --- Audio Setup & Resize Setup ---
   useEffect(() => {
     spraySound.current = new Howl({
       src: ['/audio/spray_sprite.mp3'], 
       sprite: { start: [100, 300], loop: [300, 900, true], end: [1200, 1500] },
       volume: 0.6,
     });
+    
     shakeSound.current = new Howl({ src: ['/audio/shake.mp3'], volume: 0.8 });
+
+    // Environment Loop Setup
+    envSoundRef.current = new Howl({
+      src: ['/audio/city_street_loop.mp3'], 
+      loop: true,
+      volume: 0, 
+    });
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -193,13 +211,38 @@ export default function GraffitiCanvas() {
     };
 
     window.addEventListener('resize', handleResize);
+    
     return () => {
       window.removeEventListener('resize', handleResize);
       spraySound.current?.unload();
       shakeSound.current?.unload();
+      
+      // CAREFUL UNMOUNT: Fade out cleanly and then completely unload from memory
+      // We grab the current ref value into a closure so it doesn't get lost during unmount
+      const envAudio = envSoundRef.current;
+      if (envAudio) {
+        const currentVol = typeof envAudio.volume() === 'number' ? envAudio.volume() as number : 0;
+        envAudio.fade(currentVol, 0, 500);
+        setTimeout(() => envAudio.unload(), 500);
+      }
+      
       if (poolingAnimationFrameRef.current) cancelAnimationFrame(poolingAnimationFrameRef.current);
     };
   }, []);
+
+  // --- Handle Global & Local Mute Toggle for Environment Audio ---
+  useEffect(() => {
+    if (!envSoundRef.current) return;
+    const currentVol = typeof envSoundRef.current.volume() === 'number' ? envSoundRef.current.volume() as number : 0;
+    
+    // It must be globally enabled AND not locally muted to play
+    if (isAudioEnabled && !isEnvAudioMuted) {
+      if (!envSoundRef.current.playing()) envSoundRef.current.play();
+      envSoundRef.current.fade(currentVol, 0.4, 1000);
+    } else {
+      envSoundRef.current.fade(currentVol, 0, 1000);
+    }
+  }, [isAudioEnabled, isEnvAudioMuted]);
 
   const saveState = () => {
     const canvas = canvasRef.current;
@@ -253,9 +296,10 @@ export default function GraffitiCanvas() {
     return false;
   };
 
-  const handleColorSelect = (newColor: string) => {
-    setColor(newColor);
-    if (shakeSound.current) shakeSound.current.play();
+  const playShakeSound = () => {
+    if (isAudioEnabled && shakeSound.current && !shakeSound.current.playing()) {
+      shakeSound.current.play();
+    }
   };
 
   const poolPaint = () => {
@@ -289,7 +333,7 @@ export default function GraffitiCanvas() {
     isDrawingRef.current = true;
     lastPosRef.current = coords;
 
-    if (spraySound.current) {
+    if (spraySound.current && isAudioEnabled) {
       const startId = spraySound.current.play('start');
       spraySound.current.once('end', () => {
         if (isDrawingRef.current && spraySound.current) spraySound.current.play('loop');
@@ -369,7 +413,6 @@ export default function GraffitiCanvas() {
     if (!ctx) return true;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
-    // Check if any pixel has an alpha value > 0
     for (let i = 3; i < data.length; i += 4) {
       if (data[i] > 0) return false;
     }
@@ -390,8 +433,6 @@ export default function GraffitiCanvas() {
       for (const layout of layouts) {
         const draft = allDrafts.graffiti[layout];
         
-        // --- EDGE CASE: Check if draft has content ---
-        // We create a temporary image to check emptiness
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = draft.width;
         tempCanvas.height = draft.height;
@@ -403,10 +444,9 @@ export default function GraffitiCanvas() {
 
         if (isCanvasEmpty(tempCanvas)) {
           console.log(`Skipping empty draft for: ${layout}`);
-          continue; // Don't waste storage on empty canvases
+          continue; 
         }
 
-        // Proceed with upload for non-empty drafts
         const blob = await dataUrlToBlob(draft.paintData);
         const fileName = `${sessionId}_${layout}.png`;
 
@@ -429,7 +469,6 @@ export default function GraffitiCanvas() {
       setTimeout(() => setWipSaveStatus('IDLE'), 4000);
     } catch (err: any) {
       console.error('Cloud Save Error:', err);
-      // ... (keep your error handling logic from before)
       setWipSaveStatus('ERROR');
       setTimeout(() => setWipSaveStatus('IDLE'), 4000);
     }
@@ -458,17 +497,15 @@ export default function GraffitiCanvas() {
       const ctx = canvas?.getContext('2d');
       if (!canvas || !ctx) return;
 
-      // Restore Texture
       setActiveTexture(data.texture);
 
-      // Restore Paint
       const img = new Image();
-      img.crossOrigin = "anonymous"; // Prevent canvas tainting from Supabase URL
+      img.crossOrigin = "anonymous"; 
       img.onload = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
         saveState();
-        saveDraftToBrowser(layoutMode, data.texture); // Sync loaded data back to local browser storage
+        saveDraftToBrowser(layoutMode, data.texture); 
         setWipLoadStatus('SUCCESS');
         setTimeout(() => setWipLoadStatus('IDLE'), 4000);
       };
@@ -536,7 +573,10 @@ export default function GraffitiCanvas() {
                 {GRAFFITI_COLORS.map((c) => (
                   <button
                     key={c}
-                    onClick={() => handleColorSelect(c)}
+                    onClick={() => {
+                      setColor(c);
+                      playShakeSound(); 
+                    }}
                     className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
                       color === c ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'border-transparent'
                     }`}
@@ -549,7 +589,8 @@ export default function GraffitiCanvas() {
                   <input 
                     type="color" 
                     value={color} 
-                    onChange={(e) => handleColorSelect(e.target.value)}
+                    onChange={(e) => setColor(e.target.value)} 
+                    onPointerDown={playShakeSound} 
                     className="absolute -inset-2 w-12 h-12 opacity-0 cursor-pointer"
                     title="Custom Color"
                   />
@@ -582,8 +623,24 @@ export default function GraffitiCanvas() {
             
             <div className="h-6 w-px bg-zinc-700 mx-2 hidden lg:block"></div>
 
+            {/* NEW: Local Environment Audio Toggle */}
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:inline text-sm text-zinc-400 uppercase tracking-widest text-xs font-bold">Environment Sound:</span>
+              <button
+                onClick={() => setIsEnvAudioMuted(!isEnvAudioMuted)}
+                className={`p-2 rounded border transition-colors flex items-center justify-center ${
+                  !isEnvAudioMuted ? 'bg-zinc-200 text-black border-white' : 'border-zinc-600 hover:border-zinc-400 text-zinc-400'
+                }`}
+                title="Toggle City Background Noise"
+              >
+                {isEnvAudioMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              </button>
+            </div>
+
+            <div className="h-6 w-px bg-zinc-700 mx-2 hidden lg:block"></div>
+
             {/* Cloud Save & Load Controls */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
+            <div className="flex flex-col sm:flex-row gap-4 items-center flex-1 justify-end">
               
               <div className="flex gap-2">
                 <div className="relative">
@@ -673,14 +730,15 @@ export default function GraffitiCanvas() {
           MASTERPIECE PORTFOLIO // EFANDERSON
         </div>
       )}
+      
+      {/* Mobile Orientation Lock Overlay */}
+      <div className="rotate-warning hidden">
+        <div className="text-center p-6">
+          <h2 className="text-xl font-bold uppercase tracking-widest text-red-500">Rotate Device</h2>
+          <p className="text-sm text-zinc-400 mt-2">Please rotate to Landscape to paint.</p>
+        </div>
+      </div>
+      
     </div>
   );
-  
 }
-{/* Mobile Orientation Lock Overlay */}
-<div className="rotate-warning">
-  <div className="text-center p-6">
-    <h2 className="text-xl font-bold uppercase tracking-widest text-red-500">Rotate Device</h2>
-    <p className="text-sm text-zinc-400 mt-2">Please rotate to Landscape to paint.</p>
-  </div>
-</div>

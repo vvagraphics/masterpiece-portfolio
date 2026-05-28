@@ -1,162 +1,187 @@
 // src/sandboxes/GlassWalls/index.tsx
-import { useState, useRef } from 'react';
-import * as htmlToImage from 'html-to-image';
-import { supabase, dataUrlToBlob } from '../../lib/supabase';
+import { useRef, useEffect, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Center, Text3D, MeshTransmissionMaterial, Environment, Caustics, Float } from '@react-three/drei';
 
-export default function GlassWalls() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [text, setText] = useState('EFANDERSON');
-  const [letterSpacing, setLetterSpacing] = useState(10);
-  const [fontSize, setFontSize] = useState(120);
-  
-  // Refined UX States
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'IDLE' | 'SAVING' | 'SUCCESS' | 'ERROR'>('IDLE');
+import { Howl } from 'howler';
 
-  const handleCloudSave = async () => {
-    if (!containerRef.current || saveStatus === 'SAVING') return;
-    
-    setSaveStatus('SAVING');
-    setIsCapturing(true);
-    
-    try {
-      await new Promise(resolve => setTimeout(resolve, 100)); 
-      
-      // Added pixelRatio: 2 for high-res typography capture
-      const dataUrl = await htmlToImage.toPng(containerRef.current, { 
-        quality: 0.95,
-        pixelRatio: 2,
-        backgroundColor: '#09090b' // Hardcoding bg color prevents transparent-blur bugs
-      });
-      
-      const blob = await dataUrlToBlob(dataUrl);
-      const fileName = `artwork_${Date.now()}.png`;
+import SandboxControls, { type ControlDef } from '../../components/SandboxControls';
 
-      const { error: uploadError } = await supabase
-        .storage
-        .from('gallery')
-        .upload(`public/${fileName}`, blob);
+interface Props {
+  isAudioEnabled?: boolean;
+}
 
-      if (uploadError) throw uploadError;
+// --- Define our schema for the Control Panel ---
+const GLASS_SCHEMA: ControlDef[] = [
+  { id: 'ior', type: 'slider', label: 'Refractive Index (n)', min: 1.0, max: 2.5, step: 0.01, defaultValue: 1.5 },
+  { id: 'chromaticAberration', type: 'slider', label: 'Chromatic Aberration', min: 0, max: 1, step: 0.01, defaultValue: 0.15 },
+  { id: 'roughness', type: 'slider', label: 'Surface Etching', min: 0, max: 0.5, step: 0.01, defaultValue: 0.05 },
+  { id: 'thickness', type: 'slider', label: 'Glass Thickness', min: 0.1, max: 5, step: 0.1, defaultValue: 1.5 },
+  { id: 'showCaustics', type: 'toggle', label: 'Caustic Projections', defaultValue: true }
+];
 
-      const { data: { publicUrl } } = supabase
-        .storage
-        .from('gallery')
-        .getPublicUrl(`public/${fileName}`);
+// --- The 3D Scene Component ---
+// Separating this from the parent prevents the whole canvas from tearing down on state changes
+function GlassScene({ controlsRef }: { controlsRef: React.MutableRefObject<any> }) {
+  const materialRef = useRef<any>(null);
 
-      const { error: dbError } = await supabase
-        .from('creations')
-        .insert([
-          { 
-            image_url: publicUrl, 
-            sandbox_type: 'GLASS_WALLS',
-            created_at: new Date().toISOString()
-          }
-        ]);
-
-      if (dbError) throw dbError;
-      
-      setSaveStatus('SUCCESS');
-      setTimeout(() => setSaveStatus('IDLE'), 4000);
-
-    } catch (err) {
-      console.error('Upload failed:', err);
-      setSaveStatus('ERROR');
-      setTimeout(() => setSaveStatus('IDLE'), 4000);
-    } finally {
-      setIsCapturing(false);
+  // The render loop: Directly mutate the material on the GPU based on our UI refs
+  useFrame(() => {
+    if (materialRef.current) {
+      materialRef.current.ior = controlsRef.current.ior;
+      materialRef.current.chromaticAberration = controlsRef.current.chromaticAberration;
+      materialRef.current.roughness = controlsRef.current.roughness;
+      materialRef.current.thickness = controlsRef.current.thickness;
     }
+  });
+
+  const GlassObject = (
+    <Text3D 
+      font="https://threejs.org/examples/fonts/helvetiker_bold.typeface.json" 
+      size={2.5}
+      height={1}
+      curveSegments={32}
+      bevelEnabled
+      bevelThickness={0.1}
+      bevelSize={0.1}
+      bevelSegments={16}
+    >
+      VVA
+      <MeshTransmissionMaterial 
+        ref={materialRef}
+        clearcoat={1}
+        clearcoatRoughness={0.1}
+        transmission={1}
+        resolution={1024}
+        color="#ffffff"
+      />
+    </Text3D>
+  );
+
+  return (
+    <>
+      <color attach="background" args={['#050505']} />
+      
+      {/* Studio lighting environment for reflections */}
+      <Environment preset="city" />
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[10, 10, 5]} intensity={2} />
+
+      <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
+        <Center>
+          {controlsRef.current.showCaustics ? (
+            <Caustics
+              color="#ffffff"
+              position={[0, -2, 0]}
+              lightSource={[10, 10, 5]}
+              intensity={0.05}
+              worldRadius={0.2}
+              ior={controlsRef.current.ior}
+              causticsOnly={false}
+              backside={false}
+            >
+              {GlassObject}
+            </Caustics>
+          ) : (
+            GlassObject
+          )}
+        </Center>
+      </Float>
+
+      {/* Background shape to refract through the glass */}
+      <mesh position={[-3, -1, -5]}>
+        <sphereGeometry args={[2, 64, 64]} />
+        <meshStandardMaterial color="#ef4444" roughness={0.2} />
+      </mesh>
+      
+      <mesh position={[4, 2, -8]}>
+        <torusGeometry args={[1.5, 0.5, 32, 100]} />
+        <meshStandardMaterial color="#14b8a6" roughness={0.2} />
+      </mesh>
+    </>
+  );
+}
+
+// --- The Main Sandbox Component ---
+export default function GlassWalls({ isAudioEnabled = false }: Props) {
+  // Holds the current control values to feed the WebGL loop
+  const controlsRef = useRef<Record<string, any>>({
+    ior: 1.5,
+    chromaticAberration: 0.15,
+    roughness: 0.05,
+    thickness: 1.5,
+    showCaustics: true
+  });
+
+  const envSoundRef = useRef<Howl | null>(null);
+  // Optional local mute just like the Graffiti canvas
+  const [isEnvAudioMuted, setIsEnvAudioMuted] = useState(false);
+
+  // Audio Lifecycle
+  useEffect(() => {
+    envSoundRef.current = new Howl({
+      src: ['/audio/ambient.mp3'], // Add a glass/ambient track to public/audio/
+      loop: true,
+      volume: 0,
+    });
+
+    return () => {
+      const envAudio = envSoundRef.current;
+      if (envAudio) {
+        const currentVol = typeof envAudio.volume() === 'number' ? envAudio.volume() as number : 0;
+        envAudio.fade(currentVol, 0, 500);
+        setTimeout(() => envAudio.unload(), 500);
+      }
+    };
+  }, []);
+
+  // Audio Playback Handler
+  useEffect(() => {
+    if (!envSoundRef.current) return;
+    const currentVol = typeof envSoundRef.current.volume() === 'number' ? envSoundRef.current.volume() as number : 0;
+    
+    if (isAudioEnabled && !isEnvAudioMuted) {
+      if (!envSoundRef.current.playing()) envSoundRef.current.play();
+      envSoundRef.current.fade(currentVol, 0.3, 1000);
+    } else {
+      envSoundRef.current.fade(currentVol, 0, 1000);
+    }
+  }, [isAudioEnabled, isEnvAudioMuted]);
+
+  // Handle updates from SandboxControls
+  const handleControlChange = (id: string, value: any) => {
+    controlsRef.current[id] = value;
   };
 
   return (
-    <div ref={containerRef} className="relative w-full h-full bg-zinc-950 overflow-hidden flex items-center justify-center">
+    <div className="relative w-full h-full bg-black">
       
-      {/* Background Graphic to show off the blur */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600 rounded-full mix-blend-screen filter blur-[100px] opacity-50 animate-pulse"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600 rounded-full mix-blend-screen filter blur-[100px] opacity-50"></div>
+      {/* 3D Canvas Layer */}
+      <div className="absolute inset-0 z-10">
+        <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
+          <GlassScene controlsRef={controlsRef} />
+        </Canvas>
+      </div>
 
-      {/* The Typography Layer */}
-      <div className="z-10 absolute w-full text-center px-8">
-        <h1 
-          className="font-serif font-black text-white whitespace-nowrap"
-          style={{ 
-            letterSpacing: `${letterSpacing}px`, 
-            fontSize: `${fontSize}px`,
-            textShadow: '0 10px 30px rgba(0,0,0,0.5)'
-          }}
+      {/* Dynamic UI Controls Layer */}
+      <SandboxControls 
+        title="Glass Physics" 
+        schema={GLASS_SCHEMA} 
+        onChange={handleControlChange} 
+      />
+
+      {/* Audio Mute Button (Optional, keeping consistent with Graffiti UI) */}
+      <div className="absolute bottom-8 left-8 z-30">
+        <button
+          onClick={() => setIsEnvAudioMuted(!isEnvAudioMuted)}
+          className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded border transition-colors ${
+            !isEnvAudioMuted ? 'bg-teal-600 border-teal-500 text-white' : 'border-zinc-600 text-zinc-400'
+          }`}
         >
-          {text}
-        </h1>
+          {isEnvAudioMuted ? 'Unmute Ethereal Ambience' : 'Mute Ethereal Ambience'}
+        </button>
       </div>
 
-      {/* The Sliding Glass Panes */}
-      <div className="absolute inset-0 z-20 flex">
-        <div className="w-1/3 h-full bg-white/5 backdrop-blur-md border-r border-white/10 transform -translate-x-1/2 hover:translate-x-0 transition-transform duration-700 ease-out cursor-pointer"></div>
-        <div className="w-1/3 h-full bg-white/5 backdrop-blur-xl border-x border-white/10 translate-y-10 hover:translate-y-0 transition-transform duration-700 ease-out cursor-pointer"></div>
-        <div className="w-1/3 h-full bg-white/5 backdrop-blur-sm border-l border-white/10 transform translate-x-1/2 hover:translate-x-0 transition-transform duration-700 ease-out cursor-pointer"></div>
-      </div>
-
-      {/* UI Controls */}
-      {!isCapturing && (
-        <div className="absolute bottom-8 z-30 bg-black/80 p-6 border border-zinc-700 rounded-xl flex gap-8 items-center text-white backdrop-blur-md shadow-2xl relative">
-          <label className="flex flex-col gap-2 font-mono text-xs text-gray-400">
-            SIGNATURE TEXT
-            <input 
-              type="text" 
-              value={text} 
-              onChange={(e) => setText(e.target.value)}
-              className="bg-zinc-900 border border-zinc-700 px-3 py-2 text-white text-base rounded focus:border-blue-500 outline-none"
-            />
-          </label>
-          
-          <label className="flex flex-col gap-2 font-mono text-xs text-gray-400">
-            FONT SIZE
-            <input 
-              type="range" min="40" max="200" value={fontSize} 
-              onChange={(e) => setFontSize(Number(e.target.value))}
-              className="w-24 accent-blue-500"
-            />
-          </label>
-
-          <label className="flex flex-col gap-2 font-mono text-xs text-gray-400">
-            KERNING
-            <input 
-              type="range" min="-10" max="50" value={letterSpacing} 
-              onChange={(e) => setLetterSpacing(Number(e.target.value))}
-              className="w-24 accent-blue-500"
-            />
-          </label>
-          
-          <div className="flex flex-col items-center ml-4">
-            <button 
-              onClick={handleCloudSave} 
-              disabled={saveStatus === 'SAVING'}
-              className="px-6 py-3 bg-white text-black font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors disabled:opacity-50"
-            >
-              {saveStatus === 'SAVING' ? 'RENDERING...' : 'Save to Gallery'}
-            </button>
-          </div>
-
-          {/* Absolute positioned feedback text to prevent layout shifting */}
-          {saveStatus === 'SUCCESS' && (
-            <div className="absolute -top-8 right-6 text-green-400 font-mono text-xs tracking-widest animate-pulse">
-              [ GLASS STRUCTURE SAVED TO ARCHIVES ]
-            </div>
-          )}
-          {saveStatus === 'ERROR' && (
-            <div className="absolute -top-8 right-6 text-red-500 font-mono text-xs tracking-widest">
-              [ EXPORT ERROR ]
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Watermark - Only visible during snapshot */}
-      {isCapturing && (
-        <div className="absolute top-6 left-6 z-30 text-white/50 font-mono text-sm tracking-widest bg-black/50 px-2 py-1">
-          MASTERPIECE PORTFOLIO // EFANDERSON // GLASS WALLS
-        </div>
-      )}
     </div>
   );
 }

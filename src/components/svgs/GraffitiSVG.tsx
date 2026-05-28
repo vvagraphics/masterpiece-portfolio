@@ -4,10 +4,10 @@ export default function GraffitiSVG(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      // Note: Make sure to keep the viewBox from your SVGR output!
-      viewBox="0 0 100 100" 
+          id="Layer_1"
+      viewBox="0 0 1208.25 898.5" 
       
-      {...props} // <-- This is the crucial part that allows Tailwind classes
+      {...props} 
     >
     <defs>
     <style>
