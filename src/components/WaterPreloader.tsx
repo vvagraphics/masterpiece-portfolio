@@ -9,18 +9,23 @@ interface WaterPreloaderProps {
 export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // --- STATE ---
+  // === STATE ===
   const [isSplashing, setIsSplashing] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [isReady, setIsReady] = useState(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
 
-  // --- AUDIO REFS ---
+  // === AUDIO REFS ===
   const hoverAudioRef = useRef<Howl | null>(null);
   const settleAudioRef = useRef<Howl | null>(null);
   const splashAudioRef = useRef<Howl | null>(null);
   
-  // --- PHYSICS & SYNC REFS ---
+  // === STATE SYNC REFS ===
+  // Fix: We use a ref for audio state so the physics loop can read it 
+  // without triggering a full remount of the canvas effect when toggled.
+  const isAudioEnabledRef = useRef(isAudioEnabled);
+  
+  // === PHYSICS & INTERACTION REFS ===
   const targetVolumeRef = useRef(0);
   const currentVolumeRef = useRef(0);
   const targetRateRef = useRef(0.9);
@@ -30,12 +35,17 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
   const isMovingRef = useRef(false);
   const isFirstMoveRef = useRef(true); 
   
-  // --- RAIN STORM REFS ---
+  // === RAIN STORM REFS ===
   const triggerRainstormRef = useRef<(() => void) | null>(null);
   const stormIntensityRef = useRef(0);
   const blackoutRef = useRef(0);
 
-  // --- ASSET PRELOADER ---
+  // Sync the audio state to the ref whenever it changes
+  useEffect(() => {
+    isAudioEnabledRef.current = isAudioEnabled;
+  }, [isAudioEnabled]);
+
+  // === ASSET PRELOADER ===
   useEffect(() => {
     const assetsToLoad = [
       '/audio/water_start.mp3', 
@@ -50,6 +60,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       loadedCount++;
       const progress = Math.floor((loadedCount / assetsToLoad.length) * 100);
       setLoadProgress(progress);
+      
       if (loadedCount === assetsToLoad.length) {
         setTimeout(() => setIsReady(true), 800); 
       }
@@ -71,7 +82,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     });
   }, []);
 
-  // --- AUDIO INITIALIZATION ---
+  // === AUDIO INITIALIZATION ===
   useEffect(() => {
     hoverAudioRef.current = new Howl({
       src: ['/audio/water_start.mp3'], 
@@ -90,26 +101,29 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     });
 
     return () => {
-      if (hoverAudioRef.current) hoverAudioRef.current.unload();
-      if (settleAudioRef.current) settleAudioRef.current.unload();
-      if (splashAudioRef.current) splashAudioRef.current.unload();
+      hoverAudioRef.current?.unload();
+      settleAudioRef.current?.unload();
+      splashAudioRef.current?.unload();
     };
   }, []);
 
-  // --- WATER PHYSICS & 60FPS RENDERING ENGINE ---
+  // === WATER PHYSICS & 60FPS RENDERING ENGINE ===
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
+    // Canvas dimensions
     const width = window.innerWidth;
     const height = window.innerHeight;
     canvas.width = width;
     canvas.height = height;
 
-    const DAMPING = 0.90; // Lowered from 0.96 for cleaner stopping
-    const scale = 4;
+    // Physics constants
+    const DAMPING = 0.90; 
+    const scale = 4; // Downscale factor for physics computation to save CPU
     const physicsWidth = Math.floor(width / scale);
     const physicsHeight = Math.floor(height / scale);
     const size = physicsWidth * physicsHeight;
@@ -122,21 +136,23 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
 
     const processWater = () => {
       const now = performance.now();
+      const hasAudio = isAudioEnabledRef.current;
 
-      // --- 1. ZERO-DELAY FRAME-SYNCED AUDIO LOGIC ---
+      // 1. Audio Modulation based on movement
       if (now - lastMoveTimeRef.current > 50) {
         targetVolumeRef.current = 0;
         targetRateRef.current = 0.85; // Return to resting pitch
         
         if (isMovingRef.current) {
           isMovingRef.current = false;
-          if (isAudioEnabled && settleAudioRef.current) {
+          if (hasAudio && settleAudioRef.current) {
             settleAudioRef.current.play();
           }
         }
       }
 
-      if (isAudioEnabled && hoverAudioRef.current) {
+      // Handle continuous hover audio
+      if (hasAudio && hoverAudioRef.current) {
         if (!hoverAudioRef.current.playing() && targetVolumeRef.current > 0) {
           hoverAudioRef.current.play();
         }
@@ -151,12 +167,12 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
            currentRateRef.current += (targetRateRef.current - currentRateRef.current) * 0.1;
            hoverAudioRef.current.rate(currentRateRef.current);
         }
-      } else if (hoverAudioRef.current && hoverAudioRef.current.playing()) {
+      } else if (hoverAudioRef.current?.playing()) {
          hoverAudioRef.current.pause();
          currentVolumeRef.current = 0;
       }
 
-      // --- 2. RAINSTORM LOGIC ---
+      // 2. Rainstorm Logic
       if (stormIntensityRef.current > 0) {
         blackoutRef.current = Math.min(1, blackoutRef.current + 0.015);
         
@@ -165,14 +181,15 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           const rx = Math.floor(Math.random() * (physicsWidth - 2)) + 1;
           const ry = Math.floor(Math.random() * (physicsHeight - 2)) + 1;
           const idx = rx + ry * physicsWidth;
-          //controls the Raindrop lighting
+          // Controls raindrop intensity/splash height
           previous[idx] = 150 + Math.random() * 400; 
         }
         
-        stormIntensityRef.current += 0.4;
+        // Cap storm intensity to prevent performance degradation over long periods
+        stormIntensityRef.current = Math.min(50, stormIntensityRef.current + 0.4);
       }
 
-      // --- 3. WATER MATH ---
+      // 3. Water Math (Classic Wave Propagation Algorithm)
       for (let y = 1; y < physicsHeight - 1; y++) {
         for (let x = 1; x < physicsWidth - 1; x++) {
           const i = x + y * physicsWidth;
@@ -180,16 +197,17 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
             previous[i - 1] + previous[i + 1] + 
             previous[i - physicsWidth] + previous[i + physicsWidth]
           ) / 2 - current[i];
+          
           current[i] *= DAMPING;
 
-          // ERADICATE ARTIFACTS: Force microscopic waves to zero so water settles
+          // Eradicate artifacts: Force microscopic waves to absolute zero so water settles
           if (Math.abs(current[i]) < 0.05) {
             current[i] = 0;
           }
         }
       }
 
-      // ERADICATE ARTIFACTS: Force boundaries to remain absolutely still
+      // Keep screen boundaries absolutely still to prevent edge artifacting
       for (let i = 0; i < physicsWidth; i++) {
         current[i] = 0; // Top edge
         current[i + (physicsHeight - 1) * physicsWidth] = 0; // Bottom edge
@@ -202,7 +220,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       const baseData = baseImageData.data;
       const outData = outputImageData.data;
 
-      // --- 4. RENDER PIXELS ---
+      // 4. Render Pixels & Calculate Refraction Displacement
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const px = Math.floor(x / scale);
@@ -216,13 +234,16 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           if (px > 0 && px < physicsWidth - 1 && py > 0 && py < physicsHeight - 1) {
               const diffX = current[pi + 1] - current[pi - 1];
               const diffY = current[pi + physicsWidth] - current[pi - physicsWidth];
+              
+              // Displace pixels based on wave slope
               dx += Math.floor(diffX * 1.5);
               dy += Math.floor(diffY * 1.5);
-              //Handles the lighting on the water 1 of 2parts
+              
+              // Calculate lighting based on wave slope (Part 1/2)
               shading = (diffX - diffY) * 0.25; 
           }
 
-          // Aggressive clamping to ensure no boundary tearing
+          // Aggressive clamping to ensure no out-of-bounds boundary tearing
           dx = Math.max(5, Math.min(width - 6, dx));
           dy = Math.max(5, Math.min(height - 6, dy));
 
@@ -233,6 +254,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           let g = baseData[inIndex + 1]; 
           let b = baseData[inIndex + 2]; 
 
+          // Apply blackout effect during storm transition
           if (blackoutRef.current > 0) {
             const darkness = 1 - blackoutRef.current;
             r *= darkness;
@@ -240,10 +262,10 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
             b *= darkness;
           }
           
-          //controls the lighting on the ripple 2 of 2 parts
+          // Apply lighting highlights and shadows (Part 2/2)
           if (shading > 0) {
             r += shading;
-            g += shading * 1.05; 
+            g += shading * 1.05; // Slight color tint for highlights
             b += shading * 1.15; 
           } else {
             r += shading;
@@ -254,12 +276,13 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           outData[outIndex] = Math.max(0, Math.min(255, r));         
           outData[outIndex + 1] = Math.max(0, Math.min(255, g)); 
           outData[outIndex + 2] = Math.max(0, Math.min(255, b)); 
-          outData[outIndex + 3] = 255;                   
+          outData[outIndex + 3] = 255; // Alpha                  
         }
       }
 
       ctx.putImageData(outputImageData, 0, 0);
 
+      // Swap buffers for next frame computation
       let temp = previous;
       previous = current;
       current = temp;
@@ -278,7 +301,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
 
-      // Load your black SVG logo
+      // Load background SVG logo
       const logo = new Image();
       logo.src = '/logoblkstroke.svg';
       
@@ -297,10 +320,9 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       };
     };
 
-    // Call it immediately instead of fetching the external background
     loadLogoAndStart();
 
-    // --- 5. THE FIX: MOUSE INTERPOLATION FOR FLUIDITY ---
+    // 5. Mouse Interaction & Fluid Interpolation
     const handleMouseMove = (e: MouseEvent) => {
       if (isFirstMoveRef.current) {
         isFirstMoveRef.current = false;
@@ -313,7 +335,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       
       const currentX = e.clientX;
       const currentY = e.clientY;
-      
       const prevX = lastMousePosRef.current.x;
       const prevY = lastMousePosRef.current.y;
       
@@ -321,8 +342,9 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       const distanceY = currentY - prevY;
       const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
       
+      // Interpolate points between last mouse position and current to ensure continuous line
       const steps = Math.max(1, Math.floor(distance / 4));
-      const radius = 2;
+      const radius = 2; // Brush size
       
       for (let i = 0; i <= steps; i++) {
         const interpX = prevX + (distanceX * (i / steps));
@@ -333,10 +355,10 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
         
         for (let y = -radius; y <= radius; y++) {
           for (let x = -radius; x <= radius; x++) {
-            if (x*x + y*y <= radius*radius) {
+            if (x * x + y * y <= radius * radius) {
               const idx = (px + x) + (py + y) * physicsWidth;
               if (idx >= 0 && idx < size) {
-                previous[idx] = 180; 
+                previous[idx] = 180; // Wake displacement value
               }
             }
           }
@@ -349,9 +371,8 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
         isMovingRef.current = true;
       }
 
-      // --- VELOCITY AUDIO LOGIC ---
+      // Calculate audio response based on mouse velocity
       const speed = Math.min(1, distance / 40); 
-      //CONTROLS THE VOLUME OF THE RIPPLE HOVER OVER
       targetVolumeRef.current = 0.8 + (speed * 0.5); 
       targetRateRef.current = 0.85 + (speed * 0.2); 
     };
@@ -366,7 +387,8 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
       canvas.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [isAudioEnabled]); 
+  // Note: isAudioEnabled is removed from dependencies to prevent physics wipe on toggle
+  }, []); 
 
   const triggerBucketSplash = () => {
     if (!isReady || isSplashing) return; 
@@ -430,12 +452,15 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
         )}
       </button>
 
-      {/* Styled Interaction Text moved outside of the button */}
-      <div className={`absolute w-35  h-12 top-10 right-[85px] z-50 transition-opacity duration-500 pointer-events-none ${isSplashing ? 'opacity-0' : 'opacity-70'}`}>
-        <span className="text-red-500 font-mono text-xs tracking-widest bg-red-950/30 px-3 py-1 rounded-full border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-          NO ANIMATION? CLICK AUDIO —{'>'}
-        </span>
-      </div>
+       {/* Styled Interaction Text moved outside of the button */}
+      <div className={`absolute top-10 right-[85px] z-50 flex gap-2 transition-opacity duration-500 ${isSplashing ? 'opacity-0' : 'opacity-70'}`}>
+  <span className="px-3 py-1 text-white-500 font-mono text-xs tracking-widest bg-red-950/10 rounded-full  ">
+    NO ANIMATION?
+  </span>
+  <span className="animate-[pulse_2s_infinite] px-3 py-1 text-red-500 font-mono text-xs tracking-widest bg-red-950/30 rounded-full border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+    CLICK AUDIO →
+  </span>
+</div>
 
       <div className={`absolute inset-0 z-20 flex flex-col items-center justify-end pb-32 pointer-events-none mix-blend-difference transition-opacity duration-500 ${isSplashing ? 'opacity-0' : 'opacity-100'}`}>
         {!isReady ? (
