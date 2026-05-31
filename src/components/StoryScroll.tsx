@@ -599,73 +599,76 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
                   <h2 className="text-purple-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">AUTONOMOUS AGENTS</h2>
                   <p className="text-sm md:text-lg 2xl:text-2xl text-gray-400 mt-2 md:mt-4 font-mono text-center">The machines write the code. I architect the reality.</p>
               </div>
-
+              {/*scene 5 question*/}
               <div className="scene-5-question absolute inset-0 flex flex-col items-center justify-center bg-black opacity-0 z-40 pointer-events-none">
                   <h2 className="text-white text-3xl sm:text-4xl md:text-7xl 2xl:text-8xl font-black uppercase tracking-[0.1em] md:tracking-[0.2em] text-center max-w-5xl 2xl:max-w-7xl leading-tight drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] px-4">
                      What is our future<br/>with AI?
                   </h2>
               </div>
-              
+              {/*scene 5 part3*/}
               <div className="scene-5-part3 absolute inset-0 flex items-center justify-center bg-black/90 opacity-0 z-50 pointer-events-auto">
-                  <div className="absolute inset-0 flex flex-col md:flex-row w-full h-full opacity-60">
-                     
-                     <div 
-                         className={`relative group h-full transform-gpu border-b md:border-b-0 md:border-r border-white/20 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer overflow-hidden min-w-0 ${
-                             hoveredFuture === 0 ? 'flex-[4]' : 'flex-1'
-                         }`}
-                         onMouseEnter={() => setHoveredFuture(0)}
-                         onMouseLeave={() => setHoveredFuture(null)}
-                         onClick={() => setHoveredFuture(hoveredFuture === 0 ? null : 0)}
-                     >
-                         <img src={`${imgBase}future_tools.jpg`} alt="AI as Tools" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-700 md:ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:grayscale-0 group-hover:scale-105 transform-gpu" />
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
-                         <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
-                             <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Mere Tools</span>
-                         </div>
-                     </div>
+    <div className="absolute inset-0 flex flex-col md:flex-row w-full h-full opacity-60">
+        
+        {/* PANEL 0 */}
+        <div 
+            className={`relative group h-full transform-gpu border-b md:border-b-0 md:border-r border-white/20 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer overflow-hidden min-w-0 ${
+                hoveredFuture === 0 ? 'flex-[4]' : 'flex-1'
+            } ${hoveredFuture !== null && hoveredFuture !== 0 ? 'brightness-[0.3] blur-[2px]' : 'brightness-100 blur-0'}`}
+            onMouseEnter={() => setHoveredFuture(0)}
+            onMouseLeave={() => setHoveredFuture(null)}
+            onClick={() => setHoveredFuture(hoveredFuture === 0 ? null : 0)}
+        >
+            <img src={`${imgBase}future_tools.jpg`} alt="AI as Tools" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-500 md:ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:grayscale-0 group-hover:scale-105 transform-gpu" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
+            <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
+                <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Mere Tools</span>
+            </div>
+        </div>
 
-                     <div 
-                         className={`relative group h-full transform-gpu border-b md:border-b-0 md:border-r border-white/20 z-10 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer overflow-hidden min-w-0 ${
-                             hoveredFuture === 1 ? 'flex-[4]' : 'flex-1'
-                         }`}
-                         onMouseEnter={() => setHoveredFuture(1)}
-                         onMouseLeave={() => setHoveredFuture(null)}
-                         onClick={() => setHoveredFuture(hoveredFuture === 1 ? null : 1)}
-                     >
-                         <img src={`${imgBase}future_colleagues.jpg`} alt="AI as Colleagues" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-700 md:ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:grayscale-0 group-hover:scale-105 transform-gpu" />
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
-                         <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
-                             <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Side by Side</span>
-                         </div>
-                     </div>
+        {/* PANEL 1 */}
+        <div 
+            className={`relative group h-full transform-gpu border-b md:border-b-0 md:border-r border-white/20 z-10 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer overflow-hidden min-w-0 ${
+                hoveredFuture === 1 ? 'flex-[4]' : 'flex-1'
+            } ${hoveredFuture !== null && hoveredFuture !== 1 ? 'brightness-[0.3] blur-[2px]' : 'brightness-100 blur-0'}`}
+            onMouseEnter={() => setHoveredFuture(1)}
+            onMouseLeave={() => setHoveredFuture(null)}
+            onClick={() => setHoveredFuture(hoveredFuture === 1 ? null : 1)}
+        >
+            <img src={`${imgBase}future_colleagues.jpg`} alt="AI as Colleagues" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-500 md:ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:grayscale-0 group-hover:scale-105 transform-gpu" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
+            <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
+                <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Side by Side</span>
+            </div>
+        </div>
 
-                     <div 
-                         className={`relative group h-full transform-gpu transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer overflow-hidden min-w-0 ${
-                             hoveredFuture === 2 ? 'flex-[4]' : 'flex-1'
-                         }`}
-                         onMouseEnter={() => setHoveredFuture(2)}
-                         onMouseLeave={() => setHoveredFuture(null)}
-                         onClick={() => setHoveredFuture(hoveredFuture === 2 ? null : 2)}
-                     >
-                         <img src={`${imgBase}future_downfall2.jpg`} alt="AI as Downfall" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-700 md:ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:grayscale-0 group-hover:scale-105 transform-gpu" />
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
-                         <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
-                             <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Our Downfall?</span>
-                         </div>
-                     </div>
+        {/* PANEL 2 */}
+        <div 
+            className={`relative group h-full transform-gpu transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer overflow-hidden min-w-0 ${
+                hoveredFuture === 2 ? 'flex-[4]' : 'flex-1'
+            } ${hoveredFuture !== null && hoveredFuture !== 2 ? 'brightness-[0.3] blur-[2px]' : 'brightness-100 blur-0'}`}
+            onMouseEnter={() => setHoveredFuture(2)}
+            onMouseLeave={() => setHoveredFuture(null)}
+            onClick={() => setHoveredFuture(hoveredFuture === 2 ? null : 2)}
+        >
+            <img src={`${imgBase}future_downfall2.jpg`} alt="AI as Downfall" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-500 md:ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:grayscale-0 group-hover:scale-105 transform-gpu" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
+            <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
+                <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Our Downfall?</span>
+            </div>
+        </div>
 
-                  </div>
+    </div>
 
-                  <div 
-                     className="relative z-20 flex flex-col items-center p-6 md:p-14 bg-black/70 rounded-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.9)] w-[90%] md:w-auto"
-                     onMouseEnter={() => setHoveredFuture(null)}
-                  >
-                     <h3 className="text-gray-300 text-xs sm:text-sm md:text-xl 2xl:text-3xl uppercase tracking-[0.3em] md:tracking-[0.6em] mb-6 md:mb-12 font-light text-center drop-shadow-md">The Choice is Ours</h3>
-                     <button onClick={onStoryComplete} className="px-6 md:px-14 py-3 md:py-6 bg-white text-black font-black text-sm md:text-2xl 2xl:text-4xl uppercase tracking-[0.1em] md:tracking-[0.3em] hover:bg-purple-600 hover:text-white hover:scale-105 transition-all duration-300 rounded-sm pointer-events-auto shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.8)] whitespace-nowrap">
-                         Enter the Museum
-                     </button>
-                  </div>
-              </div>
+    <div 
+        className="relative z-20 flex flex-col items-center p-6 md:p-14 bg-black/70 rounded-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.9)] w-[90%] md:w-auto"
+        onMouseEnter={() => setHoveredFuture(null)}
+    >
+        <h3 className="text-gray-300 text-xs sm:text-sm md:text-xl 2xl:text-3xl uppercase tracking-[0.3em] md:tracking-[0.6em] mb-6 md:mb-12 font-light text-center drop-shadow-md">The Choice is Ours</h3>
+        <button onClick={onStoryComplete} className="px-6 md:px-14 py-3 md:py-6 bg-white text-black font-black text-sm md:text-2xl 2xl:text-4xl uppercase tracking-[0.1em] md:tracking-[0.3em] hover:bg-purple-600 hover:text-white hover:scale-105 transition-all duration-300 rounded-sm pointer-events-auto shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.8)] whitespace-nowrap">
+            Enter the Museum
+        </button>
+    </div>
+</div>
           </div>
         </div>
       </div>
