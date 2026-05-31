@@ -66,7 +66,6 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
   const cameraRigRef = useRef<HTMLDivElement>(null);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   
-  // const imgBase = "/images/";
   const imgBase = "http://mr3anderson.pro/masterpiece-portfolio/";
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -78,184 +77,245 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
     const ctx = gsap.context(() => {
       gsap.defaults({ force3D: true });
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: 'top top',
-          end: '+=11000%', 
-          scrub: 1,     
-          pin: true,     
-        }
+      // ==========================================
+      // MATCH MEDIA (RESPONSIVE GSAP)
+      // ==========================================
+      let mm = gsap.matchMedia();
+
+      mm.add({
+        isMobile: "(max-width: 767px)",
+        isTablet: "(min-width: 768px) and (max-width: 1023px)",
+        isDesktop: "(min-width: 1024px) and (max-width: 1535px)",
+        isUltrawide: "(min-width: 1536px)"
+      }, (context) => {
+        let { isMobile, isUltrawide } = context.conditions as { isMobile: boolean, isUltrawide: boolean };
+
+        // ==============================================================
+        // SCENE CONFIGURATION
+        // Adjust background pan and scale here for all scenes
+        // ==============================================================
+        const sceneConfigs = {
+          pan1: { 
+            scale: isMobile ? 1.5 : isUltrawide ? 2.6 : 2.0, 
+            x: isMobile ? 24 : isUltrawide ? 11 : 10, 
+            y: isMobile ? 0 : isUltrawide ? 0 : 1 
+          },
+          pan2: { 
+            scale: isMobile ? 1.5 : isUltrawide ? 2.0 : 2.5, 
+            x: isMobile ? -19 : isUltrawide ? -7 : -11, 
+            y: isMobile ? 3 : isUltrawide ? 7 :  -28
+          },
+          pan3: { 
+            scale: isMobile ? 0.5 : isUltrawide ? 1.0 : 1.0, 
+            x: isMobile ? 0 : isUltrawide ? 0 : 0, 
+            y: isMobile ? 0 : isUltrawide ? 0 :  0
+          },
+          pan4: { 
+            scale: isMobile ? 2.0 : isUltrawide ? 3.0 : 3.2, 
+            x: isMobile ? 20 : isUltrawide ? -68 : -65, 
+            y: isMobile ? -2 : isUltrawide ? 10 : -34 
+          },
+          pan5: { 
+            scale: 1.2, 
+            x: 0, 
+            y: 0 
+          }
+        };
+
+        const tl = gsap.timeline({
+          id: "storyTimeline", // Added ID for Dev Jump
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: 'top top',
+            end: '+=11000%', 
+            scrub: 1,     
+            pin: true,     
+          }
+        });
+
+        tl.to('.scroll-hint', { opacity: 0, duration: 0.5, ease: "power2.out" })
+
+        // ==========================================
+        // 1. APPROACH SCENE 1
+        // ==========================================
+          .addLabel('warp1')
+          .to(cameraRigRef.current, { z: 0, ease: "power1.inOut", duration: 6.5 }, 'warp1')
+          
+          .fromTo('.era-1-flyby', 
+            { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
+            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
+            'warp1+=0.5'
+          )
+          .to('.era-1-flyby', 
+            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
+            'warp1+=2.0'
+          )
+          
+          .to('.scene-1-wrapper', { opacity: 1, duration: 1.5 }, 'warp1+=5.2')
+          .to('.scene-1-pan-zoom', { scale: sceneConfigs.pan1.scale, xPercent: sceneConfigs.pan1.x, yPercent: sceneConfigs.pan1.y, duration: 2, ease: "power2.inOut" }, 'warp1+=6.0')
+          .to({}, { duration: 0.5 }) 
+
+        // --- SCENE 1: BEDROOM ---
+          .fromTo('.scene-1-part1', { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 'warp1+=7.2')
+          .to('.myspace-scroll-img', { yPercent: -60, duration: 1.5, ease: "power1.inOut" }) 
+          .to('.scene-1-part1', { scale: 1.1, opacity: 0, duration: 0.4 })
+          
+          .fromTo('.scene-1-part2', { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" })
+          .to({}, { duration: 1.5 }) 
+          .to('.scene-1-part2', { scale: 1.1, opacity: 0, duration: 0.4 })
+
+        // ==========================================
+        // 2. WARP TO SCENE 2 
+        // ==========================================
+          .addLabel('warp2')
+          .to(cameraRigRef.current, { z: 4000, ease: "power1.inOut", duration: 6.5 }, 'warp2')
+          .to('.scene-1-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp2') 
+          
+          .fromTo('.era-2-flyby', 
+            { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
+            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
+            'warp2+=0.5'
+          )
+          .to('.era-2-flyby', 
+            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
+            'warp2+=2.0'
+          )
+          
+          .to('.scene-2-wrapper', { opacity: 1, duration: 1.5 }, 'warp2+=5.2') 
+          .to('.scene-2-pan-zoom', { scale: sceneConfigs.pan2.scale, xPercent: sceneConfigs.pan2.x, yPercent: sceneConfigs.pan2.y, duration: 2, ease: "power2.inOut" }, 'warp2+=6.0')
+          .to({}, { duration: 0.5 }) 
+          
+        // --- SCENE 2: ITT TECH ---
+          .fromTo('.scene-2-part1', { opacity: 0, x: -50 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" })
+          .to({}, { duration: 1.5 })
+          .to('.scene-2-part1', { opacity: 0, scale: 1.1, duration: 0.4 })
+          
+          .fromTo('.scene-2-part2', { opacity: 0, scale: 1.2 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power3.out" })
+          .to({}, { duration: 1.5 })
+          .to('.scene-2-part2', { opacity: 0, scale: 1.1, duration: 0.4 })
+
+        // ==========================================
+        // 3. WARP TO SCENE 3
+        // ==========================================
+          .addLabel('warp3')
+          .to(cameraRigRef.current, { z: 8000, ease: "power1.inOut", duration: 6.5 }, 'warp3')
+          .to('.scene-2-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp3') 
+          
+          .fromTo('.era-3-flyby', 
+            { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
+            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
+            'warp3+=0.5'
+          )
+          .to('.era-3-flyby', 
+            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
+            'warp3+=2.0'
+          )
+          
+          .to('.scene-3-wrapper', { opacity: 1, duration: 1.5 }, 'warp3+=5.2') 
+          .to('.scene-3-pan-zoom', { scale: sceneConfigs.pan3.scale, xPercent: sceneConfigs.pan3.x, yPercent: sceneConfigs.pan3.y, duration: 2, ease: "power2.inOut" }, 'warp3+=6.0')
+          .to({}, { duration: 0.5 }) 
+          
+        // --- SCENE 3: GOOGLE UI/UX ---
+          .fromTo('.scene-3-part1', { opacity: 0, x: -100 }, { opacity: 1, x: 0, duration: 0.5 })
+          .to({}, { duration: 1.5 })
+          .to('.scene-3-part1', { opacity: 0, x: 100, duration: 0.4 })
+
+          .fromTo('.scene-3-part2', { opacity: 0, x: 100 }, { opacity: 1, x: 0, duration: 0.5, ease: "back.out(1.5)" })
+          .to({}, { duration: 1.5 })
+          .to('.scene-3-part2', { opacity: 0, scale: 1.2, duration: 0.4 })
+
+        // ==========================================
+        // 4. WARP TO SCENE 4
+        // ==========================================
+          .addLabel('warp4')
+          .to(cameraRigRef.current, { z: 12000, ease: "power1.inOut", duration: 6.5 }, 'warp4')
+          .to('.scene-3-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp4') 
+          
+          .fromTo('.era-4-flyby', 
+            { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
+            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
+            'warp4+=0.5'
+          )
+          .to('.era-4-flyby', 
+            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
+            'warp4+=2.0'
+          )
+          
+          .to('.scene-4-wrapper', { opacity: 1, duration: 1.5 }, 'warp4+=5.2') 
+          .to('.scene-4-pan-zoom', { scale: sceneConfigs.pan4.scale, xPercent: sceneConfigs.pan4.x, yPercent: sceneConfigs.pan4.y, duration: 2, ease: "power2.inOut" }, 'warp4+=6.0')
+          .to({}, { duration: 0.5 }) 
+          
+        // --- SCENE 4: PC PROFESSOR ---
+          .fromTo('.scene-4-part1', { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5 })
+          .to({}, { duration: 1.5 }) 
+          .to('.scene-4-part1', { opacity: 0, scale: 1.1, duration: 0.4 })
+
+          .fromTo('.scene-4-part2', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5 })
+          .to({}, { duration: 1.5 }) 
+          .to('.scene-4-part2', { opacity: 0, scale: 1.1, duration: 0.4 })
+
+        // ==========================================
+        // 5. WARP TO SCENE 5 
+        // ==========================================
+          .addLabel('warp5')
+          .to(cameraRigRef.current, { z: 16000, ease: "power1.inOut", duration: 6.5 }, 'warp5')
+          .to('.scene-4-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp5') 
+          
+          .fromTo('.era-5-flyby', 
+            { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
+            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
+            'warp5+=0.5'
+          )
+          .to('.era-5-flyby', 
+            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
+            'warp5+=2.0'
+          )
+          
+          .to('.scene-5-wrapper', { opacity: 1, duration: 1.5 }, 'warp5+=5.2') 
+          .to('.scene-5-pan-zoom', { scale: sceneConfigs.pan5.scale, duration: 2, ease: "power1.inOut" }, 'warp5+=6.0')
+          .to({}, { duration: 0.5 }) 
+          
+        // --- SCENE 5: AI FUTURE ---
+          .fromTo('.scene-5-assist', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 'warp5+=5.2')
+          .to({}, { duration: 0.5 })
+          .to('.scene-5-assist', { opacity: 0, scale: 1.1, duration: 0.5 })
+
+          .fromTo('.scene-5-part1', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" })
+          .to({}, { duration: 2.5 })
+          
+          .addLabel('hideAgents')
+          .to('.scene-5-part1', { opacity: 0, scale: 1.2, duration: 0.5 }, 'hideAgents')
+          .to('.scene-5-text-overlay', { opacity: 0, duration: 0.5 }, 'hideAgents')
+
+          .fromTo('.scene-5-question', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1, ease: "power2.out" })
+          .to({}, { duration: 2.5 })
+
+          .addLabel('finale')
+          .to('.scene-5-question', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'finale')
+          .fromTo('.scene-5-part3', { opacity: 0 }, { opacity: 1, duration: 1.5, ease: "power2.inOut" }, 'finale')
+          
+          .to({}, { duration: 5 }); 
       });
-
-      tl.to('.scroll-hint', { opacity: 0, duration: 0.5, ease: "power2.out" })
-
-      // ==========================================
-      // 1. APPROACH SCENE 1
-      // ==========================================
-        .addLabel('warp1')
-        .to(cameraRigRef.current, { z: 0, ease: "power1.inOut", duration: 6.5 }, 'warp1')
-        
-        .fromTo('.era-1-flyby', 
-          { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
-          { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
-          'warp1+=0.5'
-        )
-        .to('.era-1-flyby', 
-          { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
-          'warp1+=2.0'
-        )
-        
-        .to('.scene-1-wrapper', { opacity: 1, duration: 1.5 }, 'warp1+=5.2')
-        .to('.scene-1-pan-zoom', { scale: 2.0, xPercent: 10, yPercent: 1, duration: 2, ease: "power2.inOut" }, 'warp1+=6.0')
-        .to({}, { duration: 0.5 }) 
-
-      // --- SCENE 1: BEDROOM ---
-        .fromTo('.scene-1-part1', { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 'warp1+=7.2')
-        // Scroll the MySpace image up vertically during the hold duration
-        .to('.myspace-scroll-img', { yPercent: -60, duration: 1.5, ease: "power1.inOut" }) 
-        .to('.scene-1-part1', { scale: 1.1, opacity: 0, duration: 0.4 })
-        
-        .fromTo('.scene-1-part2', { scale: 0.8, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" })
-        .to({}, { duration: 1.5 }) 
-        .to('.scene-1-part2', { scale: 1.1, opacity: 0, duration: 0.4 })
-
-      // ==========================================
-      // 2. WARP TO SCENE 2 
-      // ==========================================
-        .addLabel('warp2')
-        .to(cameraRigRef.current, { z: 4000, ease: "power1.inOut", duration: 6.5 }, 'warp2')
-        .to('.scene-1-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp2') 
-        
-        .fromTo('.era-2-flyby', 
-          { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
-          { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
-          'warp2+=0.5'
-        )
-        .to('.era-2-flyby', 
-          { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
-          'warp2+=2.0'
-        )
-        
-        .to('.scene-2-wrapper', { opacity: 1, duration: 1.5 }, 'warp2+=5.2') 
-        .to('.scene-2-pan-zoom', { scale: 2.0, xPercent: -5, yPercent: -10, duration: 2, ease: "power2.inOut" }, 'warp2+=6.0')
-        .to({}, { duration: 0.5 }) 
-        
-      // --- SCENE 2: ITT TECH ---
-        .fromTo('.scene-2-part1', { opacity: 0, x: -50 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" })
-        .to({}, { duration: 1.5 })
-        .to('.scene-2-part1', { opacity: 0, scale: 1.1, duration: 0.4 })
-        
-        .fromTo('.scene-2-part2', { opacity: 0, scale: 1.2 }, { opacity: 1, scale: 1, duration: 0.5, ease: "power3.out" })
-        .to({}, { duration: 1.5 })
-        .to('.scene-2-part2', { opacity: 0, scale: 1.1, duration: 0.4 })
-
-      // ==========================================
-      // 3. WARP TO SCENE 3
-      // ==========================================
-        .addLabel('warp3')
-        .to(cameraRigRef.current, { z: 8000, ease: "power1.inOut", duration: 6.5 }, 'warp3')
-        .to('.scene-2-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp3') 
-        
-        .fromTo('.era-3-flyby', 
-          { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
-          { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
-          'warp3+=0.5'
-        )
-        .to('.era-3-flyby', 
-          { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
-          'warp3+=2.0'
-        )
-        
-        .to('.scene-3-wrapper', { opacity: 1, duration: 1.5 }, 'warp3+=5.2') 
-        .to('.scene-3-pan-zoom', { scale: 1, xPercent: 0, yPercent: 0, duration: 2, ease: "power2.inOut" }, 'warp3+=6.0')
-        .to({}, { duration: 0.5 }) 
-        
-      // --- SCENE 3: GOOGLE UI/UX ---
-        .fromTo('.scene-3-part1', { opacity: 0, x: -100 }, { opacity: 1, x: 0, duration: 0.5 })
-        .to({}, { duration: 1.5 })
-        .to('.scene-3-part1', { opacity: 0, x: 100, duration: 0.4 })
-
-        .fromTo('.scene-3-part2', { opacity: 0, x: 100 }, { opacity: 1, x: 0, duration: 0.5, ease: "back.out(1.5)" })
-        .to({}, { duration: 1.5 })
-        .to('.scene-3-part2', { opacity: 0, scale: 1.2, duration: 0.4 })
-
-      // ==========================================
-      // 4. WARP TO SCENE 4
-      // ==========================================
-        .addLabel('warp4')
-        .to(cameraRigRef.current, { z: 12000, ease: "power1.inOut", duration: 6.5 }, 'warp4')
-        .to('.scene-3-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp4') 
-        
-        .fromTo('.era-4-flyby', 
-          { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
-          { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
-          'warp4+=0.5'
-        )
-        .to('.era-4-flyby', 
-          { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
-          'warp4+=2.0'
-        )
-        
-        .to('.scene-4-wrapper', { opacity: 1, duration: 1.5 }, 'warp4+=5.2') 
-        .to('.scene-4-pan-zoom', { scale: 3.2, xPercent: -75, yPercent: -30, duration: 2, ease: "power2.inOut" }, 'warp4+=6.0')
-        .to({}, { duration: 0.5 }) 
-        
-      // --- SCENE 4: PC PROFESSOR ---
-        .fromTo('.scene-4-part1', { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5 })
-        .to({}, { duration: 1.5 }) 
-        .to('.scene-4-part1', { opacity: 0, scale: 1.1, duration: 0.4 })
-
-        .fromTo('.scene-4-part2', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5 })
-        .to({}, { duration: 1.5 }) 
-        .to('.scene-4-part2', { opacity: 0, scale: 1.1, duration: 0.4 })
-
-      // ==========================================
-      // 5. WARP TO SCENE 5 
-      // ==========================================
-        .addLabel('warp5')
-        .to(cameraRigRef.current, { z: 16000, ease: "power1.inOut", duration: 6.5 }, 'warp5')
-        .to('.scene-4-wrapper', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'warp5') 
-        
-        .fromTo('.era-5-flyby', 
-          { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
-          { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
-          'warp5+=0.5'
-        )
-        .to('.era-5-flyby', 
-          { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
-          'warp5+=2.0'
-        )
-        
-        .to('.scene-5-wrapper', { opacity: 1, duration: 1.5 }, 'warp5+=5.2') 
-        .to('.scene-5-pan-zoom', { scale: 1.2, duration: 2, ease: "power1.inOut" }, 'warp5+=6.0')
-        .to({}, { duration: 0.5 }) 
-        
-      // --- SCENE 5: AI FUTURE ---
-        .fromTo('.scene-5-assist', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 'warp5+=5.2')
-        .to({}, { duration: 0.5 })
-        .to('.scene-5-assist', { opacity: 0, scale: 1.1, duration: 0.5 })
-
-        .fromTo('.scene-5-part1', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" })
-        .to({}, { duration: 2.5 })
-        
-        .addLabel('hideAgents')
-        .to('.scene-5-part1', { opacity: 0, scale: 1.2, duration: 0.5 }, 'hideAgents')
-        .to('.scene-5-text-overlay', { opacity: 0, duration: 0.5 }, 'hideAgents')
-
-        .fromTo('.scene-5-question', { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 1, ease: "power2.out" })
-        .to({}, { duration: 2.5 })
-
-        .addLabel('finale')
-        .to('.scene-5-question', { opacity: 0, scale: 3, duration: 1.5, ease: "power2.in" }, 'finale')
-        .fromTo('.scene-5-part3', { opacity: 0 }, { opacity: 1, duration: 1.5, ease: "power2.inOut" }, 'finale')
-        
-        .to({}, { duration: 5 }); 
 
     }, containerRef);
 
     return () => ctx.revert();
   }, [prefersReducedMotion]);
+
+  // DEV WORKFLOW FIX: Keeps your scroll position saved when you refresh the page!
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem("dev-scroll-pos");
+    if (savedScroll) {
+      setTimeout(() => window.scrollTo(0, parseInt(savedScroll)), 100);
+    }
+
+    const handleScroll = () => {
+      sessionStorage.setItem("dev-scroll-pos", window.scrollY.toString());
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     let autoScrollTween: gsap.core.Tween;
@@ -287,12 +347,34 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
     };
   }, [isAutoPlaying]);
 
+  // DEV TOOL: Cleaned up Jump function using valid gsap.core.Timeline approach
+  const handleJump = (label: string) => {
+    const tl = gsap.getById("storyTimeline") as gsap.core.Timeline;
+    if (tl && tl.scrollTrigger) {
+      const st = tl.scrollTrigger;
+      const labelTime = tl.labels[label];
+      // Calculates pixel scroll position relative to the timeline progress
+      const scrollPos = st.start + (labelTime / tl.duration()) * (st.end - st.start);
+      window.scrollTo({ top: scrollPos, behavior: 'smooth' });
+    }
+  };
+
   return (
     <div ref={containerRef} className="relative w-full h-screen bg-black text-white overflow-hidden font-sans"
       style={{ perspective: "1500px", perspectiveOrigin: "50% 50%" }}
       onClick={() => window.innerWidth < 768 && setIsAutoPlaying(!isAutoPlaying)}
     >
       <WarpBackground />
+
+      {/* DEV TOOLS JUMP MENU - Remove before production */}
+      <div className="fixed bottom-4 left-4 z-[9999] flex flex-col gap-1 bg-black/80 p-2 rounded-lg border border-white/20 shadow-2xl backdrop-blur-sm">
+        <span className="text-[10px] text-gray-400 font-mono text-center uppercase tracking-widest mb-1 border-b border-white/20 pb-1">Dev Jump</span>
+        <button onClick={(e) => { e.stopPropagation(); handleJump('warp2'); }} className="text-xs text-white p-1 hover:bg-blue-600 rounded">Scene 1 (Bedroom)</button>
+        <button onClick={(e) => { e.stopPropagation(); handleJump('warp3'); }} className="text-xs text-white p-1 hover:bg-red-600 rounded">Scene 2 (ITT)</button>
+        <button onClick={(e) => { e.stopPropagation(); handleJump('warp4'); }} className="text-xs text-white p-1 hover:bg-blue-400 rounded">Scene 3 (UX/UI)</button>
+        <button onClick={(e) => { e.stopPropagation(); handleJump('warp5'); }} className="text-xs text-white p-1 hover:bg-teal-600 rounded">Scene 4 (PC Prof)</button>
+        <button onClick={(e) => { e.stopPropagation(); handleJump('hideAgents'); }} className="text-xs text-white p-1 hover:bg-purple-600 rounded">Scene 5 (Future)</button>
+      </div>
 
       <div className="fixed top-4 right-4 md:top-8 md:right-8 z-[100] flex gap-2 md:gap-4">
         <button onClick={(e) => { e.stopPropagation(); setIsAutoPlaying(!isAutoPlaying); }}
@@ -329,25 +411,33 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
               - My First Encounter With HTML & CSS
             </p>
           </div>
+          
           <div className="scene-1-pan-zoom absolute inset-0 w-full h-full origin-center">
             <img src={`${imgBase}scene1_bedroom_crt.jpg`} alt="90s Bedroom" className="absolute inset-0 w-full h-full object-cover opacity-80 transform-gpu" />
-            <div className="absolute top-[50%] left-[45%] md:top-[50%] md:left-[46%] transform -translate-x-1/2 -translate-y-1/2 w-[45vw] h-[22vh] md:w-[17vw] md:h-[23vh] sm:w-[80vw] sm:h-[17vh]">
-               
-               {/* FIX: Re-structured MySpace Container for Scrolling */}
-               <div className="scene-1-part1 absolute inset-0 flex flex-col bg-black/90 p-2 pb-8 md:pb-10 border border-blue-900 rounded-xl opacity-0 shadow-2xl overflow-hidden">
-                   <div className="flex-1 w-full relative overflow-hidden rounded-sm border border-white/10 bg-black">
-                       <img src={`${imgBase}MySpace_profile_page_2004.jpg`} className="myspace-scroll-img absolute top-0 left-0 w-full h-auto min-h-full object-cover transform-gpu" />
-                   </div>
-                   <h2 className="absolute bottom-1 md:bottom-2 left-0 w-full text-blue-500 text-sm md:text-2xl font-bold font-mono text-center shrink-0">:::myspace</h2>
-               </div>
+          </div>
 
-               <div className="scene-1-part2 absolute inset-0 flex flex-col items-center justify-center bg-black/90 p-1  border border-yellow-700 rounded-xl opacity-0 shadow-2xl">
-                   <div className="flex-1 w-full min-h-0 flex items-center justify-center mb-4">
-                       <img src={`${imgBase}Yahoo_chat.jpg`} className="w-full h-full object-contain rounded drop-shadow-lg" />
-                   </div>
-                   <h2 className="absolute bottom-0 text-yellow-500 text-sm md:text-1xl font-bold font-mono text-center shrink-0">Yahoo/A.I.M</h2>
-               </div>
-            </div>
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+            {/*scene 1/pan1 parts*/}
+             <div className="relative 
+             w-[88vw] h-[32vh] 
+             md:w-[45vw] md:h-[22vh] 
+             lg:w-[42vw] lg:h-[43vh] 
+             2xl:w-[40vw] 2xl:h-[85vh] 
+             pointer-events-auto">
+                 <div className="scene-1-part1 absolute inset-0 flex flex-col bg-black/90 p-2 pb-8 md:pb-10 border border-blue-900 rounded-xl opacity-0 shadow-2xl overflow-hidden">
+                     <div className="flex-1 w-full relative overflow-hidden rounded-sm border border-white/10 bg-black">
+                         <img src={`${imgBase}MySpace_profile_page_2004.jpg`} className="myspace-scroll-img absolute top-0 left-0 w-full h-auto min-h-full object-cover transform-gpu" />
+                     </div>
+                     <h2 className="absolute bottom-1 md:bottom-2 left-0 w-full text-blue-500 text-sm md:text-2xl font-bold font-mono text-center shrink-0">:::myspace</h2>
+                 </div>
+
+                 <div className="scene-1-part2 absolute inset-0 flex flex-col items-center justify-center bg-black/90 p-1 border border-yellow-700 rounded-xl opacity-0 shadow-2xl">
+                     <div className="flex-1 w-full min-h-0 flex items-center justify-center mb-4">
+                         <img src={`${imgBase}Yahoo_chat.jpg`} className="w-full h-full object-contain rounded drop-shadow-lg" />
+                     </div>
+                     <h2 className="absolute bottom-0 text-yellow-500 text-sm md:text-1xl font-bold font-mono text-center shrink-0">Yahoo/A.I.M</h2>
+                 </div>
+             </div>
           </div>
         </div>
 
@@ -364,22 +454,27 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
               - Building My First Site & The Fall of Flash
             </p>
           </div>
+          
           <div className="scene-2-pan-zoom absolute inset-0 w-full h-full origin-top">
             <img src={`${imgBase}scene2_itt_chalkboard.jpg`} alt="ITT Tech Classroom" className="absolute inset-0 w-full h-full object-cover opacity-60 transform-gpu" />
-            <div className="absolute top-[32%] left-[53%] md:top-[32%] md:left-[54%] transform -translate-x-1/2 -translate-y-1/2 w-[46vw] h-[25vh] md:w-[18vw] md:h-[25vh]">
-               <div className="scene-2-part1 absolute inset-0 flex flex-col items-center justify-center text-white opacity-0 bg-black/80 md:bg-black/50 p-1 rounded-xl shadow-2xl">
-                   <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
-                       <img src={`${imgBase}first_website.jpg`} className="w-full h-full object-contain border-2 border-red-900 rotate-3 shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
-                   </div>
-                   <p className="text-base md:text-xl text-center bg-black/80 p-1 rounded font-mono border border-white/10 shrink-0">VVAGRAPHICS</p>
-               </div>
-               <div className="scene-2-part2 absolute inset-0 flex flex-col items-center justify-center text-white opacity-0 bg-black/90 md:bg-black/60 p-1 rounded-xl shadow-2xl border border-white/10">
-                   <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
-                       <img src={`${imgBase}Newspaper_clipping_ITT_closes.jpg`} className="w-full h-full object-contain border-2 border-red-900 rotate-3 shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
-                   </div>
-                   <h2 className="text-red-500 text-sm md:text-1xl font-black uppercase tracking-widest bg-black/90 px-1 py-2 border border-red-900/50 text-center shrink-0">ITT TECH CLOSES</h2>
-               </div>
-            </div>
+          </div>
+
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+            {/*scene 2/pan2 parts*/}
+             <div className="relative w-[82vw] h-[35vh] md:w-[46vw] md:h-[25vh] lg:w-[49vw] lg:h-[56vh] 2xl:w-[28vw] 2xl:h-[68vh] pointer-events-auto">
+                 <div className="scene-2-part1 absolute inset-0 flex flex-col items-center justify-center text-white opacity-0 bg-black/80 md:bg-black/50 p-1 rounded-xl shadow-2xl">
+                     <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
+                         <img src={`${imgBase}first_website.jpg`} className="w-full h-full object-contain border-2 border-red-900 rotate-3 shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
+                     </div>
+                     <p className="text-base md:text-xl text-center bg-black/80 p-1 rounded font-mono border border-white/10 shrink-0">VVAGRAPHICS</p>
+                 </div>
+                 <div className="scene-2-part2 absolute inset-0 flex flex-col items-center justify-center text-white opacity-0 bg-black/90 md:bg-black/60 p-1 rounded-xl shadow-2xl border border-white/10">
+                     <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
+                         <img src={`${imgBase}Newspaper_clipping_ITT_closes.jpg`} className="w-full h-full object-contain border-2 border-red-900 rotate-3 shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
+                     </div>
+                     <h2 className="text-red-500 text-sm md:text-1xl font-black uppercase tracking-widest bg-black/90 px-1 py-2 border border-red-900/50 text-center shrink-0">ITT TECH CLOSES</h2>
+                 </div>
+             </div>
           </div>
         </div>
 
@@ -396,23 +491,28 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
               - Google Certifications & Mobile Apps
             </p>
           </div>
+          
           <div className="scene-3-pan-zoom absolute inset-0 w-full h-full origin-center">
             <img src={`${imgBase}scene4_uiux_monitors.jpg`} alt="Workspace" className="absolute inset-0 w-full h-full object-cover opacity-60 transform-gpu" />
-            <div className="absolute top-[15%] left-[2.5%] w-[95%] h-[70%] md:w-[95%] md:h-[90%] flex items-center justify-center">
-               <div className="scene-3-part1 absolute inset-0 flex flex-col items-center justify-center opacity-0 bg-blue-900/60 border-2 border-blue-400/50 rounded-xl p-8 shadow-2xl">
-                   <h2 className="text-white text-1xl md:text-5xl font-black tracking-widest drop-shadow-2xl mb-1 md:mb-2">GOOGLE UX DESIGN</h2>
-                   <h3 className="text-blue-200 text-xl font-bold mb-6 md:mb-6 tracking-wide">UI/UX Project</h3>
-                   <div className="flex-1 w-full min-h-0">
-                       <img src={`${imgBase}UX_finished_product.jpg`} alt="Finished UI" className="w-full h-full object-contain rounded-lg border border-white/20 shadow-inner" />
-                   </div>
-               </div>
-               <div className="scene-3-part2 absolute inset-0 flex flex-col items-center justify-center opacity-0 bg-blue-900/80 border-2 border-blue-400 shadow-[0_0_40px_rgba(59,130,246,0.8)] rounded-xl p-8">
-                   <h2 className="text-blue-300 text-4xl font-mono uppercase tracking-widest mb-6 drop-shadow-md">Certificate</h2>
-                   <div className="flex-1 w-full min-h-0">
-                       <img src={`${imgBase}UX_wireframe_flow_planning.jpg`} className="w-full h-full object-contain rounded-lg border border-blue-400/30 opacity-90 shadow-inner" />
-                   </div>
-               </div>
-            </div>
+          </div>
+
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+            {/*scene 3/pan3 parts*/}
+             <div className="relative w-[95%] h-[70%] md:w-[95%] md:h-[90%] lg:w-[90%] lg:h-[80%] 2xl:w-[80%] 2xl:h-[90%] pointer-events-auto">
+                 <div className="scene-3-part1 absolute inset-0 flex flex-col items-center justify-center opacity-0 bg-blue-900/60 border-2 border-blue-400/50 rounded-xl p-8 shadow-2xl">
+                     <h2 className="text-white text-1xl md:text-5xl font-black tracking-widest drop-shadow-2xl mb-1 md:mb-2">GOOGLE UX DESIGN</h2>
+                     <h3 className="text-blue-200 text-xl font-bold mb-6 md:mb-6 tracking-wide">UI/UX Project</h3>
+                     <div className="flex-1 w-full min-h-0">
+                         <img src={`${imgBase}UX_finished_product.jpg`} alt="Finished UI" className="w-full h-full object-contain rounded-lg border border-white/20 shadow-inner" />
+                     </div>
+                 </div>
+                 <div className="scene-3-part2 absolute inset-0 flex flex-col items-center justify-center opacity-0 bg-blue-900/80 border-2 border-blue-400 shadow-[0_0_40px_rgba(59,130,246,0.8)] rounded-xl p-8">
+                     <h2 className="text-blue-300 text-4xl font-mono uppercase tracking-widest mb-6 drop-shadow-md">Certificate</h2>
+                     <div className="flex-1 w-full min-h-0">
+                         <img src={`${imgBase}UX_wireframe_flow_planning.jpg`} className="w-full h-full object-contain rounded-lg border border-blue-400/30 opacity-90 shadow-inner" />
+                     </div>
+                 </div>
+             </div>
           </div>
         </div>
 
@@ -429,23 +529,27 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
               - Mastering the Full Stack
             </p>
           </div>
+          
           <div className="scene-4-pan-zoom absolute inset-0 w-full h-full origin-top-left">
             <img src={`${imgBase}scene3_pcprof_board.jpg`} alt="PC Professor" className="absolute inset-0 w-full h-full object-cover opacity-60 transform-gpu" />
-            {/* //adjustment for the scene parts*/}
-            <div className="absolute top-[26%] left-[39%] md:top-[26%] md:left-[39%] transform -translate-x-1/2 -translate-y-1/2 w-[30vw] h-[17vh] md:w-[17vw] md:h-[17vh] sm:w-[17vw] sm:h-[17vh]">
-               <div className="scene-4-part1 absolute inset-0 flex flex-col items-center justify-center bg-teal-900/80 border border-teal-500/50 rounded-xl p-1 opacity-0 shadow-2xl">
-                   <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
-                       <img src={`${imgBase}webmaster.jpg`} className="w-full h-full object-contain rounded-lg shadow-lg" />
-                   </div>
-                   <h2 className="absolute bottom-0 text-red-400 text-1xl md:text-1xl font-semibold  drop-shadow-md text-center shrink-0">Webmaster</h2>
-               </div>
-               <div className="scene-4-part2 absolute inset-0 flex flex-col items-center justify-center bg-teal-900/90 border border-teal-500/50 rounded-xl p-1 opacity-0 shadow-2xl">
-                   <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
-                       <img src={`${imgBase}Two_interconnected_tech_stacks.jpg`} className="w-full h-full object-contain rounded-lg shadow-lg" />
-                   </div>
-                   <h2 className="absolute bottom-0 text-red-400 text-1xl md:text-1xl font-semibold  drop-shadow-md text-center shrink-0">MEAN / MERN</h2>
-               </div>
-            </div>
+          </div>
+
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+            {/*scene 4/pan4 parts*/}
+             <div className="relative w-[90vw] h-[30vh] md:w-[30vw] md:h-[17vh] lg:w-[62vw] lg:h-[52vh] 2xl:w-[45vw] 2xl:h-[75vh] pointer-events-auto">
+                 <div className="scene-4-part1 absolute inset-0 flex flex-col items-center justify-center bg-teal-900/80 border border-teal-500/50 rounded-xl p-1 opacity-0 shadow-2xl">
+                     <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
+                         <img src={`${imgBase}webmaster.jpg`} className="w-full h-full object-contain rounded-lg shadow-lg" />
+                     </div>
+                     <h2 className="absolute bottom-0 text-red-400 text-1xl md:text-1xl font-semibold  drop-shadow-md text-center shrink-0">Webmaster</h2>
+                 </div>
+                 <div className="scene-4-part2 absolute inset-0 flex flex-col items-center justify-center bg-teal-900/90 border border-teal-500/50 rounded-xl p-1 opacity-0 shadow-2xl">
+                     <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
+                         <img src={`${imgBase}Two_interconnected_tech_stacks.jpg`} className="w-full h-full object-contain rounded-lg shadow-lg" />
+                     </div>
+                     <h2 className="absolute bottom-0 text-red-400 text-1xl md:text-1xl font-semibold  drop-shadow-md text-center shrink-0">MEAN / MERN</h2>
+                 </div>
+             </div>
           </div>
         </div>
 
@@ -462,99 +566,99 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
               - My first AI assist, AI Agent
             </p>
           </div>
-          <img src={`${imgBase}scene5_cyberpunk_ultrawide.jpg`} alt="AI Future" className="absolute inset-0 w-full h-full object-cover opacity-50 transform-gpu" />
           
           <div className="scene-5-pan-zoom absolute inset-0 w-full h-full">
-              <div className="absolute inset-0 flex items-center justify-center p-4">
+             <img src={`${imgBase}scene5_cyberpunk_ultrawide.jpg`} alt="AI Future" className="absolute inset-0 w-full h-full object-cover opacity-50 transform-gpu" />
+          </div>
+          
+          <div className="absolute inset-0 flex items-center justify-center p-4 z-10 pointer-events-none">
 
-                 <div className="scene-5-assist absolute inset-0 flex flex-col items-center justify-center opacity-0 z-20 pointer-events-none">
-                     <img src={`${imgBase}code_assist.jpg`} alt="AI Assistant" className="max-w-xl w-[90%] rounded-xl shadow-[0_0_40px_rgba(59,130,246,0.4)] border border-white/10" />
-                     <h2 className="text-blue-400 text-2xl sm:text-3xl font-mono mt-6 font-bold tracking-widest drop-shadow-md">AI ASSISTANT</h2>
-                 </div>
-                 
-                 <div className="scene-5-part1 absolute w-[95%] md:w-full max-w-3xl flex flex-col items-center justify-center opacity-0 z-30 pointer-events-none">
-                     <div className="w-full bg-[#1e1e1e] rounded-xl overflow-hidden shadow-[0_0_50px_rgba(168,85,247,0.4)] border border-gray-700">
-                        <div className="bg-[#2d2d2d] px-3 md:px-4 py-1.5 md:py-2 flex items-center gap-1.5 md:gap-2">
-                            <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500"></div>
-                            <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-500"></div>
-                            <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500"></div>
-                            <span className="text-gray-400 font-mono text-[10px] md:text-xs ml-2 md:ml-4">ai_agents_deploy.sh</span>
-                        </div>
-                        <div className="p-1 bg-black relative">
-                            <img src={`${imgBase}ai_agents_terminal.gif`} alt="AI Agents Working" className="w-full h-auto object-cover opacity-90 mix-blend-screen transform-gpu" />
-                        </div>
+              <div className="scene-5-assist absolute inset-0 flex flex-col items-center justify-center opacity-0 z-20 pointer-events-none">
+                  <img src={`${imgBase}code_assist.jpg`} alt="AI Assistant" className="max-w-xl lg:max-w-3xl 2xl:max-w-4xl w-[90%] rounded-xl shadow-[0_0_40px_rgba(59,130,246,0.4)] border border-white/10" />
+                  <h2 className="text-blue-400 text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-mono mt-6 font-bold tracking-widest drop-shadow-md">AI ASSISTANT</h2>
+              </div>
+              
+              <div className="scene-5-part1 absolute w-[95%] md:w-full max-w-3xl lg:max-w-4xl 2xl:max-w-6xl flex flex-col items-center justify-center opacity-0 z-30 pointer-events-none">
+                  <div className="w-full bg-[#1e1e1e] rounded-xl overflow-hidden shadow-[0_0_50px_rgba(168,85,247,0.4)] border border-gray-700">
+                     <div className="bg-[#2d2d2d] px-3 md:px-4 py-1.5 md:py-2 flex items-center gap-1.5 md:gap-2">
+                         <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500"></div>
+                         <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-500"></div>
+                         <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500"></div>
+                         <span className="text-gray-400 font-mono text-[10px] md:text-xs ml-2 md:ml-4">ai_agents_deploy.sh</span>
                      </div>
-                     <h2 className="text-purple-400 text-2xl sm:text-3xl md:text-5xl font-mono mt-6 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">AUTONOMOUS AGENTS</h2>
-                     <p className="text-sm md:text-lg text-gray-400 mt-2 md:mt-4 font-mono text-center">The machines write the code. I architect the reality.</p>
-                 </div>
+                     <div className="p-1 bg-black relative">
+                         <img src={`${imgBase}ai_agents_terminal.gif`} alt="AI Agents Working" className="w-full h-auto object-cover opacity-90 mix-blend-screen transform-gpu" />
+                     </div>
+                  </div>
+                  <h2 className="text-purple-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">AUTONOMOUS AGENTS</h2>
+                  <p className="text-sm md:text-lg 2xl:text-2xl text-gray-400 mt-2 md:mt-4 font-mono text-center">The machines write the code. I architect the reality.</p>
+              </div>
 
-                 <div className="scene-5-question absolute inset-0 flex flex-col items-center justify-center bg-black opacity-0 z-40 pointer-events-none">
-                     <h2 className="text-white text-3xl sm:text-4xl md:text-7xl font-black uppercase tracking-[0.1em] md:tracking-[0.2em] text-center max-w-5xl leading-tight drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] px-4">
-                        What is our future<br/>with AI?
-                     </h2>
-                 </div>
-                 
-                 {/* FIX: Spring-like custom easing for the Cliffhanger sections */}
-                 <div className="scene-5-part3 absolute inset-0 flex items-center justify-center bg-black/90 opacity-0 z-50">
-                     <div className="absolute inset-0 flex flex-col md:flex-row w-full h-full opacity-60">
-                        
-                        <div 
-                            className={`relative group h-full transform-gpu border-b md:border-b-0 md:border-r border-white/20 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer overflow-hidden min-w-0 ${
-                                hoveredFuture === 0 ? 'flex-[4]' : 'flex-1'
-                            }`}
-                            onMouseEnter={() => setHoveredFuture(0)}
-                            onMouseLeave={() => setHoveredFuture(null)}
-                            onClick={() => setHoveredFuture(hoveredFuture === 0 ? null : 0)}
-                        >
-                            <img src={`${imgBase}future_tools.jpg`} alt="AI as Tools" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-700 md:ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:grayscale-0 group-hover:scale-105 transform-gpu" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
-                            <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
-                                <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Mere Tools</span>
-                            </div>
-                        </div>
-
-                        <div 
-                            className={`relative group h-full transform-gpu border-b md:border-b-0 md:border-r border-white/20 z-10 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer overflow-hidden min-w-0 ${
-                                hoveredFuture === 1 ? 'flex-[4]' : 'flex-1'
-                            }`}
-                            onMouseEnter={() => setHoveredFuture(1)}
-                            onMouseLeave={() => setHoveredFuture(null)}
-                            onClick={() => setHoveredFuture(hoveredFuture === 1 ? null : 1)}
-                        >
-                            <img src={`${imgBase}future_colleagues.jpg`} alt="AI as Colleagues" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-700 md:ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:grayscale-0 group-hover:scale-105 transform-gpu" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
-                            <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
-                                <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Side by Side</span>
-                            </div>
-                        </div>
-
-                        <div 
-                            className={`relative group h-full transform-gpu transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer overflow-hidden min-w-0 ${
-                                hoveredFuture === 2 ? 'flex-[4]' : 'flex-1'
-                            }`}
-                            onMouseEnter={() => setHoveredFuture(2)}
-                            onMouseLeave={() => setHoveredFuture(null)}
-                            onClick={() => setHoveredFuture(hoveredFuture === 2 ? null : 2)}
-                        >
-                            <img src={`${imgBase}future_downfall2.jpg`} alt="AI as Downfall" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-700 md:ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:grayscale-0 group-hover:scale-105 transform-gpu" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
-                            <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
-                                <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Our Downfall?</span>
-                            </div>
-                        </div>
-
+              <div className="scene-5-question absolute inset-0 flex flex-col items-center justify-center bg-black opacity-0 z-40 pointer-events-none">
+                  <h2 className="text-white text-3xl sm:text-4xl md:text-7xl 2xl:text-8xl font-black uppercase tracking-[0.1em] md:tracking-[0.2em] text-center max-w-5xl 2xl:max-w-7xl leading-tight drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] px-4">
+                     What is our future<br/>with AI?
+                  </h2>
+              </div>
+              
+              <div className="scene-5-part3 absolute inset-0 flex items-center justify-center bg-black/90 opacity-0 z-50 pointer-events-auto">
+                  <div className="absolute inset-0 flex flex-col md:flex-row w-full h-full opacity-60">
+                     
+                     <div 
+                         className={`relative group h-full transform-gpu border-b md:border-b-0 md:border-r border-white/20 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer overflow-hidden min-w-0 ${
+                             hoveredFuture === 0 ? 'flex-[4]' : 'flex-1'
+                         }`}
+                         onMouseEnter={() => setHoveredFuture(0)}
+                         onMouseLeave={() => setHoveredFuture(null)}
+                         onClick={() => setHoveredFuture(hoveredFuture === 0 ? null : 0)}
+                     >
+                         <img src={`${imgBase}future_tools.jpg`} alt="AI as Tools" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-700 md:ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:grayscale-0 group-hover:scale-105 transform-gpu" />
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
+                         <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
+                             <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Mere Tools</span>
+                         </div>
                      </div>
 
                      <div 
-                        className="relative z-20 flex flex-col items-center p-6 md:p-14 bg-black/70  rounded-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.9)] w-[90%] md:w-auto"
-                        onMouseEnter={() => setHoveredFuture(null)}
+                         className={`relative group h-full transform-gpu border-b md:border-b-0 md:border-r border-white/20 z-10 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer overflow-hidden min-w-0 ${
+                             hoveredFuture === 1 ? 'flex-[4]' : 'flex-1'
+                         }`}
+                         onMouseEnter={() => setHoveredFuture(1)}
+                         onMouseLeave={() => setHoveredFuture(null)}
+                         onClick={() => setHoveredFuture(hoveredFuture === 1 ? null : 1)}
                      >
-                        <h3 className="text-gray-300 text-xs sm:text-sm md:text-xl uppercase tracking-[0.3em] md:tracking-[0.6em] mb-6 md:mb-12 font-light text-center drop-shadow-md">The Choice is Ours</h3>
-                        <button onClick={onStoryComplete} className="px-6 md:px-14 py-3 md:py-6 bg-white text-black font-black text-sm md:text-2xl uppercase tracking-[0.1em] md:tracking-[0.3em] hover:bg-purple-600 hover:text-white hover:scale-105 transition-all duration-300 rounded-sm pointer-events-auto shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.8)] whitespace-nowrap">
-                            Enter the Museum
-                        </button>
+                         <img src={`${imgBase}future_colleagues.jpg`} alt="AI as Colleagues" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-700 md:ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:grayscale-0 group-hover:scale-105 transform-gpu" />
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
+                         <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
+                             <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Side by Side</span>
+                         </div>
                      </div>
-                 </div>
+
+                     <div 
+                         className={`relative group h-full transform-gpu transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] cursor-pointer overflow-hidden min-w-0 ${
+                             hoveredFuture === 2 ? 'flex-[4]' : 'flex-1'
+                         }`}
+                         onMouseEnter={() => setHoveredFuture(2)}
+                         onMouseLeave={() => setHoveredFuture(null)}
+                         onClick={() => setHoveredFuture(hoveredFuture === 2 ? null : 2)}
+                     >
+                         <img src={`${imgBase}future_downfall2.jpg`} alt="AI as Downfall" className="absolute inset-0 w-full h-full object-cover grayscale md:transition-all md:duration-700 md:ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:grayscale-0 group-hover:scale-105 transform-gpu" />
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent md:hidden"></div>
+                         <div className="absolute inset-x-0 bottom-8 md:bottom-[10%] flex justify-center opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none">
+                             <span className="bg-black/90 text-white px-6 md:px-8 py-2 md:py-3 uppercase tracking-[0.2em] text-xs md:text-sm border border-white/30 rounded shadow-xl whitespace-nowrap">Our Downfall?</span>
+                         </div>
+                     </div>
+
+                  </div>
+
+                  <div 
+                     className="relative z-20 flex flex-col items-center p-6 md:p-14 bg-black/70 rounded-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.9)] w-[90%] md:w-auto"
+                     onMouseEnter={() => setHoveredFuture(null)}
+                  >
+                     <h3 className="text-gray-300 text-xs sm:text-sm md:text-xl 2xl:text-3xl uppercase tracking-[0.3em] md:tracking-[0.6em] mb-6 md:mb-12 font-light text-center drop-shadow-md">The Choice is Ours</h3>
+                     <button onClick={onStoryComplete} className="px-6 md:px-14 py-3 md:py-6 bg-white text-black font-black text-sm md:text-2xl 2xl:text-4xl uppercase tracking-[0.1em] md:tracking-[0.3em] hover:bg-purple-600 hover:text-white hover:scale-105 transition-all duration-300 rounded-sm pointer-events-auto shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.8)] whitespace-nowrap">
+                         Enter the Museum
+                     </button>
+                  </div>
               </div>
           </div>
         </div>
