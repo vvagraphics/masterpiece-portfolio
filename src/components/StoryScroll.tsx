@@ -106,7 +106,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
             y: isMobile ? 3 : isUltrawide ? 7 :  -28
           },
           pan3: { 
-            scale: isMobile ? 0.5 : isUltrawide ? 1.0 : 1.0, 
+            scale: isMobile ? 1 : isUltrawide ? 1.0 : 1.0, 
             x: isMobile ? 0 : isUltrawide ? 0 : 0, 
             y: isMobile ? 0 : isUltrawide ? 0 :  0
           },
