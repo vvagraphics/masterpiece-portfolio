@@ -5,6 +5,8 @@ import gsap from 'gsap';
 import { Howl } from 'howler';
 import { ChevronLeft, ChevronRight, X, Volume2, VolumeX } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion'; 
+import Holograms from '../sandboxes/Holograms'; 
+import Gacha from '../sandboxes/Gacha';
 
 import GraffitiCanvas from '../sandboxes/GraffitiCanvas';
 import GlassWalls from '../sandboxes/GlassWalls';
@@ -143,7 +145,8 @@ export default function SandboxWrapper({
       { color: '#ef4444', label: 'VVA Graffiti', type: 'GRAFFITI', shape: 'capsule', w: 70, h: 120, texture: '/spray_can.svg' },
       { color: '#14b8a6', label: 'Glass Structure', type: 'GLASS_WALLS', shape: 'rectangle', w: 70, h: 133, texture: '/glass_pane.svg' }, 
       { color: '#3b82f6', label: 'Holograms', type: 'HOLOGRAM', shape: 'rectangle', w: 100, h: 133, texture: '/hologram.svg' }, 
-      { color: '#a855f7', label: 'Gacha System', type: 'GACHA', shape: 'square', w: 100, h: 100, texture: '/gacha.svg' }
+      { color: '#a855f7', label: 'Gacha System', type: 'GACHA', shape: 'square', w: 100, h: 100, texture: '/gacha.svg' },
+      { color: '#f59e0b', label: 'Community Archives', type: 'GALLERY', shape: 'square', w: 250, h: 250, texture: '/archives.svg' }
     ];
 
     const projectBodies = projects.map((proj, i) => {
@@ -352,17 +355,13 @@ export default function SandboxWrapper({
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, ease: "easeOut" }} className="absolute inset-0 z-30">
           {activeView === 'GRAFFITI' && <GraffitiCanvas isAudioEnabled={isAudioEnabled} onLayoutChange={setGraffitiLayout} />}
           {activeView === 'GLASS_WALLS' && <GlassWalls isAudioEnabled={isAudioEnabled} />}
-          {activeView === 'HOLOGRAM' && (
+          {activeView === 'HOLOGRAM' && <Holograms isAudioEnabled={isAudioEnabled} />}
+          {activeView === 'GACHA' && <Gacha isAudioEnabled={isAudioEnabled} />}
+          {activeView === 'GALLERY' && (
             <div className="w-full h-full bg-black pt-24 px-8 overflow-y-auto">
-              <h1 className="text-white text-6xl font-black uppercase mb-8">Holograms Coming Soon</h1>
+              <h1 className="text-white text-6xl font-black uppercase mb-8">The Archives</h1>
               <InspirationGallery />
             </div>
-          )}
-          {activeView === 'GACHA' && (
-             <div className="w-full h-full bg-black pt-24 px-8 overflow-y-auto">
-             <h1 className="text-white text-6xl font-black uppercase mb-8">Gacha Coming Soon</h1>
-             <InspirationGallery />
-           </div>
           )}
         </motion.div>
       )}
