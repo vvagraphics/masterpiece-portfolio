@@ -367,7 +367,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
       <WarpBackground />
 
       {/* DEV TOOLS JUMP MENU - Remove before production */}
-      <div className="fixed bottom-4 left-4 z-[9999] flex flex-col gap-1 bg-black/80 p-2 rounded-lg border border-white/20 shadow-2xl backdrop-blur-sm">
+      <div className="fixed bottom-4 left-4 z-[9999] flex flex-col gap-1 bg-black/80 p-2 rounded-lg border border-white/20 shadow-2xl ">
         <span className="text-[10px] text-gray-400 font-mono text-center uppercase tracking-widest mb-1 border-b border-white/20 pb-1">Dev Jump</span>
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp2'); }} className="text-xs text-white p-1 hover:bg-blue-600 rounded">Scene 1 (Bedroom)</button>
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp3'); }} className="text-xs text-white p-1 hover:bg-red-600 rounded">Scene 2 (ITT)</button>
@@ -378,7 +378,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
 
       <div className="fixed top-4 right-4 md:top-8 md:right-8 z-[100] flex gap-2 md:gap-4">
         <button onClick={(e) => { e.stopPropagation(); setIsAutoPlaying(!isAutoPlaying); }}
-          className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/30 bg-black/50 backdrop-blur-md shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] hover:border-white/70 transition-all duration-300"
+          className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/30 bg-black/50  shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] hover:border-white/70 transition-all duration-300"
           title={isAutoPlaying ? "Pause Journey" : "Auto-scroll Journey"}>
           {isAutoPlaying ? <PauseIcon /> : <PlayIcon />}
         </button>
@@ -613,7 +613,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         <div 
             className={`relative group h-full transform-gpu border-b md:border-b-0 md:border-r border-white/20 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer overflow-hidden min-w-0 ${
                 hoveredFuture === 0 ? 'flex-[4]' : 'flex-1'
-            } ${hoveredFuture !== null && hoveredFuture !== 0 ? 'brightness-[0.3] blur-[2px]' : 'brightness-100 blur-0'}`}
+            } ${hoveredFuture !== null && hoveredFuture !== 0 ? 'brightness-[0.3] ' : 'brightness-100 '}`}
             onMouseEnter={() => setHoveredFuture(0)}
             onMouseLeave={() => setHoveredFuture(null)}
             onClick={() => setHoveredFuture(hoveredFuture === 0 ? null : 0)}
@@ -629,7 +629,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         <div 
             className={`relative group h-full transform-gpu border-b md:border-b-0 md:border-r border-white/20 z-10 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer overflow-hidden min-w-0 ${
                 hoveredFuture === 1 ? 'flex-[4]' : 'flex-1'
-            } ${hoveredFuture !== null && hoveredFuture !== 1 ? 'brightness-[0.3] blur-[2px]' : 'brightness-100 blur-0'}`}
+            } ${hoveredFuture !== null && hoveredFuture !== 1 ? 'brightness-[0.3] ' : 'brightness-100 '}`}
             onMouseEnter={() => setHoveredFuture(1)}
             onMouseLeave={() => setHoveredFuture(null)}
             onClick={() => setHoveredFuture(hoveredFuture === 1 ? null : 1)}
@@ -645,7 +645,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         <div 
             className={`relative group h-full transform-gpu transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] cursor-pointer overflow-hidden min-w-0 ${
                 hoveredFuture === 2 ? 'flex-[4]' : 'flex-1'
-            } ${hoveredFuture !== null && hoveredFuture !== 2 ? 'brightness-[0.3] blur-[2px]' : 'brightness-100 blur-0'}`}
+            } ${hoveredFuture !== null && hoveredFuture !== 2 ? 'brightness-[0.3]  ' : 'brightness-100 '}`}
             onMouseEnter={() => setHoveredFuture(2)}
             onMouseLeave={() => setHoveredFuture(null)}
             onClick={() => setHoveredFuture(hoveredFuture === 2 ? null : 2)}
