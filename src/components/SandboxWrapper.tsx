@@ -8,13 +8,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import GraffitiCanvas from '../sandboxes/GraffitiCanvas';
 import GlassWalls from '../sandboxes/GlassWalls';
-import InspirationGallery from './InspirationGallery';
+// import Holograms from '../sandboxes/Holograms';
+// import Gacha from '../sandboxes/Gacha';
+import InspirationGallery from './InspirationGallery'; 
 import TornadoTransition from './TornadoTransition'; 
 
-type ActiveView = 'MUSEUM' | 'GRAFFITI' | 'GLASS_WALLS' | 'GALLERY';
-const SANDBOX_ORDER: ActiveView[] = ['GRAFFITI', 'GLASS_WALLS', 'GALLERY'];
+type ActiveView = 'MUSEUM' | 'GRAFFITI' | 'GLASS_WALLS' | 'HOLOGRAM' | 'GACHA';
+const SANDBOX_ORDER: ActiveView[] = ['GRAFFITI', 'GLASS_WALLS', 'HOLOGRAM', 'GACHA'];
 
-// Added props to accept the global audio state from App.tsx
 type SandboxWrapperProps = {
   isAudioEnabled?: boolean;
   toggleAudio?: () => void;
@@ -32,66 +33,54 @@ export default function SandboxWrapper({
   const runnerRef = useRef<Matter.Runner | null>(null);
   
   const thudSoundRef = useRef<Howl | null>(null);
-  const isAudioEnabledRef = useRef(isAudioEnabled);
-  useEffect(() => {
-    isAudioEnabledRef.current = isAudioEnabled;
-  }, [isAudioEnabled]);
+  const spraySoundRef = useRef<Howl | null>(null);
+  const glassSoundRef = useRef<Howl | null>(null);
+  const hologramSoundRef = useRef<Howl | null>(null);
+  const gachaSoundRef = useRef<Howl | null>(null);
   
-  // State Machine for Transitions
+  const isAudioEnabledRef = useRef(isAudioEnabled);
+  const [isSfxEnabled, setIsSfxEnabled] = useState(true);
+  const isSfxEnabledRef = useRef(isSfxEnabled);
+
+  useEffect(() => { isAudioEnabledRef.current = isAudioEnabled; }, [isAudioEnabled]);
+  useEffect(() => { isSfxEnabledRef.current = isSfxEnabled; }, [isSfxEnabled]);
+  
   const [activeView, setActiveView] = useState<ActiveView>('MUSEUM');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [nextView, setNextView] = useState<ActiveView | null>(null);
   const [graffitiLayout, setGraffitiLayout] = useState<'FULL' | 'SPLIT_VERT' | 'SPLIT_HORIZ'>('FULL');
 
-  // --- Ambient Audio Fade Management ---
+  const [hoveredProject, setHoveredProject] = useState<{
+    label: string; color: string; x: number; y: number;
+  } | null>(null);
+
   useEffect(() => {
     if (!ambientAudioRef?.current) return;
+    const currentVol = typeof ambientAudioRef.current.volume() === 'number' ? ambientAudioRef.current.volume() as number : 0.3;
 
-    // Get the actual current volume so we don't spike the audio!
-    const currentVol = typeof ambientAudioRef.current.volume() === 'number' 
-      ? ambientAudioRef.current.volume() as number 
-      : 0.3;
-
-    // If we are transitioning, OR we are inside a Sandbox, fade the ambient music OUT
     if (activeView !== 'MUSEUM' || isTransitioning) {
-      if (currentVol > 0) {
-        ambientAudioRef.current.fade(currentVol, 0, 1500);
-      }
-    } 
-    // If we are safely back in the Museum and not transitioning, fade it IN
-    else if (activeView === 'MUSEUM' && !isTransitioning) {
-      if (isAudioEnabled && currentVol < 0.3) {
-        ambientAudioRef.current.fade(currentVol, 0.3, 1500);
-      }
+      if (currentVol > 0) ambientAudioRef.current.fade(currentVol, 0, 1500);
+    } else if (activeView === 'MUSEUM' && !isTransitioning) {
+      if (isAudioEnabled && currentVol < 0.3) ambientAudioRef.current.fade(currentVol, 0.3, 1500);
     }
   }, [activeView, isTransitioning, isAudioEnabled, ambientAudioRef]);
 
-  // --- Navigation Handlers ---
   const handleNavigation = (targetView: ActiveView) => {
     setNextView(targetView);
     setIsTransitioning(true);
-  };
+    setHoveredProject(null); 
 
-  const handleNext = () => {
-    if (isTransitioning) return;
-    const currentIndex = SANDBOX_ORDER.indexOf(activeView);
-    if (currentIndex < SANDBOX_ORDER.length - 1) {
-      handleNavigation(SANDBOX_ORDER[currentIndex + 1]);
+    if (isSfxEnabledRef.current) {
+      if (targetView === 'GRAFFITI') spraySoundRef.current?.play();
+      else if (targetView === 'GLASS_WALLS') glassSoundRef.current?.play();
+      else if (targetView === 'HOLOGRAM') hologramSoundRef.current?.play();
+      else if (targetView === 'GACHA') gachaSoundRef.current?.play();
     }
   };
 
-  const handlePrev = () => {
-    if (isTransitioning) return;
-    const currentIndex = SANDBOX_ORDER.indexOf(activeView);
-    if (currentIndex > 0) {
-      handleNavigation(SANDBOX_ORDER[currentIndex - 1]);
-    }
-  };
-
-  const handleReturnToMuseum = () => {
-    if (isTransitioning) return;
-    handleNavigation('MUSEUM');
-  };
+  const handleNext = () => { if (!isTransitioning && SANDBOX_ORDER.indexOf(activeView) < SANDBOX_ORDER.length - 1) handleNavigation(SANDBOX_ORDER[SANDBOX_ORDER.indexOf(activeView) + 1]); };
+  const handlePrev = () => { if (!isTransitioning && SANDBOX_ORDER.indexOf(activeView) > 0) handleNavigation(SANDBOX_ORDER[SANDBOX_ORDER.indexOf(activeView) - 1]); };
+  const handleReturnToMuseum = () => { if (!isTransitioning) handleNavigation('MUSEUM'); };
 
   const handleTransitionComplete = () => {
     if (nextView) {
@@ -101,19 +90,22 @@ export default function SandboxWrapper({
     }
   };
 
-  // --- Audio Setup (Physics Thuds) ---
   useEffect(() => {
-    thudSoundRef.current = new Howl({
-      src: ['/audio/thud.mp3'],
-      preload: true
-    });
+    thudSoundRef.current = new Howl({ src: ['/audio/thud.mp3'], preload: true });
+    spraySoundRef.current = new Howl({ src: ['/audio/spray_sprite.mp3'], preload: true });
+    glassSoundRef.current = new Howl({ src: ['/audio/glass_clink.mp3'], preload: true }); 
+    hologramSoundRef.current = new Howl({ src: ['/audio/hologram_chime.mp3'], preload: true });
+    gachaSoundRef.current = new Howl({ src: ['/audio/gacha_roll.mp3'], preload: true });
 
-    return () => {
-      thudSoundRef.current?.unload();
+    return () => { 
+      thudSoundRef.current?.unload(); 
+      spraySoundRef.current?.unload();
+      glassSoundRef.current?.unload();
+      hologramSoundRef.current?.unload();
+      gachaSoundRef.current?.unload();
     }
   }, []);
 
-  // --- Matter.js Museum Setup ---
   useEffect(() => {
     if (!sceneRef.current) return;
 
@@ -129,10 +121,10 @@ export default function SandboxWrapper({
     const render = Render.create({
       element: sceneRef.current,
       engine: engine,
-      options: {
-        width,
-        height,
-        wireframes: false,
+      options: { 
+        width, 
+        height, 
+        wireframes: false, // <-- PRO TIP: Change this to true to see your physics hitboxes!
         background: '#050505', 
         pixelRatio: 1 
       }
@@ -140,45 +132,45 @@ export default function SandboxWrapper({
 
     const wallOptions = { isStatic: true, render: { fillStyle: 'transparent' } };
     const ground = Bodies.rectangle(width / 2, height + 100, width * 2, 200, wallOptions);
-    const ceiling = Bodies.rectangle(width / 2, -1000, width * 2, 200, wallOptions);
+    const ceiling = Bodies.rectangle(width / 2, -4000, width * 2, 200, wallOptions);
     const leftWall = Bodies.rectangle(-100, height / 2, 200, height * 3, wallOptions);
     const rightWall = Bodies.rectangle(width + 100, height / 2, 200, height * 3, wallOptions);
 
     World.add(engine.world, [ground, ceiling, leftWall, rightWall]);
 
+    // To adjust hitboxes, tweak `w` and `h` here.
     const projects = [
-      { color: '#ef4444', label: 'VVA Graffiti', type: 'GRAFFITI' },
-      { color: '#14b8a6', label: 'Glass Structure', type: 'GLASS_WALLS' },
-      { color: '#a855f7', label: 'Community Archives', type: 'GALLERY' },
-      { color: '#3b82f6', label: 'MySpace Layouts', type: null }, 
-      { color: '#f59e0b', label: 'Brand Identity', type: null }   
+      { color: '#ef4444', label: 'VVA Graffiti', type: 'GRAFFITI', shape: 'capsule', w: 70, h: 120, texture: '/spray_can.svg' },
+      { color: '#14b8a6', label: 'Glass Structure', type: 'GLASS_WALLS', shape: 'rectangle', w: 70, h: 133, texture: '/glass_pane.svg' }, 
+      { color: '#3b82f6', label: 'Holograms', type: 'HOLOGRAM', shape: 'rectangle', w: 100, h: 133, texture: '/hologram.svg' }, 
+      { color: '#a855f7', label: 'Gacha System', type: 'GACHA', shape: 'square', w: 100, h: 100, texture: '/gacha.svg' }
     ];
 
     const projectBodies = projects.map((proj, i) => {
-      const spacing = width / projects.length; 
-      const xPos = (spacing / 2) + (i * spacing);
+      const yPos = -200 - (i * 250);
+      const xPos = (width / 2) + (Math.random() * 200 - 100); 
       
-      return Bodies.rectangle(
-        xPos, 
-        -100 - (Math.random() * 400), 
-        250, 
-        350, 
-        {
-          chamfer: { radius: 20 },
-          restitution: 0.6,
-          frictionAir: 0.03, 
-          render: {
-            fillStyle: proj.color,
-            strokeStyle: '#ffffff',
-            lineWidth: 2
-          },
-          plugin: { 
-            viewType: proj.type, 
-            label: proj.label,
-            originalColor: proj.color 
-          } 
-        }
-      );
+      const commonOptions = {
+        restitution: 0.6,
+        frictionAir: 0.03, 
+        render: { 
+          fillStyle: proj.color, 
+          strokeStyle: '#ffffff', 
+          lineWidth: 2,
+          sprite: {
+            texture: proj.texture,
+            xScale: 1, // Tweak this to make the visual SVG fit the w/h physical box
+            yScale: 1  // Tweak this to make the visual SVG fit the w/h physical box
+          }
+        },
+        plugin: { isProject: true, viewType: proj.type, label: proj.label, originalColor: proj.color } 
+      };
+
+      if (proj.shape === 'capsule') {
+        return Bodies.rectangle(xPos, yPos, proj.w!, proj.h!, { ...commonOptions, chamfer: { radius: proj.w! / 2 } });
+      } else {
+        return Bodies.rectangle(xPos, yPos, proj.w!, proj.h!, { ...commonOptions, chamfer: { radius: 20 } });
+      }
     });
 
     World.add(engine.world, projectBodies);
@@ -202,14 +194,10 @@ export default function SandboxWrapper({
 
     Events.on(engine, 'collisionStart', (event) => {
       event.pairs.forEach((pair) => {
-        const speedA = pair.bodyA.speed;
-        const speedB = pair.bodyB.speed;
-        const impactVelocity = speedA + speedB;
-
-        if (impactVelocity > 1.5 && thudSoundRef.current && isAudioEnabledRef.current) {
+        const impactVelocity = pair.bodyA.speed + pair.bodyB.speed;
+        if (impactVelocity > 1.5 && thudSoundRef.current && isSfxEnabledRef.current) {
           const volume = Math.min(1, impactVelocity / 20);
           const rate = 0.8 + Math.random() * 0.4; 
-          
           const soundId = thudSoundRef.current.play();
           thudSoundRef.current.volume(volume, soundId);
           thudSoundRef.current.rate(rate, soundId);
@@ -217,46 +205,39 @@ export default function SandboxWrapper({
       });
     });
 
+    let currentHoverTarget: Matter.Body | null = null;
+
     Events.on(mouseConstraint, 'mousemove', (event) => {
       projectBodies.forEach(body => {
         if (body.plugin && body.plugin.originalColor) {
-           body.render.fillStyle = body.plugin.originalColor;
            body.render.strokeStyle = '#ffffff';
-           body.render.lineWidth = 2;
+           body.render.lineWidth = 0; 
         }
       });
 
       const hoveredBodies = Query.point(engine.world.bodies, event.mouse.position);
-      const target = hoveredBodies.find(b => b.plugin && b.plugin.viewType);
+      const target = hoveredBodies.find(b => b.plugin && b.plugin.isProject);
 
       if (target) {
         if (render.canvas) render.canvas.style.cursor = 'pointer';
-        target.render.fillStyle = '#ffffff';
+        
         target.render.strokeStyle = target.plugin.originalColor;
-        target.render.lineWidth = 8;
+        target.render.lineWidth = 4; 
+        
+        if (currentHoverTarget !== target) {
+          currentHoverTarget = target;
+          setHoveredProject({ label: target.plugin.label, color: target.plugin.originalColor, x: target.position.x, y: target.position.y });
+        } else {
+          setHoveredProject(prev => prev ? { ...prev, x: target.position.x, y: target.position.y } : null);
+        }
+
       } else {
         if (render.canvas) render.canvas.style.cursor = 'grab';
-      }
-    });
-
-    Events.on(render, 'afterRender', () => {
-      const ctx = render.context;
-      ctx.font = '900 28px "Inter", sans-serif'; 
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      projectBodies.forEach(body => {
-        if (body.plugin && body.plugin.viewType) {
-          ctx.save();
-          ctx.translate(body.position.x, body.position.y);
-          ctx.rotate(body.angle);
-          
-          const isHovered = body.render.fillStyle === '#ffffff';
-          ctx.fillStyle = isHovered ? body.plugin.originalColor : 'rgba(255, 255, 255, 0.9)'; 
-          ctx.fillText('ENTER', 0, 0); 
-          ctx.restore();
+        if (currentHoverTarget !== null) {
+          currentHoverTarget = null;
+          setHoveredProject(null);
         }
-      });
+      }
     });
 
     let mousedownPos = { x: 0, y: 0 };
@@ -274,9 +255,9 @@ export default function SandboxWrapper({
       
       if (timeElapsed < 400 && (dx * dx + dy * dy < 500)) {
         const clickedBodies = Query.point(engine.world.bodies, event.mouse.position);
-        const target = clickedBodies.find(b => b.plugin && b.plugin.viewType);
+        const target = clickedBodies.find(b => b.plugin && b.plugin.isProject);
         
-        if (target && target.plugin) {
+        if (target && target.plugin && target.plugin.viewType) {
           handleNavigation(target.plugin.viewType as ActiveView);
         }
       }
@@ -306,7 +287,6 @@ export default function SandboxWrapper({
     };
   }, []); 
 
-  // Pause Matter.js when not in museum to save CPU
   useEffect(() => {
     if (!runnerRef.current || !engineRef.current) return;
     if (activeView === 'MUSEUM' && !isTransitioning) {
@@ -323,25 +303,18 @@ export default function SandboxWrapper({
   return (
     <div className="relative w-full h-screen overflow-hidden bg-[#050505]">
       
-      {/* 1. Global Navigation Overlay (Left/Right Arrows) */}
       {activeView !== 'MUSEUM' && !isTransitioning && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 pointer-events-none z-40">
           <div className="absolute inset-y-0 left-0 flex items-center">
             {showPrev && (
-              <button 
-                onClick={handlePrev} 
-                className="pointer-events-auto ml-6 p-4 rounded-full bg-[#111] hover:bg-white hover:text-black border border-white/20 transition-all duration-300 text-white"
-              >
+              <button onClick={handlePrev} className="pointer-events-auto ml-6 p-4 rounded-full bg-[#111] hover:bg-white hover:text-black border border-white/20 transition-all duration-300 text-white">
                 <ChevronLeft size={28} />
               </button>
             )}
           </div>
           <div className="absolute inset-y-0 right-0 flex items-center">
              {showNext && (
-               <button 
-                onClick={handleNext} 
-                className="pointer-events-auto mr-6 p-4 rounded-full bg-[#111] hover:bg-white hover:text-black border border-white/20 transition-all duration-300 text-white"
-               >
+               <button onClick={handleNext} className="pointer-events-auto mr-6 p-4 rounded-full bg-[#111] hover:bg-white hover:text-black border border-white/20 transition-all duration-300 text-white">
                  <ChevronRight size={28} />
                </button>
              )}
@@ -349,84 +322,76 @@ export default function SandboxWrapper({
         </motion.div>
       )}
 
-      {/* 2. Global Top-Right Controls: Museum Return & Audio Toggle */}
       <div className={`absolute z-50 flex items-center gap-4 pointer-events-auto transition-all duration-700 ease-in-out ${
-        activeView === 'GRAFFITI' && graffitiLayout === 'SPLIT_VERT' 
-          ? 'top-8 left-8'  
-          : 'top-8 right-8' 
+        activeView === 'GRAFFITI' && graffitiLayout === 'SPLIT_VERT' ? 'top-8 left-8' : 'top-8 right-8' 
       }`}>
-        {/* Render Museum button next to Audio button only when in a sandbox */}
         {activeView !== 'MUSEUM' && !isTransitioning && (
           <motion.button 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            onClick={handleReturnToMuseum}
+            initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} onClick={handleReturnToMuseum}
             className="flex items-center gap-2 px-6 h-12 bg-[#111] text-white text-sm font-bold tracking-widest uppercase border border-white/20 rounded-full hover:bg-white hover:text-black transition-colors duration-300 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
           >
             <X size={16} /> Return to Museum
           </motion.button>
         )}
-
-        {/* Audio Toggle styled exactly like WaterPreloader */}
         <button 
           onClick={toggleAudio}
           className="flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 hover:scale-110 bg-[#111] shadow-[0_0_15px_rgba(255,255,255,0.05)]"
-          style={{
-            borderColor: isAudioEnabled ? '#ef4444' : '#52525b',
-            color: isAudioEnabled ? '#ef4444' : '#52525b',
-            backgroundColor: isAudioEnabled ? 'rgba(239, 68, 68, 0.1)' : '#111'
-          }}
-          title={isAudioEnabled ? "Mute Audio" : "Enable Audio"}
+          style={{ borderColor: isAudioEnabled ? '#ef4444' : '#52525b', color: isAudioEnabled ? '#ef4444' : '#52525b', backgroundColor: isAudioEnabled ? 'rgba(239, 68, 68, 0.1)' : '#111' }}
         >
           {isAudioEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
         </button>
       </div>
 
-      {/* 3. The Interstitial Loading Screen (Tornado) */}
       <AnimatePresence>
         {isTransitioning && nextView && (
-          <TornadoTransition 
-            fromView={activeView} 
-            toView={nextView} 
-            onComplete={handleTransitionComplete} 
-          />
+          <TornadoTransition fromView={activeView} toView={nextView} onComplete={handleTransitionComplete} />
         )}
       </AnimatePresence>
 
-      {/* 4. The Active Sandbox */}
       {!isTransitioning && activeView !== 'MUSEUM' && (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }} 
-          animate={{ opacity: 1, scale: 1 }} 
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="absolute inset-0 z-30"
-        >
-          {/* PASSED AUDIO STATE TO SANDBOXES */}
-          {activeView === 'GRAFFITI' && (
-            <GraffitiCanvas 
-              isAudioEnabled={isAudioEnabled} 
-              onLayoutChange={setGraffitiLayout} 
-            />
-          )}
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, ease: "easeOut" }} className="absolute inset-0 z-30">
+          {activeView === 'GRAFFITI' && <GraffitiCanvas isAudioEnabled={isAudioEnabled} onLayoutChange={setGraffitiLayout} />}
           {activeView === 'GLASS_WALLS' && <GlassWalls isAudioEnabled={isAudioEnabled} />}
-          {activeView === 'GALLERY' && (
+          {activeView === 'HOLOGRAM' && (
             <div className="w-full h-full bg-black pt-24 px-8 overflow-y-auto">
-              <h1 className="text-white text-6xl font-black uppercase mb-8">The Archives</h1>
+              <h1 className="text-white text-6xl font-black uppercase mb-8">Holograms Coming Soon</h1>
               <InspirationGallery />
             </div>
+          )}
+          {activeView === 'GACHA' && (
+             <div className="w-full h-full bg-black pt-24 px-8 overflow-y-auto">
+             <h1 className="text-white text-6xl font-black uppercase mb-8">Gacha Coming Soon</h1>
+             <InspirationGallery />
+           </div>
           )}
         </motion.div>
       )}
 
-      {/* 5. The Matter.js Museum Canvas */}
       <div className={`absolute inset-0 transition-opacity duration-700 ${activeView === 'MUSEUM' && !isTransitioning ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
         <div className="absolute top-8 left-8 z-20 pointer-events-none mix-blend-difference">
-          <h2 className="text-white text-4xl font-black uppercase tracking-tighter">The Sandbox</h2>
-          <p className="text-gray-400 font-mono text-sm mt-2">Grab. Drag. Throw. Click to Enter.</p>
+          <h2 className="text-white text-4xl font-black uppercase tracking-tighter">The Museum</h2>
+          <div className="flex items-center gap-4 mt-2">
+            <p className="text-gray-400 font-mono text-sm pointer-events-none">Grab. Drag. Throw. Click to Enter.</p>
+            <button 
+              onClick={() => setIsSfxEnabled(!isSfxEnabled)}
+              className="pointer-events-auto flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-md border transition-all duration-300 border-zinc-600 text-zinc-400 hover:text-white hover:border-white hover:bg-white/10"
+            >
+              SFX: {isSfxEnabled ? <span className="text-green-400 font-bold">ON</span> : <span className="text-red-400 font-bold">OFF</span>}
+            </button>
+          </div>
         </div>
+
+        {hoveredProject && (
+          <div className="absolute z-30 pointer-events-none transition-all duration-150 ease-out" style={{ left: hoveredProject.x + 140, top: hoveredProject.y - 100 }}>
+            <div className="bg-black/80 backdrop-blur-md border p-4 rounded-xl shadow-2xl min-w-[200px]" style={{ borderColor: `${hoveredProject.color}40` }}>
+              <h3 className="font-bold uppercase tracking-widest text-sm" style={{ color: hoveredProject.color }}>{hoveredProject.label}</h3>
+              <p className="text-xs text-zinc-400 mt-2 font-mono">Click to enter the time warp.</p>
+            </div>
+          </div>
+        )}
+
         <div ref={sceneRef} className="absolute inset-0" />
       </div>
-
     </div>
   );
 }

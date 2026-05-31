@@ -497,7 +497,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           }}
           className="text-[10px] text-zinc-600 font-mono tracking-widest hover:text-red-500 transition-colors uppercase cursor-pointer"
         >
-          [ Reboot Waves ]
+          [ No Animation? Click ]
         </button>
       </div>
 
