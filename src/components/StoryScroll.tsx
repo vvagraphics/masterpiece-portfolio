@@ -66,6 +66,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
   const cameraRigRef = useRef<HTMLDivElement>(null);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   
+  // const imgBase = "/images/";
   const imgBase = "http://mr3anderson.pro/masterpiece-portfolio/";
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -197,7 +198,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         )
         
         .to('.scene-4-wrapper', { opacity: 1, duration: 1.5 }, 'warp4+=5.2') 
-        .to('.scene-4-pan-zoom', { scale: 3.0, xPercent: -55, yPercent: -25, duration: 2, ease: "power2.inOut" }, 'warp4+=6.0')
+        .to('.scene-4-pan-zoom', { scale: 3.2, xPercent: -75, yPercent: -30, duration: 2, ease: "power2.inOut" }, 'warp4+=6.0')
         .to({}, { duration: 0.5 }) 
         
       // --- SCENE 4: PC PROFESSOR ---
@@ -330,7 +331,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           </div>
           <div className="scene-1-pan-zoom absolute inset-0 w-full h-full origin-center">
             <img src={`${imgBase}scene1_bedroom_crt.jpg`} alt="90s Bedroom" className="absolute inset-0 w-full h-full object-cover opacity-80 transform-gpu" />
-            <div className="absolute top-[50%] left-[44%] transform -translate-x-1/2 -translate-y-1/2 w-[21vw] h-[23vh] md:w-[21vw] md:h-[23vh]">
+            <div className="absolute top-[50%] left-[45%] md:top-[50%] md:left-[46%] transform -translate-x-1/2 -translate-y-1/2 w-[45vw] h-[22vh] md:w-[17vw] md:h-[23vh] sm:w-[80vw] sm:h-[17vh]">
                
                {/* FIX: Re-structured MySpace Container for Scrolling */}
                <div className="scene-1-part1 absolute inset-0 flex flex-col bg-black/90 p-2 pb-8 md:pb-10 border border-blue-900 rounded-xl opacity-0 shadow-2xl overflow-hidden">
@@ -365,12 +366,12 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           </div>
           <div className="scene-2-pan-zoom absolute inset-0 w-full h-full origin-top">
             <img src={`${imgBase}scene2_itt_chalkboard.jpg`} alt="ITT Tech Classroom" className="absolute inset-0 w-full h-full object-cover opacity-60 transform-gpu" />
-            <div className="absolute top-[32%] left-[54%] transform -translate-x-1/2 -translate-y-1/2 w-[20vw] h-[25vh] md:w-[20vw] md:h-[25vh]">
+            <div className="absolute top-[32%] left-[53%] md:top-[32%] md:left-[54%] transform -translate-x-1/2 -translate-y-1/2 w-[46vw] h-[25vh] md:w-[18vw] md:h-[25vh]">
                <div className="scene-2-part1 absolute inset-0 flex flex-col items-center justify-center text-white opacity-0 bg-black/80 md:bg-black/50 p-1 rounded-xl shadow-2xl">
                    <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
                        <img src={`${imgBase}first_website.jpg`} className="w-full h-full object-contain border-2 border-red-900 rotate-3 shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
                    </div>
-                   <p className="text-base md:text-xl text-center bg-black/80 p-1 rounded font-mono border border-white/10 shrink-0">VVA GRAPHICS is born.</p>
+                   <p className="text-base md:text-xl text-center bg-black/80 p-1 rounded font-mono border border-white/10 shrink-0">VVAGRAPHICS</p>
                </div>
                <div className="scene-2-part2 absolute inset-0 flex flex-col items-center justify-center text-white opacity-0 bg-black/90 md:bg-black/60 p-1 rounded-xl shadow-2xl border border-white/10">
                    <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
@@ -397,10 +398,10 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           </div>
           <div className="scene-3-pan-zoom absolute inset-0 w-full h-full origin-center">
             <img src={`${imgBase}scene4_uiux_monitors.jpg`} alt="Workspace" className="absolute inset-0 w-full h-full object-cover opacity-60 transform-gpu" />
-            <div className="absolute top-[4%] left-[2.5%] w-[95%] h-[90%] flex items-center justify-center">
+            <div className="absolute top-[15%] left-[2.5%] w-[95%] h-[70%] md:w-[95%] md:h-[90%] flex items-center justify-center">
                <div className="scene-3-part1 absolute inset-0 flex flex-col items-center justify-center opacity-0 bg-blue-900/60 border-2 border-blue-400/50 rounded-xl p-8 shadow-2xl">
-                   <h2 className="text-white text-5xl font-black tracking-widest drop-shadow-2xl mb-2">GOOGLE UX DESIGN</h2>
-                   <h3 className="text-blue-200 text-xl font-bold mb-6 tracking-wide">UI/UX Project</h3>
+                   <h2 className="text-white text-1xl md:text-5xl font-black tracking-widest drop-shadow-2xl mb-1 md:mb-2">GOOGLE UX DESIGN</h2>
+                   <h3 className="text-blue-200 text-xl font-bold mb-6 md:mb-6 tracking-wide">UI/UX Project</h3>
                    <div className="flex-1 w-full min-h-0">
                        <img src={`${imgBase}UX_finished_product.jpg`} alt="Finished UI" className="w-full h-full object-contain rounded-lg border border-white/20 shadow-inner" />
                    </div>
@@ -430,12 +431,13 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           </div>
           <div className="scene-4-pan-zoom absolute inset-0 w-full h-full origin-top-left">
             <img src={`${imgBase}scene3_pcprof_board.jpg`} alt="PC Professor" className="absolute inset-0 w-full h-full object-cover opacity-60 transform-gpu" />
-            <div className="absolute top-[26%] left-[36%] transform -translate-x-1/2 -translate-y-1/2 w-[20vw] h-[17vh] md:w-[20vw] md:h-[17vh]">
+            {/* //adjustment for the scene parts*/}
+            <div className="absolute top-[26%] left-[39%] md:top-[26%] md:left-[39%] transform -translate-x-1/2 -translate-y-1/2 w-[30vw] h-[17vh] md:w-[17vw] md:h-[17vh] sm:w-[17vw] sm:h-[17vh]">
                <div className="scene-4-part1 absolute inset-0 flex flex-col items-center justify-center bg-teal-900/80 border border-teal-500/50 rounded-xl p-1 opacity-0 shadow-2xl">
                    <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
                        <img src={`${imgBase}webmaster.jpg`} className="w-full h-full object-contain rounded-lg shadow-lg" />
                    </div>
-                   <h2 className="absolute bottom-0 text-red-400 text-1xl md:text-1xl font-semibold  drop-shadow-md text-center shrink-0">Webmaster.</h2>
+                   <h2 className="absolute bottom-0 text-red-400 text-1xl md:text-1xl font-semibold  drop-shadow-md text-center shrink-0">Webmaster</h2>
                </div>
                <div className="scene-4-part2 absolute inset-0 flex flex-col items-center justify-center bg-teal-900/90 border border-teal-500/50 rounded-xl p-1 opacity-0 shadow-2xl">
                    <div className="flex-1 w-full min-h-0 flex items-center justify-center ">

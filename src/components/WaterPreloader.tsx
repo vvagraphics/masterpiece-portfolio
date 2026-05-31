@@ -431,7 +431,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       </button>
 
       {/* Styled Interaction Text moved outside of the button */}
-      <div className={`absolute top-10 right-[85px] z-50 transition-opacity duration-500 pointer-events-none ${isSplashing ? 'opacity-0' : 'opacity-70'}`}>
+      <div className={`absolute w-35  h-12 top-10 right-[85px] z-50 transition-opacity duration-500 pointer-events-none ${isSplashing ? 'opacity-0' : 'opacity-70'}`}>
         <span className="text-red-500 font-mono text-xs tracking-widest bg-red-950/30 px-3 py-1 rounded-full border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
           NO ANIMATION? CLICK AUDIO —{'>'}
         </span>
