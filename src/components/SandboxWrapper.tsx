@@ -5,18 +5,17 @@ import gsap from 'gsap';
 import { Howl } from 'howler';
 import { ChevronLeft, ChevronRight, X, Volume2, VolumeX } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion'; 
+
 import Holograms from '../sandboxes/Holograms'; 
 import Gacha from '../sandboxes/Gacha';
-
 import GraffitiCanvas from '../sandboxes/GraffitiCanvas';
 import GlassWalls from '../sandboxes/GlassWalls';
-// import Holograms from '../sandboxes/Holograms';
-// import Gacha from '../sandboxes/Gacha';
 import InspirationGallery from './InspirationGallery'; 
 import TornadoTransition from './TornadoTransition'; 
 
-type ActiveView = 'MUSEUM' | 'GRAFFITI' | 'GLASS_WALLS' | 'HOLOGRAM' | 'GACHA';
-const SANDBOX_ORDER: ActiveView[] = ['GRAFFITI', 'GLASS_WALLS', 'HOLOGRAM', 'GACHA'];
+// FIX: Added 'GALLERY' back into the allowed types and the navigation order
+type ActiveView = 'MUSEUM' | 'GRAFFITI' | 'GLASS_WALLS' | 'HOLOGRAM' | 'GACHA' | 'GALLERY';
+const SANDBOX_ORDER: ActiveView[] = ['GRAFFITI', 'GLASS_WALLS', 'HOLOGRAM', 'GACHA', 'GALLERY'];
 
 type SandboxWrapperProps = {
   isAudioEnabled?: boolean;
@@ -126,7 +125,7 @@ export default function SandboxWrapper({
       options: { 
         width, 
         height, 
-        wireframes: false, // <-- PRO TIP: Change this to true to see your physics hitboxes!
+        wireframes: false, 
         background: '#050505', 
         pixelRatio: 1 
       }
@@ -140,7 +139,6 @@ export default function SandboxWrapper({
 
     World.add(engine.world, [ground, ceiling, leftWall, rightWall]);
 
-    // To adjust hitboxes, tweak `w` and `h` here.
     const projects = [
       { color: '#ef4444', label: 'VVA Graffiti', type: 'GRAFFITI', shape: 'capsule', w: 70, h: 120, texture: '/spray_can.svg' },
       { color: '#14b8a6', label: 'Glass Structure', type: 'GLASS_WALLS', shape: 'rectangle', w: 70, h: 133, texture: '/glass_pane.svg' }, 
@@ -162,8 +160,8 @@ export default function SandboxWrapper({
           lineWidth: 2,
           sprite: {
             texture: proj.texture,
-            xScale: 1, // Tweak this to make the visual SVG fit the w/h physical box
-            yScale: 1  // Tweak this to make the visual SVG fit the w/h physical box
+            xScale: 1, 
+            yScale: 1  
           }
         },
         plugin: { isProject: true, viewType: proj.type, label: proj.label, originalColor: proj.color } 
