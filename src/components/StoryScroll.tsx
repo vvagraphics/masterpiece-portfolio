@@ -111,9 +111,9 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
             y: isMobile ? 0 : isUltrawide ? 0 :  0
           },
           pan4: { 
-            scale: isMobile ? 2.0 : isUltrawide ? 3.0 : 3.2, 
-            x: isMobile ? 20 : isUltrawide ? -68 : -65, 
-            y: isMobile ? -2 : isUltrawide ? 10 : -34 
+            scale: isMobile ? 1.8 : isUltrawide ? 3.0 : 3.2, 
+            x: isMobile ? -2: isUltrawide ? 32 : 30, 
+            y: isMobile ? 43 : isUltrawide ? 108 : 75 
           },
           pan5: { 
             scale: 1.2, 
@@ -530,8 +530,14 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
             </p>
           </div>
           
-          <div className="scene-4-pan-zoom absolute inset-0 w-full h-full origin-top-left">
-            <img src={`${imgBase}scene3_pcprof_board.jpg`} alt="PC Professor" className="absolute inset-0 w-full h-full object-cover opacity-60 transform-gpu" />
+          <div className="scene-4-pan-zoom absolute inset-0 w-full h-full origin-center">
+            <img 
+  src={`${imgBase}scene3_pcprof_board.jpg`} 
+  alt="PC Professor" 
+  // Adjust these percentages: 0% is left, 100% is right.
+  // 35% is likely where your monitor is.
+  className="absolute inset-0 w-full h-full object-cover object-[35%_center] opacity-60 transform-gpu" 
+/>
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
@@ -561,7 +567,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
 
         {/* ================= SCENE 5: AI FUTURE ================= */}
         <div className="scene-5-wrapper absolute inset-0 w-full h-full opacity-0" style={{ transform: "translateZ(-16000px)" }}>
-          <div className="scene-5-text-overlay absolute top-10 left-1/2 transform -translate-x-1/2 bg-black/60 px-6 py-3 border border-white/20 rounded-full z-[100] pointer-events-none w-[90%] md:w-auto text-center shadow-[0_0_20px_rgba(168,85,247,0.1)]">
+          <div className="scene-5-text-overlay absolute top-40 lg:top-10 left-1/2 transform -translate-x-1/2 bg-black/60 px-6 py-3 border border-white/20 rounded-full z-[100] pointer-events-none w-[90%] md:w-auto text-center shadow-[0_0_20px_rgba(168,85,247,0.1)]">
             <p className="text-white text-xs md:text-base font-mono font-bold uppercase tracking-widest drop-shadow-md">
               - My first AI assist, AI Agent
             </p>
@@ -572,7 +578,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           </div>
           
           <div className="absolute inset-0 flex items-center justify-center p-4 z-10 pointer-events-none">
-
+{/*scene 5/pan5 parts*/}
               <div className="scene-5-assist absolute inset-0 flex flex-col items-center justify-center opacity-0 z-20 pointer-events-none">
                   <img src={`${imgBase}code_assist.jpg`} alt="AI Assistant" className="max-w-xl lg:max-w-3xl 2xl:max-w-4xl w-[90%] rounded-xl shadow-[0_0_40px_rgba(59,130,246,0.4)] border border-white/10" />
                   <h2 className="text-blue-400 text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-mono mt-6 font-bold tracking-widest drop-shadow-md">AI ASSISTANT</h2>
