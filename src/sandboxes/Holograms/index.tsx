@@ -8,7 +8,7 @@ type HologramsProps = {
   isAudioEnabled?: boolean;
 };
 
-export default function Holograms({ isAudioEnabled }: HologramsProps) {
+export default function Holograms(_props: HologramsProps) {
   const controlsSchema: ControlDef[] = [
     { id: 'hologramColor', type: 'select', label: 'Color Core', options: ['Cyan', 'Magenta', 'Neon Green'], defaultValue: 'Cyan' },
     { id: 'glitchIntensity', type: 'slider', label: 'Glitch Level', min: 0, max: 10, step: 1, defaultValue: 4 },

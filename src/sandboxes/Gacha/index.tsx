@@ -8,7 +8,7 @@ type GachaProps = {
   isAudioEnabled?: boolean;
 };
 
-export default function Gacha({ isAudioEnabled }: GachaProps) {
+export default function Gacha(_props: GachaProps) {
   const controlsSchema: ControlDef[] = [
     { id: 'dropRate', type: 'slider', label: 'SSR Drop Rate %', min: 1, max: 100, step: 1, defaultValue: 15 },
     { id: 'capsuleType', type: 'select', label: 'Capsule Theme', options: ['Cyberpunk', 'Classic'], defaultValue: 'Cyberpunk' },
