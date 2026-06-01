@@ -65,23 +65,46 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
   useEffect(() => {
     const assetsToLoad = ['/audio/water_start.mp3', '/audio/water_stop.mp3', '/audio/thundertorain.mp3', '/logoblkstroke.svg'];
     let loadedCount = 0;
+    let hasFinished = false; // Flag to prevent double-triggering
+
     const updateProgress = () => {
+      if (hasFinished) return;
       loadedCount++;
       setLoadProgress(Math.floor((loadedCount / assetsToLoad.length) * 100));
-      if (loadedCount === assetsToLoad.length) setTimeout(() => setIsReady(true), 800); 
+      
+      if (loadedCount === assetsToLoad.length) {
+        hasFinished = true;
+        setTimeout(() => setIsReady(true), 800); 
+      }
     };
 
     assetsToLoad.forEach(url => {
       if (url.endsWith('.mp3')) {
         const audio = new Audio();
+        audio.preload = 'auto'; // Force browser to prioritize this
         audio.addEventListener('canplaythrough', updateProgress, { once: true });
+        audio.addEventListener('error', updateProgress, { once: true }); // Catch network/CORS errors
         audio.src = url;
+        audio.load(); // Kickstart the network request
       } else {
         const img = new Image();
         img.onload = updateProgress;
+        img.onerror = updateProgress; // Catch missing image errors
         img.src = url;
       }
     });
+
+    // FAILSAFE TIMER: If the browser strictly blocks media preloading, force the screen to unlock after 5 seconds anyway.
+    const fallbackTimer = setTimeout(() => {
+      if (!hasFinished) {
+        console.warn("Preloader timeout: Browser may be blocking background audio loading. Forcing unlock.");
+        hasFinished = true;
+        setLoadProgress(100);
+        setIsReady(true);
+      }
+    }, 5000);
+
+    return () => clearTimeout(fallbackTimer);
   }, []);
 
   // === AUDIO INITIALIZATION ===
@@ -154,9 +177,9 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       const textY = (height / 2) + 90;
 
       const g = glitchState || {
-        c1: 'rgba(255, 0, 0, 0.8)', o1: { x: -3, y: 0 },
-        c2: 'rgba(0, 255, 0, 0.8)', o2: { x: 0, y: 2 },
-        c3: 'rgba(0, 100, 255, 0.8)', o3: { x: 3, y: -1 }
+        c1: 'rgba(230, 131, 131, 0.8)', o1: { x: -3, y: 0 },
+        c2: 'rgba(255, 255, 255, 0.8)', o2: { x: 0, y: 2 },
+        c3: 'rgba(110, 109, 177, 0.8)', o3: { x: 3, y: -1 }
       };
 
       ctx.globalCompositeOperation = 'screen';
