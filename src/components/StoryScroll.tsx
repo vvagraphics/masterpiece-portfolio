@@ -143,12 +143,12 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           
           .fromTo('.era-1-flyby', 
             { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
-            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
-            'warp1+=0.5'
+            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.2, stagger: 0.9, ease: "power2.out" }, 
+            'warp1+=0.5' // Entrance ends at 1.7s
           )
           .to('.era-1-flyby', 
-            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
-            'warp1+=2.0'
+            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 0.5, stagger: 0.9, ease: "power3.in" }, 
+            'warp1+=1.8' // Starts exit at 2.8s (giving a 1.1s reading pause)
           )
           
           .to('.scene-1-wrapper', { opacity: 1, duration: 1.5 }, 'warp1+=5.2')
@@ -173,12 +173,12 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           
           .fromTo('.era-2-flyby', 
             { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
-            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
+            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.2, stagger: 0.9, ease: "power2.out" }, 
             'warp2+=0.5'
           )
           .to('.era-2-flyby', 
-            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
-            'warp2+=2.0'
+            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 0.5, stagger: 0.9, ease: "power3.in" }, 
+            'warp2+=1.8'
           )
           
           .to('.scene-2-wrapper', { opacity: 1, duration: 1.5 }, 'warp2+=5.2') 
@@ -203,12 +203,12 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           
           .fromTo('.era-3-flyby', 
             { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
-            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
+            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.2, stagger: 0.9, ease: "power2.out" }, 
             'warp3+=0.5'
           )
           .to('.era-3-flyby', 
-            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
-            'warp3+=2.0'
+            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 0.5, stagger: 0.9, ease: "power3.in" }, 
+            'warp3+=1.8'
           )
           
           .to('.scene-3-wrapper', { opacity: 1, duration: 1.5 }, 'warp3+=5.2') 
@@ -233,12 +233,12 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           
           .fromTo('.era-4-flyby', 
             { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
-            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
+            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.2, stagger: 0.9, ease: "power2.out" }, 
             'warp4+=0.5'
           )
           .to('.era-4-flyby', 
-            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
-            'warp4+=2.0'
+            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 0.5, stagger: 0.9, ease: "power3.in" }, 
+            'warp4+=1.8'
           )
           
           .to('.scene-4-wrapper', { opacity: 1, duration: 1.5 }, 'warp4+=5.2') 
@@ -263,12 +263,12 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           
           .fromTo('.era-5-flyby', 
             { xPercent: -50, yPercent: -50, x: "0vw", y: "0vh", scale: 0, opacity: 0, rotationZ: 0 }, 
-            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.5, stagger: 0.9, ease: "power1.out" }, 
+            { x: (_, el) => `${el.dataset.x}vw`, y: (_, el) => `${el.dataset.y}vh`, scale: 1, opacity: 1, rotationZ: (_, el) => el.dataset.rotate, duration: 1.2, stagger: 0.9, ease: "power2.out" }, 
             'warp5+=0.5'
           )
           .to('.era-5-flyby', 
-            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 1.0, stagger: 0.9, ease: "power2.in" }, 
-            'warp5+=2.0'
+            { x: (_, el) => `${Number(el.dataset.x) * 3}vw`, y: (_, el) => `${Number(el.dataset.y) * 3}vh`, scale: 3, opacity: 0, duration: 0.5, stagger: 0.9, ease: "power3.in" }, 
+            'warp5+=1.8'
           )
           
           .to('.scene-5-wrapper', { opacity: 1, duration: 1.5 }, 'warp5+=5.2') 
@@ -399,10 +399,10 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         style={{ transformStyle: "preserve-3d", transform: "translateZ(-4000px)" }}>
         
         {/* ================= ERA 1 FLYBYS ================= */}
-        <FlybyItem eraClass="era-1-flyby" z={3500} xOffset={-35} yOffset={-25} rotate={-15} label="Motorola Razr" imageUrl={`${imgBase}razr_v3_spinning.jpg`}/>
-        <FlybyItem eraClass="era-1-flyby" z={2500} xOffset={30} yOffset={20} rotate={10} label="iPod Classic" imageUrl={`${imgBase}ipod_classic_clickwheel.jpg`} />
-        <FlybyItem eraClass="era-1-flyby" z={1500} xOffset={-40} yOffset={30} rotate={-5} label="Top 8 Profile"imageUrl={`${imgBase}top8_grid.jpg`} />
-        <FlybyItem eraClass="era-1-flyby" z={500} xOffset={35} yOffset={-30} rotate={25} label="Wii Remote" imageUrl={`${imgBase}wii_remote.jpg`}/>
+        <FlybyItem eraClass="era-1-flyby" z={3500} xOffset={-25} yOffset={-18} rotate={-15} label="Motorola Razr" imageUrl={`${imgBase}razr_v3_spinning.jpg`}/>
+        <FlybyItem eraClass="era-1-flyby" z={2500} xOffset={25} yOffset={18} rotate={10} label="iPod Classic" imageUrl={`${imgBase}ipod_classic_clickwheel.jpg`} />
+        <FlybyItem eraClass="era-1-flyby" z={1500} xOffset={-20} yOffset={20} rotate={-5} label="Top 8 Profile"imageUrl={`${imgBase}top8_grid.jpg`} />
+        <FlybyItem eraClass="era-1-flyby" z={500} xOffset={25} yOffset={-18} rotate={15} label="Wii Remote" imageUrl={`${imgBase}wii_remote.jpg`}/>
 
         {/* ================= SCENE 1: BEDROOM ================= */}
         <div className="scene-1-wrapper absolute inset-0 w-full h-full opacity-0" style={{ transform: "translateZ(0px)" }}>
@@ -442,10 +442,10 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         </div>
 
         {/* ================= ERA 2 FLYBYS ================= */}
-        <FlybyItem eraClass="era-2-flyby" z={-500} xOffset={35} yOffset={-25} rotate={15} label="Polaroid Icon" imageUrl={`${imgBase}polaroid_icon.jpg`} />
-        <FlybyItem eraClass="era-2-flyby" z={-1500} xOffset={-40} yOffset={20} rotate={-20} label="Glowing Bitcoin" imageUrl={`${imgBase}glowing_bitcoin.jpg`}/>
-        <FlybyItem eraClass="era-2-flyby" z={-2500} xOffset={40} yOffset={25} rotate={5} label="Diamond Pickaxe" imageUrl={`${imgBase}minecraft_pickaxe.jpg`}/>
-        <FlybyItem eraClass="era-2-flyby" z={-3500} xOffset={-30} yOffset={-20} rotate={-10} label="Pokéball" imageUrl={`${imgBase}pokeball.jpg`}/>
+        <FlybyItem eraClass="era-2-flyby" z={-500} xOffset={25} yOffset={-18} rotate={15} label="Polaroid Icon" imageUrl={`${imgBase}polaroid_icon.jpg`} />
+        <FlybyItem eraClass="era-2-flyby" z={-1500} xOffset={-25} yOffset={15} rotate={-20} label="Glowing Bitcoin" imageUrl={`${imgBase}glowing_bitcoin.jpg`}/>
+        <FlybyItem eraClass="era-2-flyby" z={-2500} xOffset={25} yOffset={20} rotate={5} label="Diamond Pickaxe" imageUrl={`${imgBase}minecraft_pickaxe.jpg`}/>
+        <FlybyItem eraClass="era-2-flyby" z={-3500} xOffset={-25} yOffset={-20} rotate={-10} label="Pokéball" imageUrl={`${imgBase}pokeball.jpg`}/>
 
         {/* ================= SCENE 2: ITT TECH ================= */}
         <div className="scene-2-wrapper absolute inset-0 w-full h-full opacity-0" style={{ transform: "translateZ(-4000px)" }}>
@@ -479,10 +479,10 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         </div>
 
         {/* ================= ERA 3 FLYBYS ================= */}
-        <FlybyItem eraClass="era-3-flyby" z={-4500} xOffset={-35} yOffset={30} rotate={-15} label="Figma Pen" imageUrl={`${imgBase}figma_pen_tool.jpg`}/>
-        <FlybyItem eraClass="era-3-flyby" z={-5500} xOffset={30} yOffset={-25} rotate={10} label="OG AirPods" imageUrl={`${imgBase}original_airpods.jpg`}/>
-        <FlybyItem eraClass="era-3-flyby" z={-6500} xOffset={-40} yOffset={-20} rotate={-5} label="Glitch Logo" imageUrl={`${imgBase}tiktok_glitch_logo.jpg`}/>
-        <FlybyItem eraClass="era-3-flyby" z={-7500} xOffset={35} yOffset={20} rotate={25} label="Llama Piñata" imageUrl={`${imgBase}fortnite_llama.jpg`}/>
+        <FlybyItem eraClass="era-3-flyby" z={-4500} xOffset={-25} yOffset={18} rotate={-15} label="Figma Pen" imageUrl={`${imgBase}figma_pen_tool.jpg`}/>
+        <FlybyItem eraClass="era-3-flyby" z={-5500} xOffset={25} yOffset={-18} rotate={10} label="OG AirPods" imageUrl={`${imgBase}original_airpods.jpg`}/>
+        <FlybyItem eraClass="era-3-flyby" z={-6500} xOffset={-25} yOffset={-15} rotate={-5} label="Glitch Logo" imageUrl={`${imgBase}tiktok_glitch_logo.jpg`}/>
+        <FlybyItem eraClass="era-3-flyby" z={-7500} xOffset={25} yOffset={20} rotate={25} label="Llama Piñata" imageUrl={`${imgBase}fortnite_llama.jpg`}/>
 
         {/* ================= SCENE 3: GOOGLE UI/UX ================= */}
         <div className="scene-3-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-8000px)", willChange: "opacity, transform" }}>
@@ -517,10 +517,10 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         </div>
 
         {/* ================= ERA 4 FLYBYS ================= */}
-        <FlybyItem eraClass="era-4-flyby" z={-8500} xOffset={30} yOffset={-30} rotate={5} label="Zoom Webcams" imageUrl={`${imgBase}zoom_webcams_grid.jpg`}/>
-        <FlybyItem eraClass="era-4-flyby" z={-9500} xOffset={-35} yOffset={25} rotate={-10} label="Masks & Space" imageUrl={`${imgBase}masks_distancing.jpg`}/>
-        <FlybyItem eraClass="era-4-flyby" z={-10500} xOffset={40} yOffset={30} rotate={15} label="Bored Ape NFT" imageUrl={`${imgBase}bored_ape_nft.jpg`}/>
-        <FlybyItem eraClass="era-4-flyby" z={-11500} xOffset={-30} yOffset={-35} rotate={-20} label="James Webb" imageUrl={`${imgBase}james_webb_mirror.jpg`}/>
+        <FlybyItem eraClass="era-4-flyby" z={-8500} xOffset={25} yOffset={-20} rotate={5} label="Zoom Webcams" imageUrl={`${imgBase}zoom_webcams_grid.jpg`}/>
+        <FlybyItem eraClass="era-4-flyby" z={-9500} xOffset={-25} yOffset={18} rotate={-10} label="Masks & Space" imageUrl={`${imgBase}masks_distancing.jpg`}/>
+        <FlybyItem eraClass="era-4-flyby" z={-10500} xOffset={25} yOffset={20} rotate={15} label="Bored Ape NFT" imageUrl={`${imgBase}bored_ape_nft.jpg`}/>
+        <FlybyItem eraClass="era-4-flyby" z={-11500} xOffset={-25} yOffset={-18} rotate={-20} label="James Webb" imageUrl={`${imgBase}james_webb_mirror.jpg`}/>
 
         {/* ================= SCENE 4: PC PROFESSOR ================= */}
         <div className="scene-4-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-12000px)", willChange: "opacity, transform" }}>
@@ -560,10 +560,10 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         </div>
 
         {/* ================= ERA 5 FLYBYS ================= */}
-        <FlybyItem eraClass="era-5-flyby" z={-12500} xOffset={-40} yOffset={-10} rotate={-5} label="AR/VR Headset" imageUrl={`${imgBase}ar_vr_headset.jpg`}/>
-        <FlybyItem eraClass="era-5-flyby" z={-13500} xOffset={35} yOffset={-25} rotate={10} label="Neural Mesh" imageUrl={`${imgBase}neural_network_mesh.jpg`}/>
-        <FlybyItem eraClass="era-5-flyby" z={-14500} xOffset={-30} yOffset={35} rotate={-15} label="Robotic Hand" imageUrl={`${imgBase}robotic_hand.jpg`}/>
-        <FlybyItem eraClass="era-5-flyby" z={-15500} xOffset={40} yOffset={25} rotate={20} label="Hologram UI" imageUrl={`${imgBase}holographic_ui_panels.jpg`}/>
+        <FlybyItem eraClass="era-5-flyby" z={-12500} xOffset={-25} yOffset={-15} rotate={-5} label="AR/VR Headset" imageUrl={`${imgBase}ar_vr_headset.jpg`}/>
+        <FlybyItem eraClass="era-5-flyby" z={-13500} xOffset={25} yOffset={-18} rotate={10} label="Neural Mesh" imageUrl={`${imgBase}neural_network_mesh.jpg`}/>
+        <FlybyItem eraClass="era-5-flyby" z={-14500} xOffset={-25} yOffset={20} rotate={-15} label="Robotic Hand" imageUrl={`${imgBase}robotic_hand.jpg`}/>
+        <FlybyItem eraClass="era-5-flyby" z={-15500} xOffset={25} yOffset={18} rotate={20} label="Hologram UI" imageUrl={`${imgBase}holographic_ui_panels.jpg`}/>
 
         {/* ================= SCENE 5: AI FUTURE ================= */}
         <div className="scene-5-wrapper absolute inset-0 w-full h-full opacity-0" style={{ transform: "translateZ(-16000px)" }}>
