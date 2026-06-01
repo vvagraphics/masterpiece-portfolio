@@ -186,7 +186,8 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           .to({}, { duration: 0.5 }) 
           
         // --- SCENE 2: ITT TECH ---
-          .fromTo('.scene-2-part1', { opacity: 0, x: -50 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" })
+        //change for pan in scene
+          .fromTo('.scene-2-part1', { opacity: 0, x: -50 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 'warp2+=8.0')
           .to({}, { duration: 1.5 })
           .to('.scene-2-part1', { opacity: 0, scale: 1.1, duration: 0.4 })
           
@@ -216,7 +217,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           .to({}, { duration: 0.5 }) 
           
         // --- SCENE 3: GOOGLE UI/UX ---
-          .fromTo('.scene-3-part1', { opacity: 0, x: -100 }, { opacity: 1, x: 0, duration: 0.5 })
+          .fromTo('.scene-3-part1', { opacity: 0, x: -100 }, { opacity: 1, x: 0, duration: 0.5 }, 'warp3+=6.2')
           .to({}, { duration: 1.5 })
           .to('.scene-3-part1', { opacity: 0, x: 100, duration: 0.4 })
 
@@ -246,7 +247,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           .to({}, { duration: 0.5 }) 
           
         // --- SCENE 4: PC PROFESSOR ---
-          .fromTo('.scene-4-part1', { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5 })
+          .fromTo('.scene-4-part1', { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5 }, 'warp4+=7.5')
           .to({}, { duration: 1.5 }) 
           .to('.scene-4-part1', { opacity: 0, scale: 1.1, duration: 0.4 })
 
