@@ -5,7 +5,9 @@ export type ControlDef =
   | { id: string; type: 'slider'; label: string; min: number; max: number; step: number; defaultValue: number }
   | { id: string; type: 'toggle'; label: string; defaultValue: boolean }
   | { id: string; type: 'select'; label: string; options: string[]; defaultValue: string }
+  | { id: string; type: 'textarea'; label: string; defaultValue: string }
   | { id: string; type: 'text'; label: string; defaultValue: string };
+  
 
 type SandboxControlsProps = {
   schema: ControlDef[];
@@ -45,6 +47,18 @@ export default function SandboxControls({ schema, onChange }: SandboxControlsPro
                 />
               </div>
             );
+           case 'textarea': 
+            return (
+              <div key={ctrl.id} className="flex items-start gap-2 text-xs text-zinc-400 uppercase tracking-wider font-bold bg-black/50 p-1.5 rounded border border-zinc-700/50">
+                <span className="mt-1">{ctrl.label}:</span>
+                <textarea
+                  value={values[ctrl.id]}
+                  onChange={(e) => handleChange(ctrl.id, e.target.value)}
+                  className="w-32 h-16 bg-transparent text-white focus:outline-none placeholder-zinc-600 font-mono resize-none leading-tight"
+                  placeholder="..."
+                />
+              </div>
+            ); 
           case 'slider':
             return (
               <div key={ctrl.id} className="flex items-center gap-2 text-xs text-zinc-400 uppercase tracking-wider font-bold bg-black/50 p-1.5 rounded border border-zinc-700/50">

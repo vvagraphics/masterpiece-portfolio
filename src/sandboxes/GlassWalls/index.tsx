@@ -1,7 +1,7 @@
 // src/sandboxes/GlassWalls/index.tsx
 import { useRef, useEffect, useState, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Center, Text, Environment, Float, useTexture } from '@react-three/drei';
+import { Center, Text, Environment, Float, useTexture, RoundedBox } from '@react-three/drei';
 import { Howl } from 'howler';
 import * as THREE from 'three';
 
@@ -13,7 +13,8 @@ interface Props {
 }
 
 const GLASS_SCHEMA: ControlDef[] = [
-  { id: 'signoff', type: 'text', label: 'Signature', defaultValue: 'VVA' },
+  // Changed to 'textarea' for multi-line!
+  { id: 'signoff', type: 'textarea', label: 'Signature', defaultValue: 'VVA\nGRAPHICS' },
   { id: 'tint', type: 'select', label: 'Global Tint', options: ['None', 'Rose', 'Cyan', 'Amber'], defaultValue: 'None' },
   { id: 'spacing', type: 'slider', label: 'Spacing', min: 1.0, max: 3.0, step: 0.1, defaultValue: 1.5 },
 ];
@@ -33,20 +34,26 @@ const getMaterialProps = (type: string, tint: string, textures: any) => {
 };
 
 // --- INTERACTIVE LETTER BLOCK ---
-function LetterPane({ char, index, total, tint, spacing, isAudioEnabled, textures, layoutMode }: any) {
+function LetterPane({ char, rowIndex, colIndex, rowLength, totalRows, tint, spacing, isAudioEnabled, textures, layoutMode }: any) {
   const clinkSoundRef = useRef<Howl | null>(null);
   const groupRef = useRef<THREE.Group>(null);
-  
   const [localGlassType, setLocalGlassType] = useState('Clear');
 
-  // --- THE LOCKING MATH ---
-  // If SPLIT_VERT, we stack them Top-to-Bottom. Otherwise, Left-to-Right.
+  // --- NEW GRID MATH ---
   const isVertical = layoutMode === 'SPLIT_VERT';
-  const centerOffset = (total - 1) / 2;
   
-  const targetX = isVertical ? 0 : (index - centerOffset) * spacing;
-  // For vertical, index 0 should be at the TOP (positive Y), so we reverse the subtraction
-  const targetY = isVertical ? (centerOffset - index) * spacing : 0;
+  let targetX = 0;
+  let targetY = 0;
+
+  if (isVertical) {
+    // VERTICAL MODE: Letters go Top-to-Bottom (Y), New lines go Left-to-Right (X)
+    targetY = ((rowLength - 1) / 2 - colIndex) * (spacing * 1.3);
+    targetX = (rowIndex - (totalRows - 1) / 2) * (spacing * 1.2);
+  } else {
+    // HORIZONTAL MODE: Letters go Left-to-Right (X), New lines go Top-to-Bottom (Y)
+    targetX = (colIndex - (rowLength - 1) / 2) * spacing;
+    targetY = ((totalRows - 1) / 2 - rowIndex) * (spacing * 1.5);
+  }
 
   useEffect(() => {
     const soundFile = localGlassType === 'Frosted' ? '/audio/clink_frosted.mp3' : 
@@ -58,12 +65,13 @@ function LetterPane({ char, index, total, tint, spacing, isAudioEnabled, texture
     return () => { sound.unload(); };
   }, [localGlassType]);
 
-  // --- THE PHYSICS FIX ---
-  // Using damp with 'delta' prevents the flying-off-screen bug during load spikes
   useFrame((_state, delta) => {
     if (groupRef.current) {
       groupRef.current.position.x = THREE.MathUtils.damp(groupRef.current.position.x, targetX, 4, delta);
       groupRef.current.position.y = THREE.MathUtils.damp(groupRef.current.position.y, targetY, 4, delta);
+      
+      groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, 0, 8, delta);
+      groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, 0, 8, delta);
     }
   });
 
@@ -73,12 +81,16 @@ function LetterPane({ char, index, total, tint, spacing, isAudioEnabled, texture
       clinkSoundRef.current.play();
     }
     setLocalGlassType(prev => prev === 'Clear' ? 'Frosted' : prev === 'Frosted' ? 'Church' : 'Clear');
+    
+    if (groupRef.current) {
+      groupRef.current.rotation.z = (Math.random() - 0.5) * 0.8;
+      groupRef.current.rotation.x = (Math.random() - 0.5) * 0.8;
+    }
   };
 
   const matProps = getMaterialProps(localGlassType, tint, textures);
 
   return (
-    // Start exactly at 0,0,0 so they fan out smoothly instead of flying in from the edge
     <group ref={groupRef} position={[0, 0, 0]}>
       <Float speed={2} rotationIntensity={0.1} floatIntensity={0.2}>
         <group 
@@ -87,8 +99,9 @@ function LetterPane({ char, index, total, tint, spacing, isAudioEnabled, texture
           onPointerOut={() => document.body.style.cursor = 'auto'}
         >
           <mesh castShadow receiveShadow>
-            <boxGeometry args={[spacing * 0.8, spacing * 1.2, 0.15]} />
-            <meshPhysicalMaterial {...matProps} thickness={1.5} envMapIntensity={2} />
+            <RoundedBox args={[spacing * 0.8, spacing * 1.3, 0.15]} radius={0.04} smoothness={4}>
+              <meshPhysicalMaterial {...matProps} thickness={1.5} envMapIntensity={2} />
+            </RoundedBox>
           </mesh>
           <Text
             position={[0, 0, 0.08]} 
@@ -106,34 +119,44 @@ function LetterPane({ char, index, total, tint, spacing, isAudioEnabled, texture
 }
 
 // --- SCENE MANAGER ---
-function SceneManager({ controls, letters, isAudioEnabled, layoutMode }: any) {
+function SceneManager({ controls, isAudioEnabled, layoutMode }: any) {
   const textures = useTexture({
     glassNormal: '/textures/glass_normal.jpeg',
     frostedNormal: '/textures/frosted_normal.jpeg',
     churchColor: '/textures/church_color.jpeg'
   });
 
+  // MULTI-LINE PARSING
+  // Split the string by 'Enter' (newline), then process each row
+  const lines = controls.signoff.split('\n');
+
   return (
     <Center>
-      {letters.map((char: string, idx: number) => (
-        <LetterPane 
-          key={`${char}-${idx}`} 
-          char={char} 
-          index={idx} 
-          total={letters.length} 
-          textures={textures}
-          layoutMode={layoutMode}
-          {...controls} 
-          isAudioEnabled={isAudioEnabled} 
-        />
-      ))}
+      {lines.map((line: string, rowIndex: number) => {
+        // Remove spaces so empty blocks don't render
+        const chars = line.split('').filter(c => c !== ' ');
+        return chars.map((char: string, colIndex: number) => (
+          <LetterPane 
+            key={`${rowIndex}-${colIndex}-${char}`} 
+            char={char} 
+            rowIndex={rowIndex}
+            colIndex={colIndex}
+            rowLength={chars.length}
+            totalRows={lines.length} 
+            textures={textures}
+            layoutMode={layoutMode}
+            {...controls} 
+            isAudioEnabled={isAudioEnabled} 
+          />
+        ));
+      })}
     </Center>
   );
 }
 
 // --- MAIN COMPONENT ---
 export default function GlassWalls({ isAudioEnabled = false }: Props) {
-  const [controls, setControls] = useState({ signoff: 'VVA', tint: 'None', spacing: 1.5 });
+  const [controls, setControls] = useState({ signoff: 'VVA\nGRAPHICS', tint: 'None', spacing: 1.5 });
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('FULL');
   const [isEnvAudioMuted, setIsEnvAudioMuted] = useState(false);
   
@@ -160,8 +183,6 @@ export default function GlassWalls({ isAudioEnabled = false }: Props) {
     }
   }, [isAudioEnabled, isEnvAudioMuted]);
 
-  const letters = controls.signoff.split('').filter(c => c !== ' ');
-
   return (
     <SandboxShell
       title="Glass Signature"
@@ -172,12 +193,11 @@ export default function GlassWalls({ isAudioEnabled = false }: Props) {
       onToggleEnvAudio={() => setIsEnvAudioMuted(!isEnvAudioMuted)}
       controls={ <SandboxControls schema={GLASS_SCHEMA} onChange={(id, val) => setControls(p => ({...p, [id]: val}))} /> }
     >
-      {/* THE LOCK: This wrapper dynamically resizes, and the Canvas auto-centers inside it! */}
       <div className={`absolute bottom-0 right-0 transition-all duration-500 ease-in-out ${
         layoutMode === 'FULL' ? 'w-full h-full' :
         layoutMode === 'SPLIT_VERT' ? 'w-1/2 h-full' : 'w-full h-1/2'
       }`}>
-        <Canvas camera={{ position: [0, 0, 10], fov: 45 }} dpr={[1, 1.5]}>
+        <Canvas camera={{ position: [0, 0, 12], fov: 45 }} dpr={[1, 1.5]}>
           <Environment preset="city" background={false} />
           <ambientLight intensity={1.5} />
           <directionalLight position={[5, 10, 5]} intensity={3} />
@@ -186,7 +206,7 @@ export default function GlassWalls({ isAudioEnabled = false }: Props) {
           <pointLight position={[5, 0, -5]} intensity={2} color="#ff00ff" />
 
           <Suspense fallback={null}>
-            <SceneManager controls={controls} letters={letters} isAudioEnabled={isAudioEnabled && !isEnvAudioMuted} layoutMode={layoutMode} />
+            <SceneManager controls={controls} isAudioEnabled={isAudioEnabled && !isEnvAudioMuted} layoutMode={layoutMode} />
           </Suspense>
         </Canvas>
       </div>
