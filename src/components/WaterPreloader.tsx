@@ -30,14 +30,12 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
   const isAudioEnabledRef = useRef(isAudioEnabled);
   const isEngineReadyRef = useRef(false); 
   
-  // THE NEW DUAL-TONE TINT REF
+  // MONOCHROMATIC TINT REF (Only tracks 1 primary color now)
   const waterTintRef = useRef({ 
-    r1: 255, g1: 255, b1: 255, 
-    r2: 255, g2: 255, b2: 255, 
-    isRainbow: true 
+    rMain: 255, gMain: 255, bMain: 255, 
+    isActive: false 
   });
   
-  // THE FIX: Explicitly passing `null` to satisfy TypeScript strict mode
   const paintCanvasFloorRef = useRef<((glitch: GlitchState | null) => void) | null>(null);
   const rebootEngineRef = useRef<(() => void) | null>(null);
   
@@ -65,7 +63,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
   useEffect(() => {
     const assetsToLoad = ['/audio/water_start.mp3', '/audio/water_stop.mp3', '/audio/thundertorain.mp3', '/logoblkstroke.svg'];
     let loadedCount = 0;
-    let hasFinished = false; // Flag to prevent double-triggering
+    let hasFinished = false;
 
     const updateProgress = () => {
       if (hasFinished) return;
@@ -81,23 +79,21 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     assetsToLoad.forEach(url => {
       if (url.endsWith('.mp3')) {
         const audio = new Audio();
-        audio.preload = 'auto'; // Force browser to prioritize this
+        audio.preload = 'auto'; 
         audio.addEventListener('canplaythrough', updateProgress, { once: true });
-        audio.addEventListener('error', updateProgress, { once: true }); // Catch network/CORS errors
+        audio.addEventListener('error', updateProgress, { once: true }); 
         audio.src = url;
-        audio.load(); // Kickstart the network request
+        audio.load(); 
       } else {
         const img = new Image();
         img.onload = updateProgress;
-        img.onerror = updateProgress; // Catch missing image errors
+        img.onerror = updateProgress; 
         img.src = url;
       }
     });
 
-    // FAILSAFE TIMER: If the browser strictly blocks media preloading, force the screen to unlock after 5 seconds anyway.
     const fallbackTimer = setTimeout(() => {
       if (!hasFinished) {
-        console.warn("Preloader timeout: Browser may be blocking background audio loading. Forcing unlock.");
         hasFinished = true;
         setLoadProgress(100);
         setIsReady(true);
@@ -134,6 +130,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
 
   // === WATER ENGINE ===
   useEffect(() => {
+    let isCancelled = false; 
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -177,9 +174,9 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       const textY = (height / 2) + 90;
 
       const g = glitchState || {
-        c1: 'rgba(230, 131, 131, 0.8)', o1: { x: -3, y: 0 },
-        c2: 'rgba(255, 255, 255, 0.8)', o2: { x: 0, y: 2 },
-        c3: 'rgba(110, 109, 177, 0.8)', o3: { x: 3, y: -1 }
+        c1: 'rgba(255, 255, 255, 0.4)', o1: { x: -2, y: 0 },   
+        c2: 'rgba(255, 255, 255, 0.95)', o2: { x: 0, y: 0 }, 
+        c3: 'rgba(150, 150, 150, 0.4)', o3: { x: 2, y: 0 }     
       };
 
       ctx.globalCompositeOperation = 'screen';
@@ -196,6 +193,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     paintCanvasFloorRef.current = drawPoolFloor;
 
     const processWater = () => {
+      if (isCancelled) return; 
       try {
         if (!baseImageDataRef.current) {
           animationFrameId = requestAnimationFrame(processWater);
@@ -295,29 +293,33 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
               r *= darkness; g *= darkness; b *= darkness;
             }
             
-            // === DUAL TONE WATER REFLECTION LOGIC ===
-            if (waterTintRef.current.isRainbow) {
-              // Default state
+            if (!waterTintRef.current.isActive) {
+              // Standard water physics
               if (shading > 0) {
-                r += shading; g += shading * 1.05; b += shading * 1.15; 
+                r += shading; 
+                g += shading * 1.05; 
+                b += shading * 1.15; 
               } else {
-                r += shading; g += shading; b += shading;
+                r += shading; 
+                g += shading; 
+                b += shading;
               }
             } else {
-              // Glitch State: Dual Color Illumination!
+              // MONOCHROMATIC EASTER EGG ACTIVE
               const tint = waterTintRef.current;
+              const normShading = shading / 100;
               
-              if (shading > 0) {
-                // Highlight Side (Catches Color 1)
-                r += shading * (tint.r1 / 120); 
-                g += shading * (tint.g1 / 120); 
-                b += shading * (tint.b1 / 120); 
-              } else if (shading < 0) {
-                // Shadow Side (Catches Color 2, creating an ambient bounce light)
-                const oppShading = Math.abs(shading) * 0.8; // Flip to positive and soften slightly
-                r += oppShading * (tint.r2 / 120); 
-                g += oppShading * (tint.g2 / 120); 
-                b += oppShading * (tint.b2 / 120); 
+              if (normShading > 0) {
+                // Wave Crests catch 100% of the primary color
+                r += normShading * tint.rMain; 
+                g += normShading * tint.gMain; 
+                b += normShading * tint.bMain; 
+              } else if (normShading < 0) {
+                // Wave Shadows catch a darker, 50% opacity version of the primary color
+                const oppShading = Math.abs(normShading) * 0.7; 
+                r += oppShading * (tint.rMain * 0.5); 
+                g += oppShading * (tint.gMain * 0.5); 
+                b += oppShading * (tint.bMain * 0.5); 
               }
             }
 
@@ -342,9 +344,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     };
 
     rebootEngineRef.current = () => { 
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
       if (paintCanvasFloorRef.current) paintCanvasFloorRef.current(null);
       processWater(); 
     };
@@ -354,12 +354,14 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       logo.src = '/logoblkstroke.svg';
       
       logo.onload = () => {
+        if (isCancelled) return; 
         logoImgRef.current = logo;
         drawPoolFloor(null); 
         if (!animationFrameId) processWater();
       };
 
       logo.onerror = () => {
+        if (isCancelled) return;
         drawPoolFloor(null); 
         if (!animationFrameId) processWater();
       };
@@ -395,7 +397,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           for (let x = -2; x <= 2; x++) {
             if (x * x + y * y <= 4) {
               const idx = (px + x) + (py + y) * physicsWidth;
-              if (idx >= 0 && idx < size) previous[idx] = 180; 
+              if (idx >= 0 && idx < size) previous[idx] = 250; 
             }
           }
         }
@@ -414,6 +416,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     canvas.addEventListener('mousemove', handleMouseMove);
 
     return () => {
+      isCancelled = true;
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
       canvas.removeEventListener('mousemove', handleMouseMove);
     };
@@ -436,28 +439,57 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
   };
 
   const handleTextHover = () => {
-    const neons = [
-      { css: 'rgba(0, 255, 255, 0.8)', r: 0, g: 255, b: 255 },     // Cyan
-      { css: 'rgba(255, 0, 255, 0.8)', r: 255, g: 0, b: 255 },     // Magenta
-      { css: 'rgba(57, 255, 20, 0.8)', r: 57, g: 255, b: 20 },     // Lime
-      { css: 'rgba(255, 49, 49, 0.8)', r: 255, g: 49, b: 49 },     // Neon Red
-      { css: 'rgba(255, 215, 0, 0.8)', r: 255, g: 215, b: 0 }      // Yellow
+    // MONOCHROMATIC THEMES: Primary, Light (highlight), and Dark (shadow)
+    const themes = [
+      { // Cyan
+        main: { r: 0, g: 255, b: 255, css: 'rgba(0, 255, 255, 0.95)' },
+        light: { css: 'rgba(150, 255, 255, 0.8)' },
+        dark: { css: 'rgba(0, 150, 150, 0.8)' }
+      },
+      { // Magenta
+        main: { r: 255, g: 0, b: 255, css: 'rgba(255, 0, 255, 0.95)' },
+        light: { css: 'rgba(255, 150, 255, 0.8)' },
+        dark: { css: 'rgba(150, 0, 150, 0.8)' }
+      },
+      { // Lime Green
+        main: { r: 57, g: 255, b: 20, css: 'rgba(57, 255, 20, 0.95)' },
+        light: { css: 'rgba(160, 255, 140, 0.8)' },
+        dark: { css: 'rgba(30, 150, 10, 0.8)' }
+      },
+      { // Neon Red
+        main: { r: 255, g: 49, b: 49, css: 'rgba(255, 49, 49, 0.95)' },
+        light: { css: 'rgba(255, 150, 150, 0.8)' },
+        dark: { css: 'rgba(150, 20, 20, 0.8)' }
+      },
+      { // Yellow
+        main: { r: 255, g: 215, b: 0, css: 'rgba(255, 215, 0, 0.95)' },
+        light: { css: 'rgba(255, 255, 150, 0.8)' },
+        dark: { css: 'rgba(180, 150, 0, 0.8)' }
+      }
     ];
     
-    const shuffled = [...neons].sort(() => 0.5 - Math.random());
-    const subtleOffsets = [{ x: -1, y: -2 }, { x: 1, y: 2 }, { x: -2, y: 1 }, { x: 2, y: -1 }];
+    // Pick a random monochromatic theme
+    const theme = themes[Math.floor(Math.random() * themes.length)];
+    
+    // WIDER GLITCH OFFSETS (Increased from 3 to 6 for more separation)
+    const fixedOffsets = {
+      o1: { x: -6, y: 0 }, // Dark shadow pulled wide left
+      o2: { x: 0, y: 0 },  // Primary color strictly centered
+      o3: { x: 6, y: 0 }   // Light highlight pulled wide right
+    };
 
-    // We now send TWO colors to the water physics engine!
+    // Pass the absolute Primary color to the water
     waterTintRef.current = { 
-      r1: shuffled[0].r, g1: shuffled[0].g, b1: shuffled[0].b, // Color 1 (Highlight)
-      r2: shuffled[1].r, g2: shuffled[1].g, b2: shuffled[1].b, // Color 2 (Shadows)
-      isRainbow: false 
+      rMain: theme.main.r, 
+      gMain: theme.main.g, 
+      bMain: theme.main.b, 
+      isActive: true 
     };
 
     paintCanvasFloorRef.current?.({
-      c1: shuffled[1].css, o1: subtleOffsets[0],
-      c2: shuffled[0].css, o2: { x: 0, y: 0 }, 
-      c3: shuffled[2].css, o3: subtleOffsets[1]
+      c1: theme.dark.css,  o1: fixedOffsets.o1,
+      c2: theme.main.css,  o2: fixedOffsets.o2, 
+      c3: theme.light.css, o3: fixedOffsets.o3
     });
   };
 
