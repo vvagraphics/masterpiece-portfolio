@@ -138,13 +138,13 @@ export default function SandboxWrapper({
     const rightWall = Bodies.rectangle(width + 100, height / 2, 200, height * 3, wallOptions);
 
     World.add(engine.world, [ground, ceiling, leftWall, rightWall]);
-
+//if svg breaks will not load, need to add fallback or ensure svg is correct and accessible
     const projects = [
       { color: '#ef4444', label: 'VVA Graffiti', type: 'GRAFFITI', shape: 'capsule', w: 70, h: 120, texture: '/spray_can.svg' },
       { color: '#14b8a6', label: 'Glass Structure', type: 'GLASS_WALLS', shape: 'rectangle', w: 70, h: 133, texture: '/glass_pane.svg' }, 
       { color: '#3b82f6', label: 'Holograms', type: 'HOLOGRAM', shape: 'rectangle', w: 100, h: 133, texture: '/hologram.svg' }, 
       { color: '#a855f7', label: 'Gacha System', type: 'GACHA', shape: 'square', w: 100, h: 100, texture: '/gacha.svg' },
-      { color: '#f59e0b', label: 'Community Archives', type: 'GALLERY', shape: 'square', w: 250, h: 250, texture: '/archives.svg' }
+      { color: '#f59e0b', label: 'Community Archives', type: 'GALLERY', shape: 'square', w: 150, h: 150, texture: '/archives.svg' }
     ];
 
     const projectBodies = projects.map((proj, i) => {
