@@ -5,17 +5,28 @@ import { supabase, dataUrlToBlob } from '../../lib/supabase';
 import CitySilhouette from '../../components/CitySilhouette';
 import { Howl } from 'howler';
 import localforage from 'localforage';
-import { Volume2, VolumeX } from 'lucide-react'; // Added for the new local audio control
+import { Volume2, VolumeX } from 'lucide-react'; 
 
+// ==========================================
+// 1. TYPES & CONFIGURATION
+// ==========================================
+
+// WCAG: Descriptive names mapped to Hex arrays for screen reader clarity
 const GRAFFITI_COLORS = [
-  '#000000', '#FFFFFF', '#FF0033', '#00E5FF', '#FF00FF', '#FFEA00', '#39FF14'
+  { hex: '#000000', name: 'Black' }, 
+  { hex: '#FFFFFF', name: 'White' }, 
+  { hex: '#FF0033', name: 'Crimson Red' }, 
+  { hex: '#00E5FF', name: 'Cyan' }, 
+  { hex: '#FF00FF', name: 'Magenta' }, 
+  { hex: '#FFEA00', name: 'Yellow' }, 
+  { hex: '#39FF14', name: 'Neon Green' }
 ];
 
-const TEXTURES = {
-  black: '', 
-  brick: 'https://mr3anderson.pro/masterpiece-portfolio/graffiticanvas/brick.jpg',
-  concrete: 'https://mr3anderson.pro/masterpiece-portfolio/graffiticanvas/concrete.jpg'
-};
+const TEXTURES = [
+  { id: 'black', url: '', label: 'Solid Black' },
+  { id: 'brick', url: 'https://mr3anderson.pro/masterpiece-portfolio/graffiticanvas/brick.jpg', label: 'Brick Wall' },
+  { id: 'concrete', url: 'https://mr3anderson.pro/masterpiece-portfolio/graffiticanvas/concrete.jpg', label: 'Concrete Wall' }
+];
 
 type LayoutMode = 'FULL' | 'SPLIT_VERT' | 'SPLIT_HORIZ';
 type CapType = 'SKINNY' | 'STANDARD' | 'FAT';
@@ -43,43 +54,49 @@ const hexToRgb = (hex: string) => {
   } : { r: 255, g: 255, b: 255 };
 };
 
-// ADDED PROP to receive audio state from SandboxWrapper
 interface Props {
   isAudioEnabled?: boolean;
   onLayoutChange?: (layout: LayoutMode) => void;
 }
 
+// ==========================================
+// 2. MAIN COMPONENT & STATE
+// ==========================================
 export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
+  // Audio Refs
   const spraySound = useRef<Howl | null>(null);
   const shakeSound = useRef<Howl | null>(null);
   const envSoundRef = useRef<Howl | null>(null);
   
+  // Drawing Engine Refs
   const lastPosRef = useRef<{ x: number, y: number } | null>(null);
   const isDrawingRef = useRef(false);
   const historyRef = useRef<ImageData[]>([]);
   const brushStampRef = useRef<HTMLCanvasElement | null>(null);
   const poolingAnimationFrameRef = useRef<number | null>(null);
 
+  // Active User State
   const [sessionId, setSessionId] = useState<string>('');
   const [isDrawing, setIsDrawing] = useState(false);
-  const [color, setColor] = useState(GRAFFITI_COLORS[2]);
+  const [color, setColor] = useState(GRAFFITI_COLORS[2].hex);
   const [activeCap, setActiveCap] = useState<CapType>('STANDARD');
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('FULL');
-  const [activeTexture, setActiveTexture] = useState<string>(TEXTURES.black);
-  
-  // NEW: Local state specifically for the City Environment loop
+  const [activeTexture, setActiveTexture] = useState<string>(TEXTURES[0].url);
   const [isEnvAudioMuted, setIsEnvAudioMuted] = useState(false);
 
-  // Loading States
+  // Cloud/Network State
   const [isCapturing, setIsCapturing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'IDLE' | 'SAVING' | 'SUCCESS' | 'ERROR'>('IDLE');
   const [wipSaveStatus, setWipSaveStatus] = useState<'IDLE' | 'SAVING' | 'SUCCESS' | 'ERROR'>('IDLE');
   const [wipLoadStatus, setWipLoadStatus] = useState<'IDLE' | 'LOADING' | 'SUCCESS' | 'ERROR' | 'NOT_FOUND'>('IDLE');
 
-  // --- 1. Session ID Generator ---
+  // ==========================================
+  // 3. INITIALIZATION & BROWSER STORAGE
+  // ==========================================
+  
   useEffect(() => {
     const initSession = async () => {
       let storedId = await localforage.getItem<string>('portfolio_session_id');
@@ -92,13 +109,12 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     initSession();
   }, []);
 
-  // --- 2. Local Draft Auto-Save ---
   const saveDraftToBrowser = async (currentLayout: LayoutMode, currentTexture: string) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     try {
       const paintData = canvas.toDataURL('image/png');
-      const existingDrafts: any = await localforage.getItem('portfolio_drafts') || {};
+      const existingDrafts = (await localforage.getItem<Record<string, any>>('portfolio_drafts')) || {};
       const updatedDrafts = {
         ...existingDrafts,
         graffiti: {
@@ -112,7 +128,6 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     }
   };
 
-  // --- 3. Local Draft Auto-Load ---
   useEffect(() => {
     const loadDraft = async () => {
       const canvas = canvasRef.current;
@@ -123,7 +138,7 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
       historyRef.current = [];
 
       try {
-        const drafts: any = await localforage.getItem('portfolio_drafts');
+        const drafts = await localforage.getItem<Record<string, any>>('portfolio_drafts');
         const myDraft = drafts?.graffiti?.[layoutMode];
 
         if (myDraft) {
@@ -144,7 +159,10 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     loadDraft();
   }, [layoutMode]);
 
-  // --- Brush Generation ---
+  // ==========================================
+  // 4. BRUSH ENGINE & AUDIO MOUNTING
+  // ==========================================
+  
   useEffect(() => {
     const profile = CAP_PROFILES[activeCap];
     const stampSize = profile.size * 2 + profile.scatter * 2;
@@ -175,7 +193,6 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     brushStampRef.current = canvas;
   }, [color, activeCap]);
 
-  // --- Audio Setup & Resize Setup ---
   useEffect(() => {
     spraySound.current = new Howl({
       src: ['/audio/spray_sprite.mp3'], 
@@ -185,7 +202,6 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     
     shakeSound.current = new Howl({ src: ['/audio/shake.mp3'], volume: 0.8 });
 
-    // Environment Loop Setup
     envSoundRef.current = new Howl({
       src: ['/audio/city_street_loop.mp3'], 
       loop: true,
@@ -198,45 +214,46 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
+    // PERFORMANCE: Debounce heavy canvas resizing to prevent stutter during layout shifts
+    let resizeTimer: number;
     const handleResize = () => {
-      const tempCanvas = document.createElement('canvas');
-      const tempCtx = tempCanvas.getContext('2d');
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
-      if (tempCtx) tempCtx.drawImage(canvas, 0, 0);
+      clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        if (tempCtx) tempCtx.drawImage(canvas, 0, 0);
 
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) ctx.drawImage(tempCanvas, 0, 0);
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.drawImage(tempCanvas, 0, 0);
+      }, 150);
     };
 
     window.addEventListener('resize', handleResize);
     
     return () => {
       window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimer);
       spraySound.current?.unload();
       shakeSound.current?.unload();
       
-      // CAREFUL UNMOUNT: Fade out cleanly and then completely unload from memory
-      // We grab the current ref value into a closure so it doesn't get lost during unmount
       const envAudio = envSoundRef.current;
       if (envAudio) {
         const currentVol = typeof envAudio.volume() === 'number' ? envAudio.volume() as number : 0;
         envAudio.fade(currentVol, 0, 500);
         setTimeout(() => envAudio.unload(), 500);
       }
-      
       if (poolingAnimationFrameRef.current) cancelAnimationFrame(poolingAnimationFrameRef.current);
     };
   }, []);
 
-  // --- Handle Global & Local Mute Toggle for Environment Audio ---
   useEffect(() => {
     if (!envSoundRef.current) return;
     const currentVol = typeof envSoundRef.current.volume() === 'number' ? envSoundRef.current.volume() as number : 0;
     
-    // It must be globally enabled AND not locally muted to play
     if (isAudioEnabled && !isEnvAudioMuted) {
       if (!envSoundRef.current.playing()) envSoundRef.current.play();
       envSoundRef.current.fade(currentVol, 0.4, 1000);
@@ -245,6 +262,10 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     }
   }, [isAudioEnabled, isEnvAudioMuted]);
 
+  // ==========================================
+  // 5. CORE DRAWING LOGIC
+  // ==========================================
+  
   const saveState = () => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -377,7 +398,10 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     lastPosRef.current = currentPos;
   };
 
-  // --- CLOUD PUBLISH (Gallery) ---
+  // ==========================================
+  // 6. CLOUD OPERATIONS (SAVE / LOAD)
+  // ==========================================
+  
   const handleCloudSave = async () => { 
     if (!containerRef.current || saveStatus === 'SAVING') return;
     setSaveStatus('SAVING');
@@ -408,7 +432,6 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     }
   };
 
-  // Helper: Checks if canvas has any non-transparent pixels
   const isCanvasEmpty = (canvas: HTMLCanvasElement) => {
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return true;
@@ -425,7 +448,7 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     setWipSaveStatus('SAVING');
     
     try {
-      const allDrafts: any = await localforage.getItem('portfolio_drafts');
+      const allDrafts = await localforage.getItem<Record<string, any>>('portfolio_drafts');
       if (!allDrafts?.graffiti) throw new Error('No draft data found.');
 
       const layouts = Object.keys(allDrafts.graffiti);
@@ -444,7 +467,6 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
         tempCtx?.drawImage(img, 0, 0);
 
         if (isCanvasEmpty(tempCanvas)) {
-          console.log(`Skipping empty draft for: ${layout}`);
           continue; 
         }
 
@@ -465,7 +487,6 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
         savedCount++;
       }
 
-      alert(savedCount > 0 ? `Saved ${savedCount} sections successfully.` : "Nothing to save (all canvases empty).");
       setWipSaveStatus('SUCCESS');
       setTimeout(() => setWipSaveStatus('IDLE'), 4000);
     } catch (err: any) {
@@ -475,7 +496,6 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     }
   };
 
-  // --- CLOUD DRAFT LOAD (Supabase WIPs) ---
   const handleLoadFromCloud = async () => {
     if (!sessionId || wipLoadStatus === 'LOADING') return;
     setWipLoadStatus('LOADING');
@@ -519,22 +539,36 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     }
   };
 
-  const uiPositionClass = layoutMode === 'SPLIT_HORIZ' ? 'top-20' : 'bottom-8';
-  const uiWidthClass = layoutMode === 'SPLIT_VERT' ? 'max-w-[45vw]' : 'max-w-[90vw]';
+  // ==========================================
+  // 7. UI RENDER
+  // ==========================================
+  
+  // Smart Positioning
+  let uiPositionClass = 'bottom-2 sm:bottom-8';
+  let uiPlacementClass = 'left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-8';
+  let uiWidthClass = 'w-[96vw] sm:w-auto sm:max-w-[90vw]';
+
+  if (layoutMode === 'SPLIT_HORIZ') {
+    uiPositionClass = 'top-2 sm:top-8'; 
+    uiPlacementClass = 'left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-8';
+  } else if (layoutMode === 'SPLIT_VERT') {
+    uiPositionClass = 'bottom-2 sm:bottom-8';
+    uiPlacementClass = 'left-2 sm:left-8';
+    uiWidthClass = 'w-[48vw] sm:w-auto sm:max-w-[45vw]';
+  }
 
   return (
     <div ref={containerRef} className="relative w-screen h-screen bg-black overflow-hidden touch-none overscroll-none">
       
+      {/* Background Layers */}
       <div className={`absolute top-0 left-0 transition-all duration-500 ease-in-out ${
           layoutMode === 'FULL' ? 'w-full h-full' : 
           layoutMode === 'SPLIT_VERT' ? 'w-1/2 h-full' : 'w-full h-1/2'
         }`}
       >
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/first_website.jpg')",
-    backgroundSize: 'contain',
-    backgroundPosition: 'top center',
-    backgroundRepeat: 'no-repeat'
-  }}  />
+          backgroundSize: 'contain', backgroundPosition: 'top center', backgroundRepeat: 'no-repeat'
+        }}  />
         <CitySilhouette />
       </div>
 
@@ -549,8 +583,11 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
         </div>
       )}
 
+      {/* Main Drawing Canvas (WCAG Tagged as Interactive Image) */}
       <canvas
         ref={canvasRef}
+        role="img"
+        aria-label="Interactive graffiti canvas"
         onMouseDown={startDrawing}
         onMouseUp={stopDrawing}
         onMouseOut={stopDrawing}
@@ -562,179 +599,113 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
         className="absolute inset-0 w-full h-full z-10 cursor-crosshair touch-none"
       />
 
+      {/* WCAG: Toolbar Role with strictly forced 4-row architecture for mobile layout */}
       {!isCapturing && (
-        <div className={`absolute z-20 left-4 md:left-8 transition-all duration-500 ease-in-out ${uiPositionClass} ${uiWidthClass} bg-black/80 p-4 border border-zinc-700 rounded text-white flex flex-col gap-4 shadow-xl backdrop-blur-sm overflow-y-auto max-h-[80vh]`}>
+        <div 
+          role="toolbar" 
+          aria-label="Graffiti Tools"
+          style={{ willChange: 'transform, opacity' }}
+          className={`absolute z-20 transition-all duration-500 ease-in-out ${uiPositionClass} ${uiPlacementClass} ${uiWidthClass} bg-black/80 h-60 p-2 sm:p-2 sm:py-3 border border-zinc-700 rounded-xl sm:rounded text-white flex flex-col gap-1.5 sm:gap-5 shadow-xl backdrop-blur-sm`}
+        >
           
-          <div className="flex flex-wrap gap-6 items-center">
-            <h3 className="font-bold uppercase tracking-widest text-red-500 hidden sm:block">Graffiti Tools</h3>
-            
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline text-sm text-zinc-400">Can:</span>
-              <div className="flex gap-2 items-center">
+          {/* ROW 1: Colors & Caps */}
+          <div className="flex items-center justify-between sm:justify-start w-full gap-2 sm:gap-6">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span id="can-color-label" className="hidden sm:inline text-sm text-zinc-400">Can:</span>
+              <div className="flex gap-1 sm:gap-2 items-center" aria-labelledby="can-color-label">
                 {GRAFFITI_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => {
-                      setColor(c);
-                      playShakeSound(); 
-                    }}
-                    className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
-                      color === c ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'border-transparent'
-                    }`}
-                    style={{ backgroundColor: c }}
-                  />
+                  <button key={c.hex} onClick={() => { setColor(c.hex); playShakeSound(); }} aria-label={`Select color ${c.name}`} aria-pressed={color === c.hex} className={`w-5 h-5 sm:w-8 sm:h-8 rounded-full border-2 transition-transform focus:outline-none ${ color === c.hex ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'border-transparent' }`} style={{ backgroundColor: c.hex }} title={c.name} />
                 ))}
-                
-                <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-transparent hover:border-white transition-colors ml-2 cursor-pointer shadow-inner">
+                <div className="relative w-5 h-5 sm:w-8 sm:h-8 rounded-full overflow-hidden border-2 border-transparent hover:border-white transition-colors cursor-pointer shadow-inner ml-1">
                   <div className="absolute inset-0 bg-gradient-to-tr from-red-500 via-green-500 to-blue-500 pointer-events-none"></div>
-                  <input 
-                    type="color" 
-                    value={color} 
-                    onChange={(e) => setColor(e.target.value)} 
-                    onPointerDown={playShakeSound} 
-                    className="absolute -inset-2 w-12 h-12 opacity-0 cursor-pointer"
-                    title="Custom Color"
-                  />
+                  <input type="color" value={color} onChange={(e) => setColor(e.target.value)} onPointerDown={playShakeSound} className="absolute -inset-2 w-10 h-10 sm:w-12 sm:h-12 opacity-0 cursor-pointer" title="Custom Color" aria-label="Custom Color Picker" />
                 </div>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline text-sm text-zinc-400">Caps:</span>
-              {(Object.keys(CAP_PROFILES) as CapType[]).map((cap) => (
-                <button
-                  key={cap}
-                  onClick={() => setActiveCap(cap)}
-                  className={`px-3 py-1 text-xs font-bold rounded border transition-colors ${
-                    activeCap === cap ? 'bg-zinc-200 text-black border-white' : 'border-zinc-600 hover:border-zinc-400'
-                  }`}
-                  title={CAP_PROFILES[cap].name}
-                >
-                  {cap}
-                </button>
-              ))}
-            </div>
-
-            <div className="h-6 w-px bg-zinc-700 mx-2 hidden lg:block"></div>
-
-            <div className="flex gap-4">
-              <button onClick={undo} disabled={historyRef.current.length <= 1} className="text-sm font-bold uppercase tracking-wider hover:text-red-400 disabled:opacity-50 transition-colors">Undo</button>
-              <button onClick={clearWall} className="text-sm font-bold uppercase tracking-wider hover:text-red-400 transition-colors">Clear</button>
-            </div>
-            
-            <div className="h-6 w-px bg-zinc-700 mx-2 hidden lg:block"></div>
-
-            {/* NEW: Local Environment Audio Toggle */}
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline text-sm text-zinc-400 uppercase tracking-widest text-xs font-bold">Environment Sound:</span>
-              <button
-                onClick={() => setIsEnvAudioMuted(!isEnvAudioMuted)}
-                className={`p-2 rounded border transition-colors flex items-center justify-center ${
-                  !isEnvAudioMuted ? 'bg-zinc-200 text-black border-white' : 'border-zinc-600 hover:border-zinc-400 text-zinc-400'
-                }`}
-                title="Toggle City Background Noise"
-              >
-                {isEnvAudioMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-              </button>
-            </div>
-
-            <div className="h-6 w-px bg-zinc-700 mx-2 hidden lg:block"></div>
-
-            {/* Cloud Save & Load Controls */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center flex-1 justify-end">
-              
-              <div className="flex gap-2">
-                <div className="relative">
-                  <button 
-                    onClick={handleSaveForLater} 
-                    disabled={wipSaveStatus === 'SAVING' || wipLoadStatus === 'LOADING'}
-                    className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 disabled:bg-zinc-900 px-3 py-1 rounded font-bold transition-colors uppercase tracking-wider text-xs"
-                  >
-                    {wipSaveStatus === 'SAVING' ? 'SAVING...' : 'Save WIP'}
-                  </button>
-                  {wipSaveStatus === 'SUCCESS' && <span className="absolute bottom-full left-0 mb-1 w-max text-green-400 font-mono text-xs tracking-widest">CLOUD SAVED</span>}
-                  {wipSaveStatus === 'ERROR' && <span className="absolute bottom-full left-0 mb-1 w-max text-red-400 font-mono text-xs tracking-widest">SAVE FAILED</span>}
-                </div>
-
-                <div className="relative">
-                  <button 
-                    onClick={handleLoadFromCloud} 
-                    disabled={wipLoadStatus === 'LOADING' || wipSaveStatus === 'SAVING'}
-                    className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 disabled:bg-zinc-900 px-3 py-1 rounded font-bold transition-colors uppercase tracking-wider text-xs"
-                  >
-                    {wipLoadStatus === 'LOADING' ? 'LOADING...' : 'Load WIP'}
-                  </button>
-                  {wipLoadStatus === 'SUCCESS' && <span className="absolute bottom-full left-0 mb-1 w-max text-green-400 font-mono text-xs tracking-widest">RESTORED</span>}
-                  {wipLoadStatus === 'NOT_FOUND' && <span className="absolute bottom-full left-0 mb-1 w-max text-zinc-400 font-mono text-xs tracking-widest">NO DRAFT FOUND</span>}
-                  {wipLoadStatus === 'ERROR' && <span className="absolute bottom-full left-0 mb-1 w-max text-red-400 font-mono text-xs tracking-widest">LOAD FAILED</span>}
-                </div>
+            </div></div>
+            <div className="flex items-center justify-between sm:justify-start w-full gap-2 sm:gap-6">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span id="cap-size-label" className="hidden sm:inline text-sm text-zinc-400">Caps:</span>
+              <div aria-labelledby="cap-size-label" className="flex gap-1 sm:gap-2">
+                {(Object.keys(CAP_PROFILES) as CapType[]).map((cap) => (
+                  <button key={cap} onClick={() => setActiveCap(cap)} aria-pressed={activeCap === cap} className={`px-1.5 py-1 sm:px-3 sm:py-1 text-[9px] sm:text-xs font-bold rounded border transition-colors focus:outline-none ${ activeCap === cap ? 'bg-zinc-200 text-black border-white' : 'border-zinc-600 hover:border-zinc-400' }`} title={CAP_PROFILES[cap].name}>{cap}</button>
+                ))}
               </div>
+            </div></div>
+          
 
-              <div className="relative ml-auto">
-                <button 
-                  onClick={handleCloudSave} 
-                  disabled={saveStatus === 'SAVING'}
-                  className="bg-red-600 hover:bg-red-500 disabled:bg-red-800 px-4 py-1 rounded font-bold transition-colors uppercase tracking-wider"
-                >
-                  {saveStatus === 'SAVING' ? 'PUBLISHING...' : 'Publish'}
-                </button>
-                {saveStatus === 'SUCCESS' && <span className="absolute top-full left-0 mt-2 w-max text-green-400 font-mono text-xs tracking-widest animate-pulse">ADDED TO GALLERY</span>}
-                {saveStatus === 'ERROR' && <span className="absolute top-full left-0 mt-2 w-max text-red-400 font-mono text-xs tracking-widest">PUBLISH FAILED</span>}
+          <div className="h-px w-full bg-zinc-700/50 my-0.5 sm:hidden" aria-hidden="true"></div>
+
+          {/* ROW 2: Playground & Surface Layouts */}
+          <div className="flex items-center justify-between sm:justify-start w-full gap-2 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-1">
+              <span id="layout-mode-label" className="text-[9px] sm:text-xs text-zinc-400 uppercase tracking-widest mr-1">Layout:</span>
+              <div aria-labelledby="layout-mode-label" className="flex gap-1 sm:gap-1">
+                {(['FULL', 'SPLIT_VERT', 'SPLIT_HORIZ'] as LayoutMode[]).map((mode) => (
+                  <button key={mode} onClick={() => { if (mode === 'FULL') setActiveTexture(TEXTURES[0].url); setLayoutMode(mode); if (onLayoutChange) onLayoutChange(mode); }} aria-pressed={layoutMode === mode} className={`px-1.5 py-1 sm:px-3 sm:py-1 text-[9px] sm:text-xs font-bold rounded border transition-colors focus:outline-none ${ layoutMode === mode ? 'bg-red-600 border-red-500' : 'border-zinc-600 hover:border-zinc-400' }`}>{mode.replace('_', ' ')}</button>
+                ))}
               </div>
             </div>
-
+            {layoutMode !== 'FULL' && (
+              <div className="flex items-center gap-1 sm:gap-1">
+                <span id="surface-texture-label" className="text-[9px] sm:text-xs text-zinc-400 uppercase tracking-widest mr-1">Surface:</span>
+                <div aria-labelledby="surface-texture-label" className="flex gap-1 sm:gap-1">
+                  {TEXTURES.map((tex) => (
+                    <button key={tex.id} onClick={() => { setActiveTexture(tex.url); saveDraftToBrowser(layoutMode, tex.url); }} aria-pressed={activeTexture === tex.url} className={`w-4 h-4 sm:w-6 sm:h-6 border-2 rounded transition-colors focus:outline-none ${ activeTexture === tex.url ? 'border-white' : 'border-transparent hover:border-white/50' } ${tex.id === 'black' ? 'bg-black' : tex.id === 'brick' ? 'bg-red-900' : 'bg-zinc-600'}`} title={`${tex.label} Wall`} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="h-px w-full bg-zinc-700"></div>
+          <div className="h-px w-full bg-zinc-700/50 my-0.5 sm:hidden" aria-hidden="true"></div>
 
-          <div className="flex flex-col xl:flex-row gap-6 items-start xl:items-center">
-            <div className="flex gap-2">
-              <span className="text-xs text-zinc-400 uppercase tracking-widest self-center mr-2">Playground:</span>
-              {(['FULL', 'SPLIT_VERT', 'SPLIT_HORIZ'] as LayoutMode[]).map((mode) => (
-                <button 
-                  key={mode}
-                  onClick={() => {
-                    if (mode === 'FULL') setActiveTexture(TEXTURES.black);
-                    setLayoutMode(mode); 
-                    if (onLayoutChange) onLayoutChange(mode); // <-- Add this to notify the parent!
-                  }}
-                  className={`px-3 py-1 text-xs font-bold rounded border transition-colors ${layoutMode === mode ? 'bg-red-600 border-red-500' : 'border-zinc-600 hover:border-zinc-400'}`}
-                >
-                  {mode.replace('_', ' ')}
-                </button>
-              ))}
+          {/* ROW 3 & 4 (Mobile): Actions & Cloud Saves */}
+          {/* Using flex-wrap allows this to be two separate rows (Lines 3 and 4) on mobile and merged into 1 row on Desktop */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start w-full gap-y-1.5 sm:gap-3">
+            
+            {/* ROW 3: Basic Canvas Actions */}
+            <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto">
+              <div className="flex items-center gap-2">
+                <button onClick={undo} disabled={historyRef.current.length <= 1} aria-label="Undo stroke" className="text-[9px] sm:text-sm font-bold uppercase tracking-wider hover:text-red-400 disabled:opacity-50 focus:outline-none">Undo</button>
+                <button onClick={clearWall} aria-label="Clear canvas" className="text-[9px] sm:text-sm font-bold uppercase tracking-wider hover:text-red-400 focus:outline-none">Clear</button>
+                <div className="flex items-center gap-1 sm:gap-2 ml-1">
+                  <button onClick={() => setIsEnvAudioMuted(!isEnvAudioMuted)} aria-pressed={!isEnvAudioMuted} className={`p-1 sm:p-2 rounded border transition-colors flex items-center justify-center focus:outline-none ${ !isEnvAudioMuted ? 'bg-zinc-200 text-black border-white' : 'border-zinc-600 text-zinc-400' }`} title={isEnvAudioMuted ? "Unmute Environment" : "Mute Environment"}>
+                    {isEnvAudioMuted ? <VolumeX size={12} aria-hidden="true" className="sm:w-4 sm:h-4" /> : <Volume2 size={12} aria-hidden="true" className="sm:w-4 sm:h-4" />}
+                  </button>
+                </div>
+              </div>
             </div>
-
-            {layoutMode !== 'FULL' && (
-               <div className="flex gap-2 items-center">
-                 <span className="text-xs text-zinc-400 uppercase tracking-widest mr-2">Surface:</span>
-                 {Object.entries(TEXTURES).map(([name, url]) => (
-                    <button 
-                      key={name}
-                      onClick={() => {
-                        setActiveTexture(url);
-                        saveDraftToBrowser(layoutMode, url); 
-                      }} 
-                      className={`w-6 h-6 border-2 rounded transition-colors ${
-                        activeTexture === url ? 'border-white' : 'border-transparent hover:border-white/50'
-                      } ${name === 'black' ? 'bg-black' : name === 'brick' ? 'bg-red-900' : 'bg-zinc-600'}`}
-                      title={`${name} Wall`}
-                    />
-                 ))}
-               </div>
-            )}
+            
+            {/* Divider specifically to force ROW 4 down on mobile */}
+            <div className="h-px w-full bg-zinc-700/50 block sm:hidden my-0.5" aria-hidden="true"></div>
+            
+            {/* ROW 4: Cloud Engine Actions */}
+            <div className="flex justify-between sm:justify-start gap-1.5 sm:gap-4 items-center w-full sm:w-auto">
+              {/* Added flex-1 to auto-fill the narrow box evenly on mobile without stretching randomly */}
+              <button onClick={handleSaveForLater} disabled={wipSaveStatus === 'SAVING' || wipLoadStatus === 'LOADING'} aria-label="Save work in progress" className="flex-1 sm:flex-none bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 disabled:bg-zinc-900 px-1.5 py-1 sm:px-3 sm:py-1 rounded font-bold uppercase tracking-widest text-[9px] sm:text-xs focus:outline-none text-center transition-colors">
+                {wipSaveStatus === 'SAVING' ? 'SAVING...' : wipSaveStatus === 'SUCCESS' ? 'SAVED ✓' : wipSaveStatus === 'ERROR' ? 'FAIL ✕' : 'SAVE'}
+              </button>
+              <button onClick={handleLoadFromCloud} disabled={wipLoadStatus === 'LOADING' || wipSaveStatus === 'SAVING'} aria-label="Load work in progress" className="flex-1 sm:flex-none bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 disabled:bg-zinc-900 px-1.5 py-1 sm:px-3 sm:py-1 rounded font-bold uppercase tracking-widest text-[9px] sm:text-xs focus:outline-none text-center transition-colors">
+                {wipLoadStatus === 'LOADING' ? 'LOADING...' : wipLoadStatus === 'SUCCESS' ? 'RESTORED ✓' : wipLoadStatus === 'NOT_FOUND' ? 'NO DRAFT' : wipLoadStatus === 'ERROR' ? 'FAIL ✕' : 'LOAD'}
+              </button>
+              <button onClick={handleCloudSave} disabled={saveStatus === 'SAVING'} aria-label="Publish to public gallery" className="flex-1 sm:flex-none bg-red-600 hover:bg-red-500 disabled:bg-red-800 px-2 py-1 sm:px-4 sm:py-1 rounded font-bold uppercase tracking-widest text-[9px] sm:text-xs focus:outline-none text-center transition-colors">
+                {saveStatus === 'SAVING' ? 'PUB...' : saveStatus === 'SUCCESS' ? 'PUB ✓' : saveStatus === 'ERROR' ? 'FAIL ✕' : 'PUBLISH'}
+              </button>
+            </div>
+            
           </div>
         </div>
       )}
 
+      {/* Capture Watermark overlay */}
       {isCapturing && (
-        <div className="absolute bottom-6 right-8 z-20 text-white/50 font-mono text-sm tracking-widest bg-black/50 px-2 py-1">
+        <div aria-hidden="true" className="absolute bottom-6 right-8 z-20 text-white/50 font-mono text-[10px] sm:text-sm tracking-widest bg-black/50 px-2 py-1">
           MASTERPIECE PORTFOLIO // EFANDERSON
         </div>
       )}
       
       {/* Mobile Orientation Lock Overlay */}
-      <div className="rotate-warning hidden">
+      <div className="rotate-warning hidden" aria-live="polite">
         <div className="text-center p-6">
           <h2 className="text-xl font-bold uppercase tracking-widest text-red-500">Rotate Device</h2>
           <p className="text-sm text-zinc-400 mt-2">Please rotate to Landscape to paint.</p>

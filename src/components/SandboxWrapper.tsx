@@ -371,7 +371,7 @@ export default function SandboxWrapper({
             aria-label="Return to Museum"
             className="flex items-center gap-2 px-6 h-12 bg-[#111] text-white text-sm font-bold tracking-widest uppercase border border-white/20 rounded-full hover:bg-white hover:text-black transition-colors duration-300 shadow-[0_0_15px_rgba(255,255,255,0.05)] focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-4 focus:ring-offset-[#050505]"
           >
-            <X size={16} aria-hidden="true" /> Return to Museum
+            <X size={16} aria-hidden="true" /> Back
           </motion.button>
         )}
         <button 
