@@ -34,7 +34,7 @@ export default function Holograms(_props: HologramsProps) {
   return (
     <div className="w-full h-full bg-black relative flex items-center justify-center overflow-hidden font-mono">
       
-      <SandboxControls title="Hologram Projector" schema={controlsSchema} onChange={handleControlChange} />
+      <SandboxControls schema={controlsSchema} onChange={handleControlChange} />
 
       <div className="relative z-10 flex flex-col items-center justify-center perspective-[1000px]">
         

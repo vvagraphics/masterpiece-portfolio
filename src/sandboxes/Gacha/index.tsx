@@ -54,7 +54,7 @@ export default function Gacha(_props: GachaProps) {
   return (
     <div className="w-full h-full bg-[#0a0a0a] relative flex items-center justify-center font-mono">
       
-      <SandboxControls title="Gacha Simulator" schema={controlsSchema} onChange={handleControlChange} />
+      <SandboxControls schema={controlsSchema} onChange={handleControlChange} />
 
       <div className="z-10 flex flex-col items-center">
         
