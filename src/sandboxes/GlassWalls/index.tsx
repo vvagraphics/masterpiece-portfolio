@@ -1,7 +1,7 @@
 // src/sandboxes/GlassWalls/index.tsx
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Center, Text, Environment, Float, RoundedBox, MeshTransmissionMaterial, Html } from '@react-three/drei';
+import { Center, Text, Environment, Float, RoundedBox, MeshTransmissionMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 import { Howl } from 'howler';
 
@@ -12,40 +12,35 @@ interface Props {
   isAudioEnabled?: boolean;
 }
 
-// --- UPDATED SCHEMA WITH NEW FEATURES ---
+// --- SCHEMA ---
 const GLASS_SCHEMA: ControlDef[] = [
   { id: 'signoff', type: 'textarea', label: 'Signature', defaultValue: 'VVA\nGRAPHICS' },
   { id: 'tint', type: 'select', label: 'Global Tint', options: ['None', 'Rose', 'Cyan', 'Amber'], defaultValue: 'None' },
   { id: 'spacing', type: 'slider', label: 'Spacing', min: 1.0, max: 3.0, step: 0.1, defaultValue: 1.5 },
   { id: 'quality', type: 'select', label: 'Render Mode', options: ['Fast (Draft)', 'Ultra (Render)'], defaultValue: 'Fast (Draft)' },
   { id: 'environment', type: 'select', label: 'Environment', options: ['city', 'studio', 'sunset', 'night'], defaultValue: 'city' },
+  { id: 'background', type: 'select', label: 'Background', options: ['Floating Orbs', 'Minimal Dark', 'Custom Image'], defaultValue: 'Floating Orbs' },
   { id: 'textStyle', type: 'select', label: 'Text Style', options: ['Floating', 'Engraved'], defaultValue: 'Floating' },
   { id: 'neonCore', type: 'select', label: 'Neon Core', options: ['Off', 'Pulse', 'Static'], defaultValue: 'Off' },
   { id: 'depthChaos', type: 'slider', label: 'Depth Chaos', min: 0.0, max: 2.0, step: 0.1, defaultValue: 0.0 },
 ];
 
-// --- BULLETPROOF TEXTURE HOOK (FIXED COLOR SPACE) ---
+// --- TEXTURE HOOK ---
 const useSafeTextures = () => {
   const [textures, setTextures] = useState<Record<string, THREE.Texture | null>>({});
-  const [status, setStatus] = useState<Record<string, string>>({});
   
   useEffect(() => {
     const loader = new THREE.TextureLoader();
     const urls = {
       glassNormal: '/textures/glass_normal.jpg',
       frostedNormal: '/textures/frosted.webp',
-      churchColor: '/textures/stained.webp',
       brokenGlass: '/textures/broken.webp',
       rainGlass: '/textures/rain.webp',
-      firstWebsite: '/first_website.jpg'
+      firstWebsite: '/first_website.jpg',
+      bgCustom: '/textures/bg_custom.webp' // Make sure you add this file to your public folder!
     };
     
     const loaded: Record<string, THREE.Texture | null> = {};
-    const currentStatus: Record<string, string> = {};
-
-    Object.keys(urls).forEach(k => currentStatus[k] = '⏳ Loading...');
-    setStatus({ ...currentStatus });
-
     let loadedCount = 0;
     const total = Object.keys(urls).length;
 
@@ -53,42 +48,45 @@ const useSafeTextures = () => {
       loader.load(
         url,
         (tex) => {
-          // 1. Separate the wrapping logic based on the texture type
-          if (key === 'churchColor' || key === 'firstWebsite') {
-            tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping; // Prevents tiling
-            tex.colorSpace = THREE.SRGBColorSpace; // Keeps colors vibrant
+          if (key === 'firstWebsite' || key === 'bgCustom') {
+            tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+            tex.colorSpace = THREE.SRGBColorSpace;
           } else {
-            tex.wrapS = tex.wrapT = THREE.RepeatWrapping; // Allows normal maps to tile
+            tex.wrapS = tex.wrapT = THREE.RepeatWrapping; 
           }
-          
           loaded[key] = tex;
-          currentStatus[key] = '✅ Loaded';
           loadedCount++;
-          setStatus({ ...currentStatus });
           if (loadedCount === total) setTextures({ ...loaded });
         },
+        undefined,
+        () => {
+          // Silent fail for production, will just render blank if texture is missing
+          loaded[key] = null;
+          loadedCount++;
+          if (loadedCount === total) setTextures({ ...loaded });
+        }
       );
     });
   }, []);
 
-  return { textures, status };
+  return { textures };
 };
 
-// --- INSTANT AUDIO PLAYER ---
+// --- AUDIO PLAYER ---
 const playClink = (type: string, isAudioEnabled: boolean) => {
   if (!isAudioEnabled) return;
   let src = '/audio/clink_clear.mp3';
   if (type === 'Frosted') src = '/audio/clink_frosted.mp3';
-  if (type === 'Church' || type === 'Broken') src = '/audio/clink_church.mp3';
+  if (type === 'Broken') src = '/audio/clink_church.mp3'; 
   if (type === 'Rain') src = '/audio/clink_clear.mp3';
 
   const audio = new Audio(src);
   audio.volume = 0.8;
   audio.playbackRate = 0.8 + Math.random() * 0.4;
-  audio.play().catch(e => console.log("Audio blocked by browser", e));
+  audio.play().catch(e => console.log("Audio blocked", e));
 };
 
-// --- DUAL-MODE GLASS SHADER (FIXED STAINED GLASS & OPTIMIZED) ---
+// --- GLASS SHADER ---
 const GlassMaterial = ({ type, tint, textures, quality }: any) => {
   const baseTint = tint === 'Rose' ? '#fda4af' : tint === 'Cyan' ? '#67e8f9' : tint === 'Amber' ? '#fcd34d' : '#ffffff';
   const isDraft = quality === 'Fast (Draft)';
@@ -97,67 +95,51 @@ const GlassMaterial = ({ type, tint, textures, quality }: any) => {
     return <meshPhysicalMaterial transmission={1} roughness={0.1} thickness={2} color={baseTint} transparent />;
   }
 
-  // --- DRAFT MODE ---
   if (isDraft) {
     switch (type) {
-      case 'Frosted': 
-        return <meshPhysicalMaterial normalMap={textures.frostedNormal} normalScale={new THREE.Vector2(3, 3)} transmission={0.9} roughness={0.4} thickness={2} ior={1.2} color={baseTint} transparent />;
-      case 'Church': 
-        return <meshPhysicalMaterial map={textures.churchColor} opacity={0.8} transmission={0.2} roughness={0.2} thickness={1} ior={1.5} color={baseTint} transparent={true} />;
-      case 'Broken': 
-        return <meshPhysicalMaterial normalMap={textures.brokenGlass} normalScale={new THREE.Vector2(3, 3)} transmission={1} roughness={0.05} thickness={2} ior={1.5} color={baseTint} transparent />;
-      case 'Rain': 
-        return <meshPhysicalMaterial normalMap={textures.rainGlass} normalScale={new THREE.Vector2(2, 2)} transmission={1} roughness={0.05} thickness={2} ior={1.3} color={baseTint} transparent />;
+      case 'Frosted': return <meshPhysicalMaterial normalMap={textures.frostedNormal} normalScale={new THREE.Vector2(3, 3)} transmission={0.9} roughness={0.4} thickness={2} ior={1.2} color={baseTint} transparent />;
+      case 'Broken': return <meshPhysicalMaterial normalMap={textures.brokenGlass} normalScale={new THREE.Vector2(3, 3)} transmission={1} roughness={0.05} thickness={2} ior={1.5} color={baseTint} transparent />;
+      case 'Rain': return <meshPhysicalMaterial normalMap={textures.rainGlass} normalScale={new THREE.Vector2(2, 2)} transmission={1} roughness={0.05} thickness={2} ior={1.3} color={baseTint} transparent />;
       case 'Clear': 
-      default: 
-        return <meshPhysicalMaterial normalMap={textures.glassNormal} normalScale={new THREE.Vector2(1, 1)} transmission={1} roughness={0.0} thickness={2} ior={1.5} color={baseTint} transparent />;
+      default: return <meshPhysicalMaterial normalMap={textures.glassNormal} normalScale={new THREE.Vector2(1, 1)} transmission={1} roughness={0.0} thickness={2} ior={1.5} color={baseTint} transparent />;
     }
   }
 
-  // --- ULTRA MODE (Performance optimized to resolution=128) ---
   switch (type) {
-    case 'Frosted': 
-      return <MeshTransmissionMaterial backside resolution={128} samples={2} thickness={1.5} roughness={0.4} transmission={1} ior={1.2} color={baseTint} normalMap={textures.frostedNormal} normalScale={new THREE.Vector2(3, 3)} distortion={0.1} distortionScale={0.5} />;
-    case 'Church': 
-      // FIX: Proper Stained Glass implementation (Color Map + Clear Normal Map)
-      return <MeshTransmissionMaterial backside resolution={128} samples={2} thickness={1.5} roughness={0.1} transmission={0.8} ior={1.5} color={baseTint} map={textures.churchColor} normalMap={textures.glassNormal} normalScale={new THREE.Vector2(1, 1)} distortion={0.1} distortionScale={1} />;
-    case 'Broken': 
-      return <MeshTransmissionMaterial backside resolution={128} samples={2} thickness={1.5} roughness={0.05} transmission={1} ior={1.5} color={baseTint} normalMap={textures.brokenGlass} normalScale={new THREE.Vector2(3, 3)} distortion={0.4} distortionScale={1} />;
-    case 'Rain': 
-      return <MeshTransmissionMaterial backside resolution={128} samples={2} thickness={1.5} roughness={0.05} transmission={1} ior={1.3} color={baseTint} normalMap={textures.rainGlass} normalScale={new THREE.Vector2(2, 2)} distortion={0.2} distortionScale={1} />;
+    case 'Frosted': return <MeshTransmissionMaterial backside resolution={128} samples={2} thickness={1.5} roughness={0.4} transmission={1} ior={1.2} color={baseTint} normalMap={textures.frostedNormal} normalScale={new THREE.Vector2(3, 3)} distortion={0.1} distortionScale={0.5} />;
+    case 'Broken': return <MeshTransmissionMaterial backside resolution={128} samples={2} thickness={1.5} roughness={0.05} transmission={1} ior={1.5} color={baseTint} normalMap={textures.brokenGlass} normalScale={new THREE.Vector2(3, 3)} distortion={0.4} distortionScale={1} />;
+    case 'Rain': return <MeshTransmissionMaterial backside resolution={128} samples={2} thickness={1.5} roughness={0.05} transmission={1} ior={1.3} color={baseTint} normalMap={textures.rainGlass} normalScale={new THREE.Vector2(2, 2)} distortion={0.2} distortionScale={1} />;
     case 'Clear': 
-    default: 
-      return <MeshTransmissionMaterial backside resolution={128} samples={3} thickness={1.5} roughness={0.05} transmission={1} ior={1.5} color={baseTint} normalMap={textures.glassNormal} normalScale={new THREE.Vector2(1, 1)} chromaticAberration={0.05} />;
+    default: return <MeshTransmissionMaterial backside resolution={128} samples={3} thickness={1.5} roughness={0.05} transmission={1} ior={1.5} color={baseTint} normalMap={textures.glassNormal} normalScale={new THREE.Vector2(1, 1)} chromaticAberration={0.05} />;
   }
 };
 
-// --- BACKGROUND REFRACTORS ---
+// --- ORB BACKGROUND ---
 function BackgroundRefractors() {
   return (
     <group position={[0, 0, -6]}>
       <Float speed={1.5} floatIntensity={2}>
         <mesh position={[-4, 2, 0]}>
           <sphereGeometry args={[2, 32, 32]} />
-          <meshBasicMaterial color="#00ffff" opacity={0.5} transparent />
+          <meshBasicMaterial color="#00ffff" opacity={0.3} transparent />
         </mesh>
       </Float>
       <Float speed={2} floatIntensity={2}>
         <mesh position={[4, -2, 0]}>
           <sphereGeometry args={[3, 32, 32]} />
-          <meshBasicMaterial color="#ff00ff" opacity={0.5} transparent />
+          <meshBasicMaterial color="#ff00ff" opacity={0.3} transparent />
         </mesh>
       </Float>
     </group>
   );
 }
 
-// --- INTERACTIVE LETTER BLOCK ---
+// --- LETTER PANE ---
 function LetterPane({ char, rowIndex, colIndex, rowLength, totalRows, tint, spacing, isAudioEnabled, layoutMode, quality, textures, textStyle, neonCore, depthChaos }: any) {
   const groupRef = useRef<THREE.Group>(null);
   const lightRef = useRef<THREE.PointLight>(null);
   const [localGlassType, setLocalGlassType] = useState('Clear');
 
-  // Calculate random depth offset once per component instance
   const randomDepth = useMemo(() => (Math.random() - 0.5) * depthChaos, [depthChaos]);
 
   const isVertical = layoutMode === 'SPLIT_VERT';
@@ -176,20 +158,18 @@ function LetterPane({ char, rowIndex, colIndex, rowLength, totalRows, tint, spac
     if (groupRef.current) {
       groupRef.current.position.x = THREE.MathUtils.damp(groupRef.current.position.x, targetX, 5, delta);
       groupRef.current.position.y = THREE.MathUtils.damp(groupRef.current.position.y, targetY, 5, delta);
-      // Incorporate depth chaos here
       groupRef.current.position.z = THREE.MathUtils.damp(groupRef.current.position.z, randomDepth, 5, delta);
       groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, 0, 8, delta);
       groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, 0, 8, delta);
     }
     
-    // Pulsing Neon Core Effect
     if (neonCore === 'Pulse' && lightRef.current) {
       lightRef.current.intensity = 0.5 + Math.sin(state.clock.elapsedTime * 2 + colIndex) * 0.4;
     }
   });
 
   const handleCycleGlass = () => {
-    const types = ['Clear', 'Frosted', 'Church', 'Broken', 'Rain'];
+    const types = ['Clear', 'Frosted', 'Broken', 'Rain'];
     const currentIndex = types.indexOf(localGlassType);
     const nextType = types[(currentIndex + 1) % types.length];
     
@@ -202,9 +182,8 @@ function LetterPane({ char, rowIndex, colIndex, rowLength, totalRows, tint, spac
     }
   };
 
-  // Determine styles
   const isEngraved = textStyle === 'Engraved';
-  const textZPosition = isEngraved ? 0.08 : 0.2; // Etched inside vs floating outside
+  const textZPosition = isEngraved ? 0.08 : 0.2;
   const neonColor = tint === 'Rose' ? '#fda4af' : tint === 'Cyan' ? '#67e8f9' : tint === 'Amber' ? '#fcd34d' : '#00ffff';
 
   return (
@@ -217,7 +196,6 @@ function LetterPane({ char, rowIndex, colIndex, rowLength, totalRows, tint, spac
             </RoundedBox>
           </mesh>
           
-          {/* Internal Neon Core Light */}
           {neonCore !== 'Off' && (
              <pointLight ref={lightRef} position={[0, 0, 0]} intensity={neonCore === 'Static' ? 0.8 : 0.5} distance={spacing * 1.5} color={neonColor} />
           )}
@@ -229,7 +207,6 @@ function LetterPane({ char, rowIndex, colIndex, rowLength, totalRows, tint, spac
              anchorY="middle"
           >
             {char}
-            {/* Engraved text uses a physical material to look like frosted/etched glass */}
             {isEngraved ? (
               <meshPhysicalMaterial color="#ffffff" transmission={0.9} roughness={0.8} ior={1.5} transparent opacity={0.6} />
             ) : (
@@ -244,7 +221,7 @@ function LetterPane({ char, rowIndex, colIndex, rowLength, totalRows, tint, spac
 
 // --- SCENE MANAGER ---
 function SceneManager({ controls, isAudioEnabled, layoutMode }: any) {
-  const { textures, status } = useSafeTextures();
+  const { textures } = useSafeTextures();
   const lines = controls.signoff.split('\n');
 
   useEffect(() => {
@@ -256,25 +233,10 @@ function SceneManager({ controls, isAudioEnabled, layoutMode }: any) {
 
   return (
     <>
-      <Html position={[-6, 4, 0]} className="pointer-events-none select-none">
-        <div className="bg-black/90 p-4 rounded-lg border border-zinc-700 w-72 text-white font-mono text-xs shadow-2xl backdrop-blur-md opacity-50 hover:opacity-100 transition-opacity">
-          <h3 className="text-teal-400 font-bold mb-3 border-b border-zinc-700 pb-2 uppercase tracking-widest">Diagnostics</h3>
-          <div className="flex flex-col gap-2">
-            {Object.entries(status).map(([key, state]) => (
-              <div key={key} className="flex justify-between items-center">
-                <span className="text-zinc-400">{key}:</span>
-                <span className={state.includes('✅') ? 'text-green-400 font-bold' : state.includes('❌') ? 'text-red-400 font-bold' : 'text-yellow-400 animate-pulse'}>
-                  {state}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Html>
-
-      {/* Control Environment Refractions Dynamically */}
+      {/* Invisible lighting calculations for reflections */}
       <Environment preset={controls.environment || 'city'} background={false} />
 
+      {/* Background handling */}
       {layoutMode === 'FULL' && textures.firstWebsite && (
         <mesh position={[0, 0, -10]}>
           <planeGeometry args={[26, 16]} /> 
@@ -282,7 +244,17 @@ function SceneManager({ controls, isAudioEnabled, layoutMode }: any) {
         </mesh>
       )}
 
-      {layoutMode !== 'FULL' && <BackgroundRefractors />}
+      {layoutMode !== 'FULL' && controls.background === 'Floating Orbs' && <BackgroundRefractors />}
+
+      {layoutMode !== 'FULL' && controls.background === 'Custom Image' && textures.bgCustom && (
+        <mesh position={[0, 0, -10]}>
+          <planeGeometry args={[30, 20]} />
+          {/* Opacity lowered slightly so it doesn't overpower the glass */}
+          <meshBasicMaterial map={textures.bgCustom} toneMapped={false} opacity={0.5} transparent />
+        </mesh>
+      )}
+
+      {/* When Minimal Dark is selected, nothing is rendered in the background, leaving the pure canvas color */}
 
       <Center>
         {lines.map((line: string, rowIndex: number) => {
@@ -315,6 +287,7 @@ export default function GlassWalls({ isAudioEnabled = false }: Props) {
     spacing: 1.5, 
     quality: 'Fast (Draft)',
     environment: 'city',
+    background: 'Floating Orbs',
     textStyle: 'Floating',
     neonCore: 'Off',
     depthChaos: 0.0
