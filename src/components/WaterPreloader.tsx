@@ -15,22 +15,28 @@ interface GlitchState {
 export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // === STATE ===
+  // ==========================================
+  // 1. STATE MANAGEMENT
+  // ==========================================
   const [isSplashing, setIsSplashing] = useState<boolean>(false);
   const [loadProgress, setLoadProgress] = useState<number>(0);
   const [isReady, setIsReady] = useState<boolean>(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState<boolean>(false);
+  const [windowWidth, setWindowWidth] = useState<number>(window.innerWidth);
 
-  // === AUDIO REFS ===
+  // ==========================================
+  // 2. REFS FOR PERFORMANCE (Bypassing React State for Animation loop)
+  // ==========================================
   const hoverAudioRef = useRef<Howl | null>(null);
   const settleAudioRef = useRef<Howl | null>(null);
   const splashAudioRef = useRef<Howl | null>(null);
-  
-  // === STATE SYNC REFS ===
   const isAudioEnabledRef = useRef(isAudioEnabled);
   const isEngineReadyRef = useRef(false); 
   
-  // MONOCHROMATIC TINT REF (Only tracks 1 primary color now)
+  // Custom Interaction Refs
+  const triggerColorChangeRef = useRef<(() => void) | null>(null);
+  const lastHoverTimeRef = useRef(0);
+  
   const waterTintRef = useRef({ 
     rMain: 255, gMain: 255, bMain: 255, 
     isActive: false 
@@ -39,7 +45,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
   const paintCanvasFloorRef = useRef<((glitch: GlitchState | null) => void) | null>(null);
   const rebootEngineRef = useRef<(() => void) | null>(null);
   
-  // === PHYSICS & INTERACTION REFS ===
+  // Physics tracking
   const baseImageDataRef = useRef<ImageData | null>(null);
   const logoImgRef = useRef<HTMLImageElement | null>(null);
   const targetVolumeRef = useRef(0);
@@ -59,7 +65,29 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     isAudioEnabledRef.current = isAudioEnabled;
   }, [isAudioEnabled]);
 
-  // === ASSET PRELOADER ===
+  // ==========================================
+  // 3. RESPONSIVE RESIZE HANDLER
+  // ==========================================
+  useEffect(() => {
+    let resizeTimer: number;
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        setWindowWidth(window.innerWidth);
+        if (rebootEngineRef.current) rebootEngineRef.current();
+      }, 150); 
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimer);
+    };
+  }, []);
+
+  // ==========================================
+  // 4. ASSET PRELOADER
+  // ==========================================
   useEffect(() => {
     const assetsToLoad = ['/audio/water_start.mp3', '/audio/water_stop.mp3', '/audio/thundertorain.mp3', '/logoblkstroke.svg'];
     let loadedCount = 0;
@@ -103,23 +131,13 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     return () => clearTimeout(fallbackTimer);
   }, []);
 
-  // === AUDIO INITIALIZATION ===
+  // ==========================================
+  // 5. AUDIO INITIALIZATION
+  // ==========================================
   useEffect(() => {
-    hoverAudioRef.current = new Howl({
-      src: ['/audio/water_start.mp3'], 
-      loop: true,
-      volume: 0
-    });
-
-    settleAudioRef.current = new Howl({
-      src: ['/audio/water_stop.mp3'], 
-      volume: 0.3 
-    });
-
-    splashAudioRef.current = new Howl({
-      src: ['/audio/thundertorain.mp3'],
-      volume: 0.9
-    });
+    hoverAudioRef.current = new Howl({ src: ['/audio/water_start.mp3'], loop: true, volume: 0 });
+    settleAudioRef.current = new Howl({ src: ['/audio/water_stop.mp3'], volume: 0.3 });
+    splashAudioRef.current = new Howl({ src: ['/audio/thundertorain.mp3'], volume: 0.9 });
 
     return () => {
       hoverAudioRef.current?.unload();
@@ -128,7 +146,31 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     };
   }, []);
 
-  // === WATER ENGINE ===
+  // ==========================================
+  // 6. WATER ENGINE & INTERACTION LOGIC
+  // ==========================================
+
+  // Declare Theme Logic outside the useEffect so it can be called programmatically
+  triggerColorChangeRef.current = () => {
+    const themes = [
+      { main: { r: 0, g: 255, b: 255, css: 'rgba(0, 255, 255, 0.95)' }, light: { css: 'rgba(150, 255, 255, 0.8)' }, dark: { css: 'rgba(0, 150, 150, 0.8)' } },
+      { main: { r: 255, g: 0, b: 255, css: 'rgba(255, 0, 255, 0.95)' }, light: { css: 'rgba(255, 150, 255, 0.8)' }, dark: { css: 'rgba(150, 0, 150, 0.8)' } },
+      { main: { r: 57, g: 255, b: 20, css: 'rgba(57, 255, 20, 0.95)' }, light: { css: 'rgba(160, 255, 140, 0.8)' }, dark: { css: 'rgba(30, 150, 10, 0.8)' } },
+      { main: { r: 255, g: 49, b: 49, css: 'rgba(255, 49, 49, 0.95)' }, light: { css: 'rgba(255, 150, 150, 0.8)' }, dark: { css: 'rgba(150, 20, 20, 0.8)' } },
+      { main: { r: 255, g: 215, b: 0, css: 'rgba(255, 215, 0, 0.95)' }, light: { css: 'rgba(255, 255, 150, 0.8)' }, dark: { css: 'rgba(180, 150, 0, 0.8)' } }
+    ];
+    const theme = themes[Math.floor(Math.random() * themes.length)];
+    const fixedOffsets = { o1: { x: -6, y: 0 }, o2: { x: 0, y: 0 }, o3: { x: 6, y: 0 } };
+
+    waterTintRef.current = { rMain: theme.main.r, gMain: theme.main.g, bMain: theme.main.b, isActive: true };
+
+    paintCanvasFloorRef.current?.({
+      c1: theme.dark.css,  o1: fixedOffsets.o1,
+      c2: theme.main.css,  o2: fixedOffsets.o2, 
+      c3: theme.light.css, o3: fixedOffsets.o3
+    });
+  };
+
   useEffect(() => {
     let isCancelled = false; 
     const canvas = canvasRef.current;
@@ -154,10 +196,19 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
 
+      const isPortrait = width < 768; 
+
       if (logoImgRef.current) {
         const logo = logoImgRef.current;
-        const logoWidth = Math.min(width * 0.6, 600); 
-        ctx.drawImage(logo, (width - logoWidth) / 2, (height - ((logo.height / logo.width) * logoWidth)) / 2 - 60, logoWidth, (logo.height / logo.width) * logoWidth);
+        const logoWidth = Math.min(width * (isPortrait ? 0.8 : 0.6), 600); 
+        const logoHeightOffset = isPortrait ? 40 : 60; 
+        ctx.drawImage(
+          logo, 
+          (width - logoWidth) / 2, 
+          (height - ((logo.height / logo.width) * logoWidth)) / 2 - logoHeightOffset, 
+          logoWidth, 
+          (logo.height / logo.width) * logoWidth
+        );
       }
 
       ctx.save();
@@ -170,8 +221,8 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       ctx.textBaseline = 'middle';
       ctx.letterSpacing = '8px';
 
-      const textX = (width / 2) + 170;
-      const textY = (height / 2) + 50;
+      const textX = (width / 2) + (isPortrait ? 80 : 170);
+      const textY = (height / 2) + (isPortrait ? 30 : 50);
 
       const g = glitchState || {
         c1: 'rgba(0, 0, 0, 0.4)', o1: { x: -2, y: 0 },   
@@ -207,7 +258,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
         if (now - lastMoveTimeRef.current > 50) {
           targetVolumeRef.current = 0;
           targetRateRef.current = 0.85; 
-          
           if (isMovingRef.current) {
             isMovingRef.current = false;
             if (hasAudio && settleAudioRef.current) settleAudioRef.current.play();
@@ -215,12 +265,9 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
         }
 
         if (hasAudio && hoverAudioRef.current) {
-          if (!hoverAudioRef.current.playing() && targetVolumeRef.current > 0) {
-            hoverAudioRef.current.play();
-          }
+          if (!hoverAudioRef.current.playing() && targetVolumeRef.current > 0) hoverAudioRef.current.play();
           currentVolumeRef.current += (targetVolumeRef.current - currentVolumeRef.current) * 0.15;
           hoverAudioRef.current.volume(Math.min(1, Math.max(0, currentVolumeRef.current)));
-          
           if (targetVolumeRef.current > 0) {
              currentRateRef.current += (targetRateRef.current - currentRateRef.current) * 0.1;
              hoverAudioRef.current.rate(currentRateRef.current);
@@ -245,7 +292,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           for (let x = 1; x < physicsWidth - 1; x++) {
             const i = x + y * physicsWidth;
             current[i] = (previous[i - 1] + previous[i + 1] + previous[i - physicsWidth] + previous[i + physicsWidth]) / 2 - current[i];
-            current[i] *= 0.90;
+            current[i] *= 0.90; 
             if (Math.abs(current[i]) < 0.05) current[i] = 0;
           }
         }
@@ -294,32 +341,19 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
             }
             
             if (!waterTintRef.current.isActive) {
-              // Standard water physics
               if (shading > 0) {
-                r += shading; 
-                g += shading * 1.05; 
-                b += shading * 1.15; 
+                r += shading; g += shading * 1.05; b += shading * 1.15; 
               } else {
-                r += shading; 
-                g += shading; 
-                b += shading;
+                r += shading; g += shading; b += shading;
               }
             } else {
-              // MONOCHROMATIC EASTER EGG ACTIVE
               const tint = waterTintRef.current;
               const normShading = shading / 100;
-              
               if (normShading > 0) {
-                // Wave Crests catch 100% of the primary color
-                r += normShading * tint.rMain; 
-                g += normShading * tint.gMain; 
-                b += normShading * tint.bMain; 
+                r += normShading * tint.rMain; g += normShading * tint.gMain; b += normShading * tint.bMain; 
               } else if (normShading < 0) {
-                // Wave Shadows catch a darker, 50% opacity version of the primary color
                 const oppShading = Math.abs(normShading) * 0.7; 
-                r += oppShading * (tint.rMain * 0.5); 
-                g += oppShading * (tint.gMain * 0.5); 
-                b += oppShading * (tint.bMain * 0.5); 
+                r += oppShading * (tint.rMain * 0.5); g += oppShading * (tint.gMain * 0.5); b += oppShading * (tint.bMain * 0.5); 
               }
             }
 
@@ -359,7 +393,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
         drawPoolFloor(null); 
         if (!animationFrameId) processWater();
       };
-
       logo.onerror = () => {
         if (isCancelled) return;
         drawPoolFloor(null); 
@@ -369,19 +402,53 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
 
     loadLogoAndStart();
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (e: MouseEvent | TouchEvent) => {
       if (!isEngineReadyRef.current) return; 
+      
+      // FIX 1: Precise coordinate bounding to eliminate offsets.
+      // Use getBoundingClientRect to ensure CSS margins/mobile bars don't cause drift.
+      const rect = canvas.getBoundingClientRect();
+      let clientX, clientY;
 
+      if (window.TouchEvent && e instanceof TouchEvent) {
+          clientX = e.touches[0].clientX - rect.left;
+          clientY = e.touches[0].clientY - rect.top;
+      } else {
+          clientX = (e as MouseEvent).clientX - rect.left;
+          clientY = (e as MouseEvent).clientY - rect.top;
+      }
+
+      // FIX 2: Virtual "Collision Box" for changing color when dragging over text
+      // This ensures mobile users can see the color change without needing 'hover'
+      const isPortrait = width < 768;
+      const tx = (width / 2) + (isPortrait ? 80 : 170);
+      const ty = (height / 2) + (isPortrait ? 30 : 50);
+      const hitboxW = isPortrait ? 220 : 280;
+      const hitboxH = 60;
+      
+      if (
+        clientX > tx - hitboxW / 2 && clientX < tx + hitboxW / 2 &&
+        clientY > ty - hitboxH / 2 && clientY < ty + hitboxH / 2
+      ) {
+        const nowTime = performance.now();
+        // Throttle triggers so it doesn't seizure-flash when scrubbing over it
+        if (nowTime - lastHoverTimeRef.current > 300) {
+           if (triggerColorChangeRef.current) triggerColorChangeRef.current();
+           lastHoverTimeRef.current = nowTime;
+        }
+      }
+
+      // Physics coordinate calculations
       if (isFirstMoveRef.current) {
         isFirstMoveRef.current = false;
-        lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+        lastMousePosRef.current = { x: clientX, y: clientY };
         lastMoveTimeRef.current = performance.now();
         return; 
       }
 
       lastMoveTimeRef.current = performance.now();
-      const distanceX = e.clientX - lastMousePosRef.current.x;
-      const distanceY = e.clientY - lastMousePosRef.current.y;
+      const distanceX = clientX - lastMousePosRef.current.x;
+      const distanceY = clientY - lastMousePosRef.current.y;
       const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
       
       const steps = Math.max(1, Math.floor(distance / 4));
@@ -403,7 +470,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
         }
       }
 
-      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+      lastMousePosRef.current = { x: clientX, y: clientY };
       if (!isMovingRef.current) isMovingRef.current = true;
 
       const speed = Math.min(1, distance / 40); 
@@ -414,14 +481,19 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     triggerRainstormRef.current = () => { stormIntensityRef.current = 1; };
 
     canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('touchmove', handleMouseMove, { passive: true });
 
     return () => {
       isCancelled = true;
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
       canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('touchmove', handleMouseMove);
     };
   }, []); 
 
+  // ==========================================
+  // 7. INTERACTION FUNCTIONS
+  // ==========================================
   const triggerBucketSplash = () => {
     if (!isReady || isSplashing) return; 
     setIsSplashing(true);
@@ -438,106 +510,61 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     setTimeout(() => onSplashComplete(true), 2500); 
   };
 
-  const handleTextHover = () => {
-    // MONOCHROMATIC THEMES: Primary, Light (highlight), and Dark (shadow)
-    const themes = [
-      { // Cyan
-        main: { r: 0, g: 255, b: 255, css: 'rgba(0, 255, 255, 0.95)' },
-        light: { css: 'rgba(150, 255, 255, 0.8)' },
-        dark: { css: 'rgba(0, 150, 150, 0.8)' }
-      },
-      { // Magenta
-        main: { r: 255, g: 0, b: 255, css: 'rgba(255, 0, 255, 0.95)' },
-        light: { css: 'rgba(255, 150, 255, 0.8)' },
-        dark: { css: 'rgba(150, 0, 150, 0.8)' }
-      },
-      { // Lime Green
-        main: { r: 57, g: 255, b: 20, css: 'rgba(57, 255, 20, 0.95)' },
-        light: { css: 'rgba(160, 255, 140, 0.8)' },
-        dark: { css: 'rgba(30, 150, 10, 0.8)' }
-      },
-      { // Neon Red
-        main: { r: 255, g: 49, b: 49, css: 'rgba(255, 49, 49, 0.95)' },
-        light: { css: 'rgba(255, 150, 150, 0.8)' },
-        dark: { css: 'rgba(150, 20, 20, 0.8)' }
-      },
-      { // Yellow
-        main: { r: 255, g: 215, b: 0, css: 'rgba(255, 215, 0, 0.95)' },
-        light: { css: 'rgba(255, 255, 150, 0.8)' },
-        dark: { css: 'rgba(180, 150, 0, 0.8)' }
-      }
-    ];
-    
-    // Pick a random monochromatic theme
-    const theme = themes[Math.floor(Math.random() * themes.length)];
-    
-    // WIDER GLITCH OFFSETS (Increased from 3 to 6 for more separation)
-    const fixedOffsets = {
-      o1: { x: -6, y: 0 }, // Dark shadow pulled wide left
-      o2: { x: 0, y: 0 },  // Primary color strictly centered
-      o3: { x: 6, y: 0 }   // Light highlight pulled wide right
-    };
-
-    // Pass the absolute Primary color to the water
-    waterTintRef.current = { 
-      rMain: theme.main.r, 
-      gMain: theme.main.g, 
-      bMain: theme.main.b, 
-      isActive: true 
-    };
-
-    paintCanvasFloorRef.current?.({
-      c1: theme.dark.css,  o1: fixedOffsets.o1,
-      c2: theme.main.css,  o2: fixedOffsets.o2, 
-      c3: theme.light.css, o3: fixedOffsets.o3
-    });
-  };
+  const isPortraitLayout = windowWidth < 768;
+  const layoutTransform = isPortraitLayout ? 'translate(80px, 30px)' : 'translate(170px, 50px)';
 
   return (
     <div className={`relative w-full h-screen bg-black overflow-hidden ${isReady ? 'cursor-pointer' : 'cursor-wait'}`}>
 
+      {/* HTML TEXT GLITCH OVERLAY */}
+      {/* Set to pointer-events-none so it doesn't block water interaction behind it */}
       <div 
         className={`absolute inset-0 flex items-center justify-center pointer-events-none z-30 transition-opacity duration-500 ${isSplashing ? 'opacity-0' : 'opacity-100'}`}
-        style={{ transform: `translate(170px, 50px)` }} 
+        style={{ transform: layoutTransform }} 
       >
         <h1 
-          onMouseEnter={handleTextHover}
-          onClick={(e) => {
-             e.stopPropagation(); 
-             triggerBucketSplash();
+          onKeyDown={(e) => { 
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault(); e.stopPropagation(); triggerBucketSplash();
+            }
           }}
-          className="font-black tracking-[8px] text-2xl sm:text-3xl md:text-4xl text-center select-none pointer-events-auto cursor-pointer opacity-0"
+          onFocus={() => { if(triggerColorChangeRef.current) triggerColorChangeRef.current(); }}
+          role="button"
+          tabIndex={isReady ? 0 : -1}
+          aria-label="Enter Portfolio"
+          // Removed specific pointer-events-auto so physics engine catches everything
+          className="font-black tracking-[8px] text-2xl sm:text-3xl md:text-4xl text-center select-none opacity-0 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-8 focus:ring-offset-black rounded-lg p-2"
         >
           PORTFOLIO
         </h1>
       </div>
 
+      {/* AUDIO AND FALLBACK CONTROLS */}
       <div className={`absolute top-8 right-8 z-50 flex flex-col items-center gap-2 transition-opacity duration-500 ${isSplashing ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <button
           onClick={(e) => {
             e.stopPropagation(); 
-            if (!isAudioEnabled && Howler.ctx && Howler.ctx.state === 'suspended') {
-              Howler.ctx.resume();
-            }
+            if (!isAudioEnabled && Howler.ctx && Howler.ctx.state === 'suspended') Howler.ctx.resume();
             setIsAudioEnabled(!isAudioEnabled);
             if (rebootEngineRef.current) rebootEngineRef.current(); 
           }}
-          className="flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 hover:scale-110"
+          aria-label={isAudioEnabled ? "Mute ambient audio" : "Enable ambient audio"}
+          aria-pressed={isAudioEnabled}
+          className="flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-white"
           style={{
             borderColor: isAudioEnabled ? '#ef4444' : '#52525b',
             color: isAudioEnabled ? '#ef4444' : '#52525b',
             backgroundColor: isAudioEnabled ? 'rgba(239, 68, 68, 0.1)' : 'transparent'
           }}
-          title={isAudioEnabled ? "Mute Audio" : "Enable Audio"}
         >
           {isAudioEnabled ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
               <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
               <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
             </svg>
           ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
               <line x1="23" y1="9" x2="17" y2="15"></line>
               <line x1="17" y1="9" x2="23" y2="15"></line>
@@ -550,27 +577,31 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
             e.stopPropagation();
             if (rebootEngineRef.current) rebootEngineRef.current();
           }}
-          className="text-[10px] text-zinc-600 font-mono tracking-widest hover:text-red-500 transition-colors uppercase cursor-pointer"
+          aria-label="Restart visual water engine"
+          className="text-[10px] text-zinc-600 font-mono tracking-widest hover:text-red-500 transition-colors uppercase cursor-pointer focus:outline-none focus:text-white"
         >
           [ No Animation? Click ]
         </button>
       </div>
 
+      {/* BOTTOM CENTER STATUS TEXT */}
       <div className={`absolute inset-0 z-20 flex flex-col items-center justify-end pb-32 pointer-events-none mix-blend-difference transition-opacity duration-500 ${isSplashing ? 'opacity-0' : 'opacity-100'}`}>
         {!isReady ? (
-          <div className="text-zinc-500 font-mono text-sm tracking-[0.5em] animate-pulse">
+          <div className="text-zinc-500 font-mono text-sm tracking-[0.5em] animate-pulse" aria-live="polite">
             INITIALIZING CORE ASSETS [ {loadProgress}% ]
           </div>
         ) : (
-          <div className="text-white font-black text-xl tracking-[0.4em] animate-pulse">
+          <div className="text-white font-black text-xl tracking-[0.4em] animate-pulse" aria-live="polite">
             [ CLICK ANYWHERE TO DIVE IN ]
           </div>
         )}
       </div>
 
+      {/* PHYSICS CANVAS LAYER */}
       <canvas 
         ref={canvasRef} 
         onClick={triggerBucketSplash}
+        aria-hidden="true" 
         className="absolute top-0 left-0 w-full h-full z-10 origin-center"
         style={{ willChange: 'opacity' }}
       />
