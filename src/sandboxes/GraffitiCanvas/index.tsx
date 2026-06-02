@@ -608,7 +608,7 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
           className={`absolute z-20 transition-all duration-500 ease-in-out ${uiPositionClass} ${uiPlacementClass} ${uiWidthClass} bg-black/80 h-60 p-2 sm:p-2 sm:py-3 border border-zinc-700 rounded-xl sm:rounded text-white flex flex-col gap-1.5 sm:gap-5 shadow-xl backdrop-blur-sm`}
         >
           
-          {/* ROW 1: Colors & Caps */}
+          {/* ROW 1: Colors */}
           <div className="flex items-center justify-between sm:justify-start w-full gap-2 sm:gap-6">
             <div className="flex items-center gap-1 sm:gap-2">
               <span id="can-color-label" className="hidden sm:inline text-sm text-zinc-400">Can:</span>
@@ -622,6 +622,7 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
                 </div>
               </div>
             </div></div>
+            {/* ROW 2:  Caps */}
             <div className="flex items-center justify-between sm:justify-start w-full gap-2 sm:gap-6">
             <div className="flex items-center gap-1 sm:gap-2">
               <span id="cap-size-label" className="hidden sm:inline text-sm text-zinc-400">Caps:</span>
@@ -635,7 +636,7 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
 
           <div className="h-px w-full bg-zinc-700/50 my-0.5 sm:hidden" aria-hidden="true"></div>
 
-          {/* ROW 2: Playground & Surface Layouts */}
+          {/* ROW 3: Playground & Surface Layouts */}
           <div className="flex items-center justify-between sm:justify-start w-full gap-2 sm:gap-2">
             <div className="flex items-center gap-1 sm:gap-1">
               <span id="layout-mode-label" className="text-[9px] sm:text-xs text-zinc-400 uppercase tracking-widest mr-1">Layout:</span>
@@ -659,11 +660,11 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
 
           <div className="h-px w-full bg-zinc-700/50 my-0.5 sm:hidden" aria-hidden="true"></div>
 
-          {/* ROW 3 & 4 (Mobile): Actions & Cloud Saves */}
+          {/*row 4 (Mobile): Actions & Cloud Saves */}
           {/* Using flex-wrap allows this to be two separate rows (Lines 3 and 4) on mobile and merged into 1 row on Desktop */}
           <div className="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start w-full gap-y-1.5 sm:gap-3">
             
-            {/* ROW 3: Basic Canvas Actions */}
+            {/* ROW 4: Basic Canvas Actions */}
             <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto">
               <div className="flex items-center gap-2">
                 <button onClick={undo} disabled={historyRef.current.length <= 1} aria-label="Undo stroke" className="text-[9px] sm:text-sm font-bold uppercase tracking-wider hover:text-red-400 disabled:opacity-50 focus:outline-none">Undo</button>
