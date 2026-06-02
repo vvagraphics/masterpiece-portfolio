@@ -13,9 +13,17 @@ import GlassWalls from '../sandboxes/GlassWalls';
 import InspirationGallery from './InspirationGallery'; 
 import TornadoTransition from './TornadoTransition'; 
 
-// FIX: Added 'GALLERY' back into the allowed types and the navigation order
 type ActiveView = 'MUSEUM' | 'GRAFFITI' | 'GLASS_WALLS' | 'HOLOGRAM' | 'GACHA' | 'GALLERY';
 const SANDBOX_ORDER: ActiveView[] = ['GRAFFITI', 'GLASS_WALLS', 'HOLOGRAM', 'GACHA', 'GALLERY'];
+
+// Moved to top level so it can be used for both Physics Bodies AND Keyboard Accessibility Menu
+const PROJECTS = [
+  { color: '#ef4444', label: 'VVA Graffiti', type: 'GRAFFITI' as ActiveView, shape: 'capsule', w: 70, h: 120, texture: '/spray_can.svg' },
+  { color: '#14b8a6', label: 'Glass Structure', type: 'GLASS_WALLS' as ActiveView, shape: 'rectangle', w: 70, h: 133, texture: '/glass_pane.svg' }, 
+  { color: '#3b82f6', label: 'Holograms', type: 'HOLOGRAM' as ActiveView, shape: 'rectangle', w: 100, h: 133, texture: '/hologram.svg' }, 
+  { color: '#a855f7', label: 'Gacha System', type: 'GACHA' as ActiveView, shape: 'square', w: 100, h: 100, texture: '/gacha.svg' },
+  { color: '#f59e0b', label: 'Community Archives', type: 'GALLERY' as ActiveView, shape: 'square', w: 150, h: 150, texture: '/archives.svg' }
+];
 
 type SandboxWrapperProps = {
   isAudioEnabled?: boolean;
@@ -29,6 +37,9 @@ export default function SandboxWrapper({
   ambientAudioRef 
 }: SandboxWrapperProps) {
   
+  // ==========================================
+  // 1. REFS & STATE
+  // ==========================================
   const sceneRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
   const runnerRef = useRef<Matter.Runner | null>(null);
@@ -55,6 +66,9 @@ export default function SandboxWrapper({
     label: string; color: string; x: number; y: number;
   } | null>(null);
 
+  // ==========================================
+  // 2. AUDIO MANAGEMENT
+  // ==========================================
   useEffect(() => {
     if (!ambientAudioRef?.current) return;
     const currentVol = typeof ambientAudioRef.current.volume() === 'number' ? ambientAudioRef.current.volume() as number : 0.3;
@@ -66,6 +80,25 @@ export default function SandboxWrapper({
     }
   }, [activeView, isTransitioning, isAudioEnabled, ambientAudioRef]);
 
+  useEffect(() => {
+    thudSoundRef.current = new Howl({ src: ['/audio/thud.mp3'], preload: true });
+    spraySoundRef.current = new Howl({ src: ['/audio/spray_sprite.mp3'], preload: true });
+    glassSoundRef.current = new Howl({ src: ['/audio/glass_clink.mp3'], preload: true }); 
+    hologramSoundRef.current = new Howl({ src: ['/audio/hologram_chime.mp3'], preload: true });
+    gachaSoundRef.current = new Howl({ src: ['/audio/gacha_roll.mp3'], preload: true });
+
+    return () => { 
+      thudSoundRef.current?.unload(); 
+      spraySoundRef.current?.unload();
+      glassSoundRef.current?.unload();
+      hologramSoundRef.current?.unload();
+      gachaSoundRef.current?.unload();
+    }
+  }, []);
+
+  // ==========================================
+  // 3. NAVIGATION LOGIC
+  // ==========================================
   const handleNavigation = (targetView: ActiveView) => {
     setNextView(targetView);
     setIsTransitioning(true);
@@ -91,22 +124,9 @@ export default function SandboxWrapper({
     }
   };
 
-  useEffect(() => {
-    thudSoundRef.current = new Howl({ src: ['/audio/thud.mp3'], preload: true });
-    spraySoundRef.current = new Howl({ src: ['/audio/spray_sprite.mp3'], preload: true });
-    glassSoundRef.current = new Howl({ src: ['/audio/glass_clink.mp3'], preload: true }); 
-    hologramSoundRef.current = new Howl({ src: ['/audio/hologram_chime.mp3'], preload: true });
-    gachaSoundRef.current = new Howl({ src: ['/audio/gacha_roll.mp3'], preload: true });
-
-    return () => { 
-      thudSoundRef.current?.unload(); 
-      spraySoundRef.current?.unload();
-      glassSoundRef.current?.unload();
-      hologramSoundRef.current?.unload();
-      gachaSoundRef.current?.unload();
-    }
-  }, []);
-
+  // ==========================================
+  // 4. MATTER.JS PHYSICS ENGINE
+  // ==========================================
   useEffect(() => {
     if (!sceneRef.current) return;
 
@@ -138,16 +158,8 @@ export default function SandboxWrapper({
     const rightWall = Bodies.rectangle(width + 100, height / 2, 200, height * 3, wallOptions);
 
     World.add(engine.world, [ground, ceiling, leftWall, rightWall]);
-//if svg breaks will not load, need to add fallback or ensure svg is correct and accessible
-    const projects = [
-      { color: '#ef4444', label: 'VVA Graffiti', type: 'GRAFFITI', shape: 'capsule', w: 70, h: 120, texture: '/spray_can.svg' },
-      { color: '#14b8a6', label: 'Glass Structure', type: 'GLASS_WALLS', shape: 'rectangle', w: 70, h: 133, texture: '/glass_pane.svg' }, 
-      { color: '#3b82f6', label: 'Holograms', type: 'HOLOGRAM', shape: 'rectangle', w: 100, h: 133, texture: '/hologram.svg' }, 
-      { color: '#a855f7', label: 'Gacha System', type: 'GACHA', shape: 'square', w: 100, h: 100, texture: '/gacha.svg' },
-      { color: '#f59e0b', label: 'Community Archives', type: 'GALLERY', shape: 'square', w: 150, h: 150, texture: '/archives.svg' }
-    ];
 
-    const projectBodies = projects.map((proj, i) => {
+    const projectBodies = PROJECTS.map((proj, i) => {
       const yPos = -200 - (i * 250);
       const xPos = (width / 2) + (Math.random() * 200 - 100); 
       
@@ -158,11 +170,7 @@ export default function SandboxWrapper({
           fillStyle: proj.color, 
           strokeStyle: '#ffffff', 
           lineWidth: 2,
-          sprite: {
-            texture: proj.texture,
-            xScale: 1, 
-            yScale: 1  
-          }
+          sprite: { texture: proj.texture, xScale: 1, yScale: 1 }
         },
         plugin: { isProject: true, viewType: proj.type, label: proj.label, originalColor: proj.color } 
       };
@@ -270,16 +278,23 @@ export default function SandboxWrapper({
 
     gsap.fromTo(sceneRef.current, { opacity: 0 }, { opacity: 1, duration: 1.5, ease: "power2.out" });
 
+    // Performance Update: Debounced Resize
+    let resizeTimer: number;
     const handleResize = () => {
-      render.canvas.width = window.innerWidth;
-      render.canvas.height = window.innerHeight;
-      Matter.Body.setPosition(ground, { x: window.innerWidth / 2, y: window.innerHeight + 100 });
-      Matter.Body.setPosition(rightWall, { x: window.innerWidth + 100, y: window.innerHeight / 2 });
+      clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
+        render.canvas.width = window.innerWidth;
+        render.canvas.height = window.innerHeight;
+        Matter.Body.setPosition(ground, { x: window.innerWidth / 2, y: window.innerHeight + 100 });
+        Matter.Body.setPosition(rightWall, { x: window.innerWidth + 100, y: window.innerHeight / 2 });
+      }, 150);
     };
+    
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimer);
       Render.stop(render);
       Runner.stop(runner);
       Matter.World.clear(engine.world, false);
@@ -290,11 +305,8 @@ export default function SandboxWrapper({
 
   useEffect(() => {
     if (!runnerRef.current || !engineRef.current) return;
-    if (activeView === 'MUSEUM' && !isTransitioning) {
-      Matter.Runner.run(runnerRef.current, engineRef.current);
-    } else {
-      Matter.Runner.stop(runnerRef.current);
-    }
+    if (activeView === 'MUSEUM' && !isTransitioning) Matter.Runner.run(runnerRef.current, engineRef.current);
+    else Matter.Runner.stop(runnerRef.current);
   }, [activeView, isTransitioning]);
 
   const currentIndex = SANDBOX_ORDER.indexOf(activeView);
@@ -304,18 +316,44 @@ export default function SandboxWrapper({
   return (
     <div className="relative w-full h-screen overflow-hidden bg-[#050505]">
       
+      {/* KEYBOARD ACCESSIBILITY OVERLAY FOR MUSEUM (Only visible when tabbing) */}
+      {activeView === 'MUSEUM' && !isTransitioning && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[100] flex flex-col gap-3 pointer-events-none w-[90%] max-w-sm">
+          {PROJECTS.map((proj) => (
+            <button
+              key={proj.type}
+              onClick={() => handleNavigation(proj.type)}
+              aria-label={`Enter ${proj.label} interactive project`}
+              className="opacity-0 focus:opacity-100 pointer-events-auto bg-black/95 px-6 py-4 rounded-xl font-black uppercase tracking-widest text-white border-2 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-4 focus:ring-offset-black scale-95 focus:scale-100 shadow-[0_0_30px_rgba(0,0,0,0.8)] text-center"
+              style={{ borderColor: proj.color, color: proj.color, ringColor: proj.color }}
+            >
+              Enter: {proj.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ARROW NAVIGATION */}
       {activeView !== 'MUSEUM' && !isTransitioning && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 pointer-events-none z-40">
           <div className="absolute inset-y-0 left-0 flex items-center">
             {showPrev && (
-              <button onClick={handlePrev} className="pointer-events-auto ml-6 p-4 rounded-full bg-[#111] hover:bg-white hover:text-black border border-white/20 transition-all duration-300 text-white">
+              <button 
+                onClick={handlePrev} 
+                aria-label="Previous Project"
+                className="pointer-events-auto ml-6 p-4 rounded-full bg-[#111] hover:bg-white hover:text-black border border-white/20 transition-all duration-300 text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-4 focus:ring-offset-[#050505]"
+              >
                 <ChevronLeft size={28} />
               </button>
             )}
           </div>
           <div className="absolute inset-y-0 right-0 flex items-center">
              {showNext && (
-               <button onClick={handleNext} className="pointer-events-auto mr-6 p-4 rounded-full bg-[#111] hover:bg-white hover:text-black border border-white/20 transition-all duration-300 text-white">
+               <button 
+                onClick={handleNext} 
+                aria-label="Next Project"
+                className="pointer-events-auto mr-6 p-4 rounded-full bg-[#111] hover:bg-white hover:text-black border border-white/20 transition-all duration-300 text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-4 focus:ring-offset-[#050505]"
+               >
                  <ChevronRight size={28} />
                </button>
              )}
@@ -323,34 +361,40 @@ export default function SandboxWrapper({
         </motion.div>
       )}
 
+      {/* TOP CONTROLS */}
       <div className={`absolute z-50 flex items-center gap-4 pointer-events-auto transition-all duration-700 ease-in-out ${
         activeView === 'GRAFFITI' && graffitiLayout === 'SPLIT_VERT' ? 'top-8 left-8' : 'top-8 right-8' 
       }`}>
         {activeView !== 'MUSEUM' && !isTransitioning && (
           <motion.button 
             initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} onClick={handleReturnToMuseum}
-            className="flex items-center gap-2 px-6 h-12 bg-[#111] text-white text-sm font-bold tracking-widest uppercase border border-white/20 rounded-full hover:bg-white hover:text-black transition-colors duration-300 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+            aria-label="Return to Museum"
+            className="flex items-center gap-2 px-6 h-12 bg-[#111] text-white text-sm font-bold tracking-widest uppercase border border-white/20 rounded-full hover:bg-white hover:text-black transition-colors duration-300 shadow-[0_0_15px_rgba(255,255,255,0.05)] focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-4 focus:ring-offset-[#050505]"
           >
-            <X size={16} /> Return to Museum
+            <X size={16} aria-hidden="true" /> Return to Museum
           </motion.button>
         )}
         <button 
           onClick={toggleAudio}
-          className="flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 hover:scale-110 bg-[#111] shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+          aria-label={isAudioEnabled ? "Mute Ambient Audio" : "Enable Ambient Audio"}
+          aria-pressed={isAudioEnabled}
+          className="flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300 hover:scale-110 bg-[#111] shadow-[0_0_15px_rgba(255,255,255,0.05)] focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-4 focus:ring-offset-[#050505]"
           style={{ borderColor: isAudioEnabled ? '#ef4444' : '#52525b', color: isAudioEnabled ? '#ef4444' : '#52525b', backgroundColor: isAudioEnabled ? 'rgba(239, 68, 68, 0.1)' : '#111' }}
         >
-          {isAudioEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
+          {isAudioEnabled ? <Volume2 size={24} aria-hidden="true" /> : <VolumeX size={24} aria-hidden="true" />}
         </button>
       </div>
 
+      {/* TRANSITIONS */}
       <AnimatePresence>
         {isTransitioning && nextView && (
           <TornadoTransition fromView={activeView} toView={nextView} onComplete={handleTransitionComplete} />
         )}
       </AnimatePresence>
 
+      {/* ACTIVE VIEW RENDERING */}
       {!isTransitioning && activeView !== 'MUSEUM' && (
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, ease: "easeOut" }} className="absolute inset-0 z-30">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, ease: "easeOut" }} className="absolute inset-0 z-30" style={{ willChange: "opacity, transform" }}>
           {activeView === 'GRAFFITI' && <GraffitiCanvas isAudioEnabled={isAudioEnabled} onLayoutChange={setGraffitiLayout} />}
           {activeView === 'GLASS_WALLS' && <GlassWalls isAudioEnabled={isAudioEnabled} />}
           {activeView === 'HOLOGRAM' && <Holograms isAudioEnabled={isAudioEnabled} />}
@@ -364,6 +408,7 @@ export default function SandboxWrapper({
         </motion.div>
       )}
 
+      {/* MUSEUM BACKGROUND / PHYSICS INSTANCE */}
       <div className={`absolute inset-0 transition-opacity duration-700 ${activeView === 'MUSEUM' && !isTransitioning ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
         <div className="absolute top-8 left-8 z-20 pointer-events-none mix-blend-difference">
           <h2 className="text-white text-4xl font-black uppercase tracking-tighter">The Museum</h2>
@@ -371,13 +416,16 @@ export default function SandboxWrapper({
             <p className="text-gray-400 font-mono text-sm pointer-events-none">Grab. Drag. Throw. Click to Enter.</p>
             <button 
               onClick={() => setIsSfxEnabled(!isSfxEnabled)}
-              className="pointer-events-auto flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-md border transition-all duration-300 border-zinc-600 text-zinc-400 hover:text-white hover:border-white hover:bg-white/10"
+              aria-label={isSfxEnabled ? "Disable Physics Sound Effects" : "Enable Physics Sound Effects"}
+              aria-pressed={isSfxEnabled}
+              className="pointer-events-auto flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-md border transition-all duration-300 border-zinc-600 text-zinc-400 hover:text-white hover:border-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#050505]"
             >
               SFX: {isSfxEnabled ? <span className="text-green-400 font-bold">ON</span> : <span className="text-red-400 font-bold">OFF</span>}
             </button>
           </div>
         </div>
 
+        {/* CUSTOM HOVER TOOLTIP */}
         {hoveredProject && (
           <div className="absolute z-30 pointer-events-none transition-all duration-150 ease-out" style={{ left: hoveredProject.x + 140, top: hoveredProject.y - 100 }}>
             <div className="bg-black/80 backdrop-blur-md border p-4 rounded-xl shadow-2xl min-w-[200px]" style={{ borderColor: `${hoveredProject.color}40` }}>
@@ -387,7 +435,9 @@ export default function SandboxWrapper({
           </div>
         )}
 
-        <div ref={sceneRef} className="absolute inset-0" />
+        {/* PHYSICS CANVAS */}
+        {/* aria-hidden hides the blank canvas rendering from screen readers since the keyboard menu now handles A11y routing */}
+        <div ref={sceneRef} className="absolute inset-0" aria-hidden="true" />
       </div>
     </div>
   );
