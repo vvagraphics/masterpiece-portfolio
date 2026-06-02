@@ -36,7 +36,7 @@ const useSafeTextures = () => {
       frostedNormal: '/textures/frosted.webp',
       brokenGlass: '/textures/broken.webp',
       rainGlass: '/textures/rain.webp',
-      firstWebsite: '/first_website.jpg',
+      firstWebsite: '/glasswalls.jpeg',
       bgCustom: '/textures/bg_custom.webp' // Make sure you add this file to your public folder!
     };
     
@@ -323,7 +323,7 @@ export default function GlassWalls({ isAudioEnabled = false }: Props) {
       title="Glass Signature"
       layoutMode={layoutMode}
       onLayoutChange={setLayoutMode}
-      splitBackgroundImage="/first_website.jpg" 
+      splitBackgroundImage="/glasswalls.jpeg" 
       isEnvAudioMuted={isEnvAudioMuted}
       onToggleEnvAudio={() => setIsEnvAudioMuted(!isEnvAudioMuted)}
       controls={ <SandboxControls schema={GLASS_SCHEMA} onChange={(id, val) => setControls(p => ({...p, [id]: val}))} /> }
