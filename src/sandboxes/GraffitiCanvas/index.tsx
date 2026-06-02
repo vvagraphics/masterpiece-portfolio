@@ -557,6 +557,33 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
     uiWidthClass = 'w-[48vw] sm:w-auto sm:max-w-[45vw]';
   }
 
+  // --- REUSABLE UI BLOCKS FOR CONDITIONAL RENDERING ---
+  const colorsControls = (
+    <div className="flex items-center gap-1 sm:gap-2">
+      <span id="can-color-label" className="hidden sm:inline text-sm text-zinc-400">Can:</span>
+      <div className="flex gap-1 sm:gap-2 items-center" aria-labelledby="can-color-label">
+        {GRAFFITI_COLORS.map((c) => (
+          <button key={c.hex} onClick={() => { setColor(c.hex); playShakeSound(); }} aria-label={`Select color ${c.name}`} aria-pressed={color === c.hex} className={`w-5 h-5 sm:w-8 sm:h-8 rounded-full border-2 transition-transform focus:outline-none ${ color === c.hex ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'border-transparent' }`} style={{ backgroundColor: c.hex }} title={c.name} />
+        ))}
+        <div className="relative w-5 h-5 sm:w-8 sm:h-8 rounded-full overflow-hidden border-2 border-transparent hover:border-white transition-colors cursor-pointer shadow-inner ml-1">
+          <div className="absolute inset-0 bg-gradient-to-tr from-red-500 via-green-500 to-blue-500 pointer-events-none"></div>
+          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} onPointerDown={playShakeSound} className="absolute -inset-2 w-10 h-10 sm:w-12 sm:h-12 opacity-0 cursor-pointer" title="Custom Color" aria-label="Custom Color Picker" />
+        </div>
+      </div>
+    </div>
+  );
+
+  const capsControls = (
+    <div className="flex items-center gap-1 sm:gap-2">
+      <span id="cap-size-label" className="hidden sm:inline text-sm text-zinc-400">Caps:</span>
+      <div aria-labelledby="cap-size-label" className="flex gap-1 sm:gap-2">
+        {(Object.keys(CAP_PROFILES) as CapType[]).map((cap) => (
+          <button key={cap} onClick={() => setActiveCap(cap)} aria-pressed={activeCap === cap} className={`px-1.5 py-1 sm:px-3 sm:py-1 text-[9px] sm:text-xs font-bold rounded border transition-colors focus:outline-none ${ activeCap === cap ? 'bg-zinc-200 text-black border-white' : 'border-zinc-600 hover:border-zinc-400' }`} title={CAP_PROFILES[cap].name}>{cap}</button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div ref={containerRef} className="relative w-screen h-screen bg-black overflow-hidden touch-none overscroll-none">
       
@@ -599,40 +626,33 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
         className="absolute inset-0 w-full h-full z-10 cursor-crosshair touch-none"
       />
 
-      {/* WCAG: Toolbar Role with strictly forced 4-row architecture for mobile layout */}
+      {/* WCAG: Toolbar Role with conditionally rendered rows logic */}
       {!isCapturing && (
         <div 
           role="toolbar" 
           aria-label="Graffiti Tools"
           style={{ willChange: 'transform, opacity' }}
-          className={`absolute z-20 transition-all duration-500 ease-in-out ${uiPositionClass} ${uiPlacementClass} ${uiWidthClass} bg-black/80 h-60 p-2 sm:p-2 sm:py-3 border border-zinc-700 rounded-xl sm:rounded text-white flex flex-col gap-1.5 sm:gap-5 shadow-xl backdrop-blur-sm`}
+          className={`absolute z-20 transition-all duration-500 ease-in-out ${uiPositionClass} ${uiPlacementClass} ${uiWidthClass} bg-black/80 h-auto min-h-[3rem] p-2 sm:p-2 sm:py-3 border border-zinc-700 rounded-xl sm:rounded text-white flex flex-col gap-1.5 sm:gap-5 shadow-xl backdrop-blur-sm`}
         >
           
-          {/* ROW 1: Colors */}
-          <div className="flex items-center justify-between sm:justify-start w-full gap-2 sm:gap-6">
-            <div className="flex items-center gap-1 sm:gap-2">
-              <span id="can-color-label" className="hidden sm:inline text-sm text-zinc-400">Can:</span>
-              <div className="flex gap-1 sm:gap-2 items-center" aria-labelledby="can-color-label">
-                {GRAFFITI_COLORS.map((c) => (
-                  <button key={c.hex} onClick={() => { setColor(c.hex); playShakeSound(); }} aria-label={`Select color ${c.name}`} aria-pressed={color === c.hex} className={`w-5 h-5 sm:w-8 sm:h-8 rounded-full border-2 transition-transform focus:outline-none ${ color === c.hex ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.5)]' : 'border-transparent' }`} style={{ backgroundColor: c.hex }} title={c.name} />
-                ))}
-                <div className="relative w-5 h-5 sm:w-8 sm:h-8 rounded-full overflow-hidden border-2 border-transparent hover:border-white transition-colors cursor-pointer shadow-inner ml-1">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-red-500 via-green-500 to-blue-500 pointer-events-none"></div>
-                  <input type="color" value={color} onChange={(e) => setColor(e.target.value)} onPointerDown={playShakeSound} className="absolute -inset-2 w-10 h-10 sm:w-12 sm:h-12 opacity-0 cursor-pointer" title="Custom Color" aria-label="Custom Color Picker" />
-                </div>
+          {/* DYNAMIC ROWS: Colors & Caps conditionally rendered based on layoutMode */}
+          {layoutMode === 'SPLIT_VERT' ? (
+            <>
+              {/* VERTICAL MODE: 2 Separate Rows for Colors and Caps */}
+              <div className="flex items-center justify-between sm:justify-start w-full gap-2 sm:gap-6">
+                {colorsControls}
               </div>
-            </div></div>
-            {/* ROW 2:  Caps */}
-            <div className="flex items-center justify-between sm:justify-start w-full gap-2 sm:gap-6">
-            <div className="flex items-center gap-1 sm:gap-2">
-              <span id="cap-size-label" className="hidden sm:inline text-sm text-zinc-400">Caps:</span>
-              <div aria-labelledby="cap-size-label" className="flex gap-1 sm:gap-2">
-                {(Object.keys(CAP_PROFILES) as CapType[]).map((cap) => (
-                  <button key={cap} onClick={() => setActiveCap(cap)} aria-pressed={activeCap === cap} className={`px-1.5 py-1 sm:px-3 sm:py-1 text-[9px] sm:text-xs font-bold rounded border transition-colors focus:outline-none ${ activeCap === cap ? 'bg-zinc-200 text-black border-white' : 'border-zinc-600 hover:border-zinc-400' }`} title={CAP_PROFILES[cap].name}>{cap}</button>
-                ))}
+              <div className="flex items-center justify-between sm:justify-start w-full gap-2 sm:gap-6">
+                {capsControls}
               </div>
-            </div></div>
-          
+            </>
+          ) : (
+            /* FULL OR HORIZ MODE: 1 Combined Row for Colors and Caps */
+            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start w-full gap-2 sm:gap-6">
+              {colorsControls}
+              {capsControls}
+            </div>
+          )}
 
           <div className="h-px w-full bg-zinc-700/50 my-0.5 sm:hidden" aria-hidden="true"></div>
 
@@ -701,7 +721,7 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
       {/* Capture Watermark overlay */}
       {isCapturing && (
         <div aria-hidden="true" className="absolute bottom-6 right-8 z-20 text-white/50 font-mono text-[10px] sm:text-sm tracking-widest bg-black/50 px-2 py-1">
-          MASTERPIECE PORTFOLIO // EFANDERSON
+          MASTERPIECE PORTFOLIO // ANDERSON
         </div>
       )}
       
