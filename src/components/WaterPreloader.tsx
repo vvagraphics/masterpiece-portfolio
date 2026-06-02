@@ -170,13 +170,13 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       ctx.textBaseline = 'middle';
       ctx.letterSpacing = '8px';
 
-      const textX = (width / 2) + 120;
-      const textY = (height / 2) + 90;
+      const textX = (width / 2) + 170;
+      const textY = (height / 2) + 50;
 
       const g = glitchState || {
-        c1: 'rgba(255, 255, 255, 0.4)', o1: { x: -2, y: 0 },   
+        c1: 'rgba(0, 0, 0, 0.4)', o1: { x: -2, y: 0 },   
         c2: 'rgba(255, 255, 255, 0.95)', o2: { x: 0, y: 0 }, 
-        c3: 'rgba(150, 150, 150, 0.4)', o3: { x: 2, y: 0 }     
+        c3: 'rgba(0, 0, 0, 0.4)', o3: { x: 2, y: 0 }     
       };
 
       ctx.globalCompositeOperation = 'screen';
@@ -498,7 +498,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
 
       <div 
         className={`absolute inset-0 flex items-center justify-center pointer-events-none z-30 transition-opacity duration-500 ${isSplashing ? 'opacity-0' : 'opacity-100'}`}
-        style={{ transform: `translate(120px, 90px)` }} 
+        style={{ transform: `translate(170px, 50px)` }} 
       >
         <h1 
           onMouseEnter={handleTextHover}
