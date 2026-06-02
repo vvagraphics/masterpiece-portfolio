@@ -325,7 +325,11 @@ export default function SandboxWrapper({
               onClick={() => handleNavigation(proj.type)}
               aria-label={`Enter ${proj.label} interactive project`}
               className="opacity-0 focus:opacity-100 pointer-events-auto bg-black/95 px-6 py-4 rounded-xl font-black uppercase tracking-widest text-white border-2 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-4 focus:ring-offset-black scale-95 focus:scale-100 shadow-[0_0_30px_rgba(0,0,0,0.8)] text-center"
-              style={{ borderColor: proj.color, color: proj.color, ringColor: proj.color }}
+              style={{ 
+  borderColor: proj.color, 
+  color: proj.color, 
+  '--tw-ring-color': proj.color 
+} as React.CSSProperties}
             >
               Enter: {proj.label}
             </button>
