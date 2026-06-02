@@ -627,6 +627,8 @@ export default function GraffitiCanvas({ isAudioEnabled = false, onLayoutChange}
       />
 
       {/* WCAG: Toolbar Role with conditionally rendered rows logic */}
+      {/* changes for the controls*/}
+
       {!isCapturing && (
         <div 
           role="toolbar" 
