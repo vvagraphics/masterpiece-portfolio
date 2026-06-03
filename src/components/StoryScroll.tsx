@@ -89,19 +89,42 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
       let mm = gsap.matchMedia();
 
       mm.add({
-        isMobile: "(max-width: 767px)",
-        isTablet: "(min-width: 768px) and (max-width: 1023px)",
-        isDesktop: "(min-width: 1024px) and (max-width: 1535px)",
-        isUltrawide: "(min-width: 1536px)"
+        isMobile: "(max-width: 639px)",                                // Default mobile (below sm)
+        isSm: "(min-width: 640px) and (max-width: 767px)",             // Matches Tailwind 'sm:'
+        isTablet: "(min-width: 768px) and (max-width: 1023px)",        // Matches Tailwind 'md:'
+        isDesktop: "(min-width: 1024px) and (max-width: 1535px)",      // Matches Tailwind 'lg:' and 'xl:'
+        isUltrawide: "(min-width: 1536px)",                            // Matches Tailwind '2xl:'
+        isMobileLandscape: "(max-height: 500px) and (orientation: landscape)" // Targets sideways phones overriding width
       }, (context) => {
-        let { isMobile, isUltrawide } = context.conditions as { isMobile: boolean, isUltrawide: boolean };
+        let { isMobile, isSm, isTablet, isDesktop, isUltrawide, isMobileLandscape } = context.conditions as any;
 
+        // Tweak the 'isSm' and 'isMobileLandscape' values here to adjust your pans!
         const sceneConfigs = {
-          pan1: { scale: isMobile ? 1.5 : isUltrawide ? 2.6 : 2.0, x: isMobile ? 24 : isUltrawide ? 11 : 10, y: isMobile ? 0 : isUltrawide ? 0 : 1 },
-          pan2: { scale: isMobile ? 1.5 : isUltrawide ? 2.0 : 2.5, x: isMobile ? -19 : isUltrawide ? -7 : -11, y: isMobile ? 3 : isUltrawide ? 7 : -28 },
-          pan3: { scale: isMobile ? 1 : isUltrawide ? 1.0 : 1.0, x: isMobile ? 0 : isUltrawide ? 0 : 0, y: isMobile ? 0 : isUltrawide ? 0 : 0 },
-          pan4: { scale: isMobile ? 1.8 : isUltrawide ? 3.0 : 3.2, x: isMobile ? -2: isUltrawide ? 32 : 30, y: isMobile ? 43 : isUltrawide ? 108 : 75 },
-          pan5: { scale: 1.2, x: 0, y: 0 }
+          pan1: { 
+            scale: isMobileLandscape ? 2.0 : isMobile ? 1.5 : isSm ? 1.6 : isUltrawide ? 2.6 : 2.0, 
+            x: isMobileLandscape ? 9 : isMobile ? 24 : isSm ? 22 : isUltrawide ? 11 : 10, 
+            y: isMobileLandscape ? 0 : isMobile ? 0 : isSm ? 0 : isUltrawide ? 0 : 1 
+          },
+          pan2: { 
+            scale: isMobileLandscape ? 2.4 : isMobile ? 1.5 : isSm ? 1.6 : isUltrawide ? 2.0 : 2.5, 
+            x: isMobileLandscape ? -8 : isMobile ? -19 : isSm ? -17 : isUltrawide ? -7 : -11, 
+            y: isMobileLandscape ? -20 : isMobile ? 3 : isSm ? 5 : isUltrawide ? 7 : -28 
+          },
+          pan3: { 
+            scale: isMobileLandscape ? 1.0 : isMobile ? 1.0 : isSm ? 1.0 : isUltrawide ? 1.0 : 1.0, 
+            x: 0, 
+            y: 0 
+          },
+          pan4: { 
+            scale: isMobileLandscape ? 3.0 : isMobile ? 1.8 : isSm ? 2.0 : isUltrawide ? 3.0 : 3.2, 
+            x: isMobileLandscape ? 32 : isMobile ? -2 : isSm ? 5 : isUltrawide ? 32 : 30, 
+            y: isMobileLandscape ? 81 : isMobile ? 43 : isSm ? 50 : isUltrawide ? 108 : 75 
+          },
+          pan5: { 
+            scale: 1.2, 
+            x: 20, 
+            y: 20 
+          }
         };
 
         const tl = gsap.timeline({
@@ -283,7 +306,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
   // DEV WORKFLOW FIX (Commented out for Production)
   // Keeps your scroll position saved when you refresh the page!
   // ==========================================
-  /*
+  
   useEffect(() => {
     const savedScroll = sessionStorage.getItem("dev-scroll-pos");
     if (savedScroll) {
@@ -295,7 +318,22 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-  */
+
+  // ==========================================
+  // DEV TOOL JUMP FUNCTION (Commented out for Production)
+  // ==========================================
+  
+  const handleJump = (label: string) => {
+    const tl = gsap.getById("storyTimeline") as gsap.core.Timeline;
+    if (tl && tl.scrollTrigger) {
+      const st = tl.scrollTrigger;
+      const labelTime = tl.labels[label];
+      const scrollPos = st.start + (labelTime / tl.duration()) * (st.end - st.start);
+      window.scrollTo({ top: scrollPos, behavior: 'smooth' });
+    }
+  };
+  
+  
 
   // ==========================================
   // AUTOSCROLL LISTENER
@@ -331,20 +369,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
     };
   }, [isAutoPlaying]);
 
-  // ==========================================
-  // DEV TOOL JUMP FUNCTION (Commented out for Production)
-  // ==========================================
-  /*
-  const handleJump = (label: string) => {
-    const tl = gsap.getById("storyTimeline") as gsap.core.Timeline;
-    if (tl && tl.scrollTrigger) {
-      const st = tl.scrollTrigger;
-      const labelTime = tl.labels[label];
-      const scrollPos = st.start + (labelTime / tl.duration()) * (st.end - st.start);
-      window.scrollTo({ top: scrollPos, behavior: 'smooth' });
-    }
-  };
-  */
+  
 
   return (
     <div ref={containerRef} className="relative w-full h-screen bg-black text-white overflow-hidden font-sans"
@@ -354,7 +379,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
       <WarpBackground />
 
       {/* DEV TOOLS JUMP MENU - Commented out for Production */}
-      {/* <div className="fixed bottom-4 left-4 z-[9999] flex flex-col gap-1 bg-black/80 p-2 rounded-lg border border-white/20 shadow-2xl ">
+      <div className="fixed bottom-4 left-4 z-[9999] flex flex-col gap-1 bg-black/80 p-2 rounded-lg border border-white/20 shadow-2xl ">
         <span className="text-[10px] text-gray-400 font-mono text-center uppercase tracking-widest mb-1 border-b border-white/20 pb-1">Dev Jump</span>
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp2'); }} className="text-xs text-white p-1 hover:bg-blue-600 rounded">Scene 1 (Bedroom)</button>
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp3'); }} className="text-xs text-white p-1 hover:bg-red-600 rounded">Scene 2 (ITT)</button>
@@ -362,7 +387,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp5'); }} className="text-xs text-white p-1 hover:bg-teal-600 rounded">Scene 4 (PC Prof)</button>
         <button onClick={(e) => { e.stopPropagation(); handleJump('hideAgents'); }} className="text-xs text-white p-1 hover:bg-purple-600 rounded">Scene 5 (Future)</button>
       </div>
-      */}
+     
 
       {/* CONTROLS MENU */}
       <div className="fixed top-4 right-4 md:top-8 md:right-8 z-[100] flex gap-2 md:gap-4">
@@ -400,7 +425,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         {/* ================= SCENE 1: BEDROOM ================= */}
         <div className="scene-1-wrapper absolute inset-0 w-full h-full opacity-0" style={{ transform: "translateZ(0px)" }}>
           {/* UPDATED: Bolder text, moved up slightly (bottom-20) */}
-          <div className="absolute bottom-20 md:bottom-24 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-cyan-500/50 rounded-full z-50 pointer-events-none w-[90%] md:w-auto text-center shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+          <div className="absolute top-20 sm:top-7 md:top-24 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 sm:py-4 border border-cyan-500/50 rounded-full z-50 pointer-events-none  w-[90%] sm:w-[60%] md:w-auto text-center shadow-[0_0_20px_rgba(6,182,212,0.3)]">
             <p className="text-cyan-100 text-sm md:text-lg font-mono font-black uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               - My First Encounter With HTML & CSS
             </p>
@@ -411,12 +436,12 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-             <div className="relative w-[88vw] h-[32vh] md:w-[45vw] md:h-[22vh] lg:w-[42vw] lg:h-[43vh] 2xl:w-[40vw] 2xl:h-[85vh] pointer-events-auto">
-                 <div className="scene-1-part1 absolute inset-0 flex flex-col bg-black/90 p-2 pb-8 md:pb-10 border border-blue-900 rounded-xl opacity-0 shadow-2xl overflow-hidden">
+             <div className="relative w-[88vw] h-[32vh] sm:w-[31vw] sm:h-[50vh] md:w-[45vw] md:h-[22vh] lg:w-[42vw] lg:h-[43vh] 2xl:w-[40vw] 2xl:h-[85vh] pointer-events-auto">
+                 <div className="scene-1-part1 absolute inset-0 flex flex-col bg-black/90 justify p-1 pb-8 md:pb-10 border border-blue-900 rounded-xl opacity-0 shadow-2xl overflow-hidden">
                      <div className="flex-1 w-full relative overflow-hidden rounded-sm border border-white/10 bg-black">
                          <img src={`${imgBase}MySpace_profile_page_2004.jpg`} alt="Early Web Profile" className="myspace-scroll-img absolute top-0 left-0 w-full h-auto min-h-full object-cover transform-gpu" />
                      </div>
-                     <h2 className="absolute bottom-1 md:bottom-2 left-0 w-full text-blue-500 text-sm md:text-2xl font-bold font-mono text-center shrink-0">:::myspace</h2>
+                     <h2 className="absolute bottom-1 md:bottom-2 md:bottom-2 left-0 w-full text-blue-500 text-sm md:text-2xl font-bold font-mono text-center shrink-0">:::myspace</h2>
                  </div>
 
                  <div className="scene-1-part2 absolute inset-0 flex flex-col items-center justify-center bg-black/90 p-1 border border-yellow-700 rounded-xl opacity-0 shadow-2xl">
@@ -438,7 +463,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         {/* ================= SCENE 2: ITT TECH ================= */}
         <div className="scene-2-wrapper absolute inset-0 w-full h-full opacity-0" style={{ transform: "translateZ(-4000px)" }}>
           {/* UPDATED: Bolder text, moved up slightly (bottom-20) */}
-          <div className="absolute bottom-30 md:bottom-16 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-red-500/50 rounded-full z-50 pointer-events-none w-[90%] md:w-auto text-center shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+          <div className="absolute top-30 sm:top-7 md:top-16 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-red-500/50 rounded-full z-50 pointer-events-none w-[90%] sm:w-[65%] md:w-[60%] text-center shadow-[0_0_20px_rgba(239,68,68,0.3)]">
             <p className="text-red-100 text-sm md:text-lg font-mono font-black uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               - Building My First Site & The Fall of Flash
             </p>
@@ -449,7 +474,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-             <div className="relative w-[82vw] h-[35vh] md:w-[46vw] md:h-[25vh] lg:w-[49vw] lg:h-[56vh] 2xl:w-[28vw] 2xl:h-[68vh] pointer-events-auto">
+             <div className="relative w-[82vw] h-[35vh] sm:w-[36vw] sm:h-[60vh] md:w-[46vw] md:h-[25vh] lg:w-[49vw] lg:h-[56vh] 2xl:w-[28vw] 2xl:h-[68vh] pointer-events-auto">
                  <div className="scene-2-part1 absolute inset-0 flex flex-col items-center justify-center text-white opacity-0 bg-black/80 md:bg-black/50 p-1 rounded-xl shadow-2xl">
                      <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
                          <img src={`${imgBase}first_website.jpg`} alt="First Website Design" className="w-full h-full object-contain border-2 border-red-900 rotate-3 shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
@@ -475,30 +500,31 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         {/* ================= SCENE 3: GOOGLE UI/UX ================= */}
         <div className="scene-3-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-8000px)", willChange: "opacity, transform" }}>
           {/* UPDATED: Bolder text, kept at bottom-10 */}
-          <div className="absolute bottom-20 md:bottom-15 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-blue-500/50 rounded-full z-50 pointer-events-none w-[90%] md:w-auto text-center shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+          <div className="absolute top-3 md:top-15 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-blue-500/50 rounded-full z-50 pointer-events-none w-[90%] sm:w-[60%] md:w-auto text-center shadow-[0_0_20px_rgba(59,130,246,0.3)]">
             <p className="text-blue-100 text-sm md:text-lg font-mono font-black uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               - Google Certifications & Mobile Apps
             </p>
           </div>
           
-          <div className="scene-3-pan-zoom absolute inset-0 w-full h-full origin-center">
-            <img src={`${imgBase}scene4_uiux_monitors.jpg`} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover opacity-60 transform-gpu" />
+          <div className="scene-3-pan-zoom absolute inset-0 w-full h-[100%] origin-center">
+            <img src={`${imgBase}scene4_uiux_monitors.jpg`} alt="" aria-hidden="true" className="absolute inset-0 w-full h-[100%] object-cover opacity-60 transform-gpu" />
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-             <div className="relative w-[95%] h-[70%] md:w-[95%] md:h-[90%] lg:w-[90%] lg:h-[80%] 2xl:w-[80%] 2xl:h-[90%] pointer-events-auto">
-                 <div className="scene-3-part1 absolute inset-0 flex flex-col items-center justify-center opacity-0 bg-blue-900/60 border-2 border-blue-400/50 rounded-xl p-8 shadow-2xl">
-                     <h2 className="text-white text-1xl md:text-5xl font-black tracking-widest drop-shadow-2xl mb-1 md:mb-2">GOOGLE UX DESIGN</h2>
-                     <h3 className="text-blue-200 text-xl font-bold mb-6 md:mb-6 tracking-wide">UI/UX Project</h3>
+             <div className="relative w-[95%] h-[70%] sm:w-[95%] sm:h-[90%] md:w-[95%] md:h-[90%] lg:w-[90%] lg:h-[80%] 2xl:w-[80%] 2xl:h-[90%] pointer-events-auto">
+                 <div className="scene-3-part1 absolute inset-0 flex flex-col items-center justify-center opacity-0 bg-blue-900/60 border-2 border-blue-400/50 rounded-xl p-8 sm:p-1 shadow-2xl">
+                     
                      <div className="flex-1 w-full min-h-0">
-                         <img src={`${imgBase}UX_finished_product.jpg`} alt="Finished UI Layout" className="w-full h-full object-contain rounded-lg border border-white/20 shadow-inner" />
-                     </div>
+                         <img src={`${imgBase}UX_finished_product.jpg`} alt="Finished UI Layout" className="w-full h-full object-contain rounded-lg border border-white/20 shadow-inner pt-8" />
+                     </div><h2 className="text-white text-1xl sm:text-1xl md:text-5xl font-black tracking-widest drop-shadow-2xl mb-1 sm:mb-2 md:mb-2">GOOGLE UI/UX DESIGN</h2>
+                     
                  </div>
-                 <div className="scene-3-part2 absolute inset-0 flex flex-col items-center justify-center opacity-0 bg-blue-900/80 border-2 border-blue-400 shadow-[0_0_40px_rgba(59,130,246,0.8)] rounded-xl p-8">
-                     <h2 className="text-blue-300 text-4xl font-mono uppercase tracking-widest mb-6 drop-shadow-md">Certificate</h2>
+                 <div className="scene-3-part2 absolute inset-0 flex flex-col items-center justify-center opacity-0 bg-blue-900/80 border-2 border-blue-400 shadow-[0_0_40px_rgba(59,130,246,0.8)] rounded-xl p-1">
+                     
                      <div className="flex-1 w-full min-h-0">
-                         <img src={`${imgBase}UX_wireframe_flow_planning.jpg`} alt="UX Wireframe Flow" className="w-full h-full object-contain rounded-lg border border-blue-400/30 opacity-90 shadow-inner" />
+                         <img src={`${imgBase}UX_wireframe_flow_planning.jpg`} alt="UX Wireframe Flow" className="w-full h-full object-contain rounded-lg border border-blue-400/30 opacity-90 sm:pt-8 shadow-inner" />
                      </div>
+                     <h2 className="text-blue-300 text-4xl sm:text-2xl font-mono uppercase tracking-widest mb-6 sm:mb-0 drop-shadow-md">Certificate</h2>
                  </div>
              </div>
           </div>
@@ -513,7 +539,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         {/* ================= SCENE 4: PC PROFESSOR ================= */}
         <div className="scene-4-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-12000px)", willChange: "opacity, transform" }}>
           {/* UPDATED: Bolder text, moved up slightly (bottom-20) */}
-          <div className="absolute bottom-30 md:bottom-28 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-teal-500/50 rounded-full z-50 pointer-events-none w-[90%] md:w-auto text-center shadow-[0_0_20px_rgba(20,184,166,0.3)]">
+          <div className="absolute  sm:top-3 md:top-28 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-teal-500/50 rounded-full z-50 pointer-events-none w-[90%] sm:w-[60%] md:w-auto text-center shadow-[0_0_20px_rgba(20,184,166,0.3)]">
             <p className="text-teal-100 text-md md:text-lg font-mono font-black uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               - Mastering the Full Stack
             </p>
@@ -524,7 +550,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-             <div className="relative w-[90vw] h-[30vh] md:w-[30vw] md:h-[17vh] lg:w-[62vw] lg:h-[52vh] 2xl:w-[45vw] 2xl:h-[75vh] pointer-events-auto">
+             <div className="relative w-[90vw] h-[30vh] sm:w-[48vw] sm:h-[58vh] md:w-[30vw] md:h-[17vh] lg:w-[62vw] lg:h-[52vh] 2xl:w-[45vw] 2xl:h-[75vh] pointer-events-auto">
                  <div className="scene-4-part1 absolute inset-0 flex flex-col items-center justify-center bg-teal-900/80 border border-teal-500/50 rounded-xl p-1 opacity-0 shadow-2xl">
                      <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
                          <img src={`${imgBase}webmaster.jpg`} alt="Webmaster Coding" className="w-full h-full object-contain rounded-lg shadow-lg" />
@@ -550,7 +576,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         {/* ================= SCENE 5: AI FUTURE ================= */}
         <div className="scene-5-wrapper absolute inset-0 w-full h-full opacity-0" style={{ transform: "translateZ(-16000px)" }}>
           {/* UPDATED: Bolder text, kept at top */}
-          <div className="scene-5-text-overlay absolute top-30 lg:top-10 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-white/50 rounded-full z-[100] pointer-events-none w-[90%] md:w-auto text-center shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+          <div className="scene-5-text-overlay absolute top-30 sm:top-4 lg:top-10 left-1/2 transform -translate-x-1/2 bg-black/80 px-6  py-3 border border-white/50 rounded-full z-[100] pointer-events-none w-[90%] sm:w-[60%] md:w-auto text-center shadow-[0_0_20px_rgba(168,85,247,0.3)]">
             <p className="text-white text-md md:text-lg font-mono font-black uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               - My first AI assist, AI Agent
             </p>
@@ -561,12 +587,12 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           </div>
           
           <div className="absolute inset-0 flex items-center justify-center p-4 z-10 pointer-events-none">
-              <div className="scene-5-assist absolute inset-0 flex flex-col items-center justify-center opacity-0 z-20 pointer-events-none">
-                  <img src={`${imgBase}code_assist.jpg`} alt="AI Code Assistant UI" className="max-w-xl lg:max-w-3xl 2xl:max-w-4xl w-[90%] rounded-xl shadow-[0_0_40px_rgba(59,130,246,0.4)] border border-white/10" />
-                  <h2 className="text-blue-400 text-2xl sm:text-3xl lg:text-4xl 2xl:text-5xl font-mono mt-6 font-bold tracking-widest drop-shadow-md">AI ASSISTANT</h2>
+              <div className="scene-5-assist absolute top:1 md:top:1 sm:top-10 inset-0 flex flex-col items-center justify-center opacity-0 z-20 pointer-events-none">
+                  <img src={`${imgBase}code_assist.jpg`} alt="AI Code Assistant UI" className="max-w-xl lg:max-w-3xl 2xl:max-w-4xl w-[90%] md:w-[80%] sm:w-[40%] rounded-xl shadow-[0_0_40px_rgba(59,130,246,0.4)] border border-white/10" />
+                  <h2 className="text-blue-400 text-2xl sm:text-2xl lg:text-4xl 2xl:text-5xl font-mono mt-6 sm:mt-1 font-bold tracking-widest drop-shadow-md">AI ASSISTANT</h2>
               </div>
               
-              <div className="scene-5-part1 absolute w-[95%] md:w-full max-w-3xl lg:max-w-4xl 2xl:max-w-6xl flex flex-col items-center justify-center opacity-0 z-30 pointer-events-none">
+              <div className="scene-5-part1 absolute w-[95%] md:top-25 sm:top-15 sm:w-[45%] md:w-full max-w-3xl lg:max-w-4xl 2xl:max-w-6xl flex flex-col items-center justify-center opacity-0 z-30 pointer-events-none">
                   <div className="w-full bg-[#1e1e1e] rounded-xl overflow-hidden shadow-[0_0_50px_rgba(168,85,247,0.4)] border border-gray-700">
                      <div className="bg-[#2d2d2d] px-3 md:px-4 py-1.5 md:py-2 flex items-center gap-1.5 md:gap-2">
                          <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500"></div>
@@ -578,7 +604,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
                          <img src={`${imgBase}ai_agents_terminal.gif`} alt="AI Autonomous Agents Terminal" className="w-full h-auto object-cover opacity-90 mix-blend-screen transform-gpu" />
                      </div>
                   </div>
-                  <h2 className="text-purple-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">AUTONOMOUS AGENTS</h2>
+                  <h2 className="text-purple-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">AUTONOMOUS AGENTS</h2>
                   <p className="text-sm md:text-lg 2xl:text-2xl text-gray-400 mt-2 md:mt-4 font-mono text-center">The machines write the code. I architect the reality.</p>
               </div>
 
