@@ -158,6 +158,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           
           .to('.scene-1-wrapper', { opacity: 1, duration: 1.5 }, 'warp1+=5.2')
           .to('.scene-1-pan-zoom', { scale: sceneConfigs.pan1.scale, xPercent: sceneConfigs.pan1.x, yPercent: sceneConfigs.pan1.y, duration: 2, ease: "power2.inOut" }, 'warp1+=6.0')
+          .fromTo('.scene-1-title', { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 'warp1+=6.8')
           .to({}, { duration: 0.5 }) 
 
           .fromTo('.scene-1-part1', { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 'warp1+=7.2')
@@ -187,6 +188,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           
           .to('.scene-2-wrapper', { opacity: 1, duration: 1.5 }, 'warp2+=5.2') 
           .to('.scene-2-pan-zoom', { scale: sceneConfigs.pan2.scale, xPercent: sceneConfigs.pan2.x, yPercent: sceneConfigs.pan2.y, duration: 2, ease: "power2.inOut" }, 'warp2+=6.0')
+          .fromTo('.scene-2-title', { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 'warp2+=6.8')
           .to({}, { duration: 0.5 }) 
           
           .fromTo('.scene-2-part1', { opacity: 0, x: -50 }, { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }, 'warp2+=8.0')
@@ -216,6 +218,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           
           .to('.scene-3-wrapper', { opacity: 1, duration: 1.5 }, 'warp3+=5.2') 
           .to('.scene-3-pan-zoom', { scale: sceneConfigs.pan3.scale, xPercent: sceneConfigs.pan3.x, yPercent: sceneConfigs.pan3.y, duration: 2, ease: "power2.inOut" }, 'warp3+=6.0')
+          .fromTo('.scene-3-title', { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 'warp3+=6.0')
           .to({}, { duration: 0.5 }) 
           
           .fromTo('.scene-3-part1', { opacity: 0, x: -100 }, { opacity: 1, x: 0, duration: 0.5 }, 'warp3+=6.2')
@@ -245,6 +248,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           
           .to('.scene-4-wrapper', { opacity: 1, duration: 1.5 }, 'warp4+=5.2') 
           .to('.scene-4-pan-zoom', { scale: sceneConfigs.pan4.scale, xPercent: sceneConfigs.pan4.x, yPercent: sceneConfigs.pan4.y, duration: 2, ease: "power2.inOut" }, 'warp4+=6.0')
+          .fromTo('.scene-4-title', { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 'warp4+=6.8')
           .to({}, { duration: 0.5 }) 
           
           .fromTo('.scene-4-part1', { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.5 }, 'warp4+=7.5')
@@ -274,6 +278,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           
           .to('.scene-5-wrapper', { opacity: 1, duration: 1.5 }, 'warp5+=5.2') 
           .to('.scene-5-pan-zoom', { scale: sceneConfigs.pan5.scale, duration: 2, ease: "power1.inOut" }, 'warp5+=6.0')
+          .fromTo('.scene-5-text-overlay', { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 'warp5+=6.0')
           .to({}, { duration: 0.5 }) 
           
           .fromTo('.scene-5-assist', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, 'warp5+=5.2')
@@ -303,35 +308,35 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
   }, [prefersReducedMotion]);
 
   // ==========================================
-  // DEV WORKFLOW FIX (Commented out for Production)
+  // DEV TOOL WORKFLOW  (Commented out for Production)
   // Keeps your scroll position saved when you refresh the page!
   // ==========================================
   
-  useEffect(() => {
-    const savedScroll = sessionStorage.getItem("dev-scroll-pos");
-    if (savedScroll) {
-      setTimeout(() => window.scrollTo(0, parseInt(savedScroll)), 100);
-    }
-    const handleScroll = () => {
-      sessionStorage.setItem("dev-scroll-pos", window.scrollY.toString());
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  // useEffect(() => {
+  //   const savedScroll = sessionStorage.getItem("dev-scroll-pos");
+  //   if (savedScroll) {
+  //     setTimeout(() => window.scrollTo(0, parseInt(savedScroll)), 100);
+  //   }
+  //   const handleScroll = () => {
+  //     sessionStorage.setItem("dev-scroll-pos", window.scrollY.toString());
+  //   };
+  //   window.addEventListener("scroll", handleScroll);
+  //   return () => window.removeEventListener("scroll", handleScroll);
+  // }, []);
 
   // ==========================================
   // DEV TOOL JUMP FUNCTION (Commented out for Production)
   // ==========================================
   
-  const handleJump = (label: string) => {
-    const tl = gsap.getById("storyTimeline") as gsap.core.Timeline;
-    if (tl && tl.scrollTrigger) {
-      const st = tl.scrollTrigger;
-      const labelTime = tl.labels[label];
-      const scrollPos = st.start + (labelTime / tl.duration()) * (st.end - st.start);
-      window.scrollTo({ top: scrollPos, behavior: 'smooth' });
-    }
-  };
+  // const handleJump = (label: string) => {
+  //   const tl = gsap.getById("storyTimeline") as gsap.core.Timeline;
+  //   if (tl && tl.scrollTrigger) {
+  //     const st = tl.scrollTrigger;
+  //     const labelTime = tl.labels[label];
+  //     const scrollPos = st.start + (labelTime / tl.duration()) * (st.end - st.start);
+  //     window.scrollTo({ top: scrollPos, behavior: 'smooth' });
+  //   }
+  // };
   
   
 
@@ -379,14 +384,14 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
       <WarpBackground />
 
       {/* DEV TOOLS JUMP MENU - Commented out for Production */}
-      <div className="fixed bottom-4 left-4 z-[9999] flex flex-col gap-1 bg-black/80 p-2 rounded-lg border border-white/20 shadow-2xl ">
+      {/* <div className="fixed bottom-4 left-4 z-[9999] flex flex-col gap-1 bg-black/80 p-2 rounded-lg border border-white/20 shadow-2xl ">
         <span className="text-[10px] text-gray-400 font-mono text-center uppercase tracking-widest mb-1 border-b border-white/20 pb-1">Dev Jump</span>
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp2'); }} className="text-xs text-white p-1 hover:bg-blue-600 rounded">Scene 1 (Bedroom)</button>
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp3'); }} className="text-xs text-white p-1 hover:bg-red-600 rounded">Scene 2 (ITT)</button>
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp4'); }} className="text-xs text-white p-1 hover:bg-blue-400 rounded">Scene 3 (UX/UI)</button>
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp5'); }} className="text-xs text-white p-1 hover:bg-teal-600 rounded">Scene 4 (PC Prof)</button>
         <button onClick={(e) => { e.stopPropagation(); handleJump('hideAgents'); }} className="text-xs text-white p-1 hover:bg-purple-600 rounded">Scene 5 (Future)</button>
-      </div>
+      </div> */}
      
 
       {/* CONTROLS MENU */}
@@ -425,7 +430,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         {/* ================= SCENE 1: BEDROOM ================= */}
         <div className="scene-1-wrapper absolute inset-0 w-full h-full opacity-0" style={{ transform: "translateZ(0px)" }}>
           {/* UPDATED: Bolder text, moved up slightly (bottom-20) */}
-          <div className="absolute top-20 sm:top-7 md:top-24 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 sm:py-4 border border-cyan-500/50 rounded-full z-50 pointer-events-none  w-[90%] sm:w-[60%] md:w-auto text-center shadow-[0_0_20px_rgba(6,182,212,0.3)]">
+          <div className="scene-1-title opacity-0 absolute top-20 sm:top-7 md:top-24 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 sm:py-4 border border-cyan-500/50 rounded-full z-50 pointer-events-none  w-[90%] sm:w-[60%] md:w-auto text-center shadow-[0_0_20px_rgba(6,182,212,0.3)]">
             <p className="text-cyan-100 text-sm md:text-lg font-mono font-black uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               - My First Encounter With HTML & CSS
             </p>
@@ -463,7 +468,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         {/* ================= SCENE 2: ITT TECH ================= */}
         <div className="scene-2-wrapper absolute inset-0 w-full h-full opacity-0" style={{ transform: "translateZ(-4000px)" }}>
           {/* UPDATED: Bolder text, moved up slightly (bottom-20) */}
-          <div className="absolute top-30 sm:top-7 md:top-16 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-red-500/50 rounded-full z-50 pointer-events-none w-[90%] sm:w-[65%] md:w-[60%] text-center shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+          <div className="scene-2-title opacity-0 absolute top-30 sm:top-7 md:top-16 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-red-500/50 rounded-full z-50 pointer-events-none w-[90%] sm:w-[65%] md:w-[60%] text-center shadow-[0_0_20px_rgba(239,68,68,0.3)]">
             <p className="text-red-100 text-sm md:text-lg font-mono font-black uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               - Building My First Site & The Fall of Flash
             </p>
@@ -500,7 +505,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         {/* ================= SCENE 3: GOOGLE UI/UX ================= */}
         <div className="scene-3-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-8000px)", willChange: "opacity, transform" }}>
           {/* UPDATED: Bolder text, kept at bottom-10 */}
-          <div className="absolute top-3 md:top-15 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-blue-500/50 rounded-full z-50 pointer-events-none w-[90%] sm:w-[60%] md:w-auto text-center shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+          <div className="scene-3-title opacity-0 absolute top-3 md:top-15 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-blue-500/50 rounded-full z-50 pointer-events-none w-[90%] sm:w-[60%] md:w-auto text-center shadow-[0_0_20px_rgba(59,130,246,0.3)]">
             <p className="text-blue-100 text-sm md:text-lg font-mono font-black uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               - Google Certifications & Mobile Apps
             </p>
@@ -539,7 +544,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         {/* ================= SCENE 4: PC PROFESSOR ================= */}
         <div className="scene-4-wrapper absolute inset-0 w-full h-full flex items-center justify-center opacity-0" style={{ transform: "translateZ(-12000px)", willChange: "opacity, transform" }}>
           {/* UPDATED: Bolder text, moved up slightly (bottom-20) */}
-          <div className="absolute  sm:top-3 md:top-28 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-teal-500/50 rounded-full z-50 pointer-events-none w-[90%] sm:w-[60%] md:w-auto text-center shadow-[0_0_20px_rgba(20,184,166,0.3)]">
+          <div className="scene-4-title opacity-0 absolute  sm:top-3 md:top-28 left-1/2 transform -translate-x-1/2 bg-black/80 px-6 py-3 border border-teal-500/50 rounded-full z-50 pointer-events-none w-[90%] sm:w-[60%] md:w-auto text-center shadow-[0_0_20px_rgba(20,184,166,0.3)]">
             <p className="text-teal-100 text-md md:text-lg font-mono font-black uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               - Mastering the Full Stack
             </p>
@@ -576,7 +581,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         {/* ================= SCENE 5: AI FUTURE ================= */}
         <div className="scene-5-wrapper absolute inset-0 w-full h-full opacity-0" style={{ transform: "translateZ(-16000px)" }}>
           {/* UPDATED: Bolder text, kept at top */}
-          <div className="scene-5-text-overlay absolute top-30 sm:top-4 lg:top-10 left-1/2 transform -translate-x-1/2 bg-black/80 px-6  py-3 border border-white/50 rounded-full z-[100] pointer-events-none w-[90%] sm:w-[60%] md:w-auto text-center shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+          <div className="scene-5-text-overlay opacity-0 absolute top-30 sm:top-4 lg:top-10 left-1/2 transform -translate-x-1/2 bg-black/80 px-6  py-3 border border-white/50 rounded-full z-[100] pointer-events-none w-[90%] sm:w-[60%] md:w-auto text-center shadow-[0_0_20px_rgba(168,85,247,0.3)]">
             <p className="text-white text-md md:text-lg font-mono font-black uppercase tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               - My first AI assist, AI Agent
             </p>
