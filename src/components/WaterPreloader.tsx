@@ -12,6 +12,56 @@ interface GlitchState {
   c3: string; o3: { x: number; y: number };
 }
 
+// ==========================================
+// RESPONSIVE LAYOUT CONFIGURATOR
+// Calculates proportional sizes to support mobile-landscape and ultrawide.
+// ==========================================
+const getLayoutConfigs = (w: number, h: number) => {
+  const isPortrait = h > w;
+  
+  // 1. BASE LOGO SCALING
+  let logoWidth;
+  
+  if (isPortrait) {
+    // Mobile Portrait: Fill width, leaving a healthy margin
+    logoWidth = w * 0.85;
+  } else {
+    // Landscape, Desktop, Ultrawide
+    // Aggressive scaling based on height (approx 75-85% view height constraint)
+    // We cap it at 70% of screen width so an ultra-wide monitor doesn't distort it horizontally
+    const aggressiveHeightScale = h * 0.85;
+    logoWidth = Math.min(w * 0.70, aggressiveHeightScale * 1.5);
+  }
+
+  // Hard minimums and maximums
+  logoWidth = Math.max(logoWidth, 220);
+  logoWidth = Math.min(logoWidth, 2400); // Allow it to get huge on ultrawide
+
+  // 2. PROPORTIONAL MATH (Ratio relative to original 600px design)
+  const scaleRatio = logoWidth / 600;
+
+  // -------------------------------------------------------------
+  // 🛠️ TWEAK THESE BASE VALUES IF 'PORTFOLIO' IS SLIGHTLY OFF 🛠️
+  // These are the baseline coordinates based on a 600px logo.
+  // Everything scales perfectly and automatically from these numbers.
+  // -------------------------------------------------------------
+  const BASE_OFFSET_X = 170; // Move text Left/Right (Positive = Right)
+  const BASE_OFFSET_Y = 50;  // Move text Up/Down (Positive = Down)
+  const BASE_FONT_SIZE = 36; // Base size of the PORTFOLIO word
+  const BASE_LETTER_SPACING = 8;
+  // -------------------------------------------------------------
+
+  return {
+    logoWidth,
+    offsetX: BASE_OFFSET_X * scaleRatio,
+    offsetY: BASE_OFFSET_Y * scaleRatio,
+    fontSize: Math.max(12, BASE_FONT_SIZE * scaleRatio),
+    letterSpacing: Math.max(2, BASE_LETTER_SPACING * scaleRatio),
+    hitboxW: 280 * scaleRatio,
+    hitboxH: 60 * scaleRatio,
+  };
+};
+
 export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
@@ -22,7 +72,11 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
   const [loadProgress, setLoadProgress] = useState<number>(0);
   const [isReady, setIsReady] = useState<boolean>(false);
   const [isAudioEnabled, setIsAudioEnabled] = useState<boolean>(false);
-  const [windowWidth, setWindowWidth] = useState<number>(window.innerWidth);
+  
+  const [windowSize, setWindowSize] = useState({ 
+    w: typeof window !== 'undefined' ? window.innerWidth : 1920, 
+    h: typeof window !== 'undefined' ? window.innerHeight : 1080 
+  });
 
   // ==========================================
   // 2. REFS FOR PERFORMANCE (Bypassing React State for Animation loop)
@@ -73,7 +127,7 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     const handleResize = () => {
       clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(() => {
-        setWindowWidth(window.innerWidth);
+        setWindowSize({ w: window.innerWidth, h: window.innerHeight });
         if (rebootEngineRef.current) rebootEngineRef.current();
       }, 150); 
     };
@@ -149,8 +203,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
   // ==========================================
   // 6. WATER ENGINE & INTERACTION LOGIC
   // ==========================================
-
-  // Declare Theme Logic outside the useEffect so it can be called programmatically
   triggerColorChangeRef.current = () => {
     const themes = [
       { main: { r: 0, g: 255, b: 255, css: 'rgba(0, 255, 255, 0.95)' }, light: { css: 'rgba(150, 255, 255, 0.8)' }, dark: { css: 'rgba(0, 150, 150, 0.8)' } },
@@ -196,33 +248,31 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
 
-      const isPortrait = width < 768; 
+      const layout = getLayoutConfigs(width, height);
 
       if (logoImgRef.current) {
         const logo = logoImgRef.current;
-        const logoWidth = Math.min(width * (isPortrait ? 0.8 : 0.6), 600); 
-        const logoHeightOffset = isPortrait ? 40 : 60; 
+        const logoHeight = (logo.height / logo.width) * layout.logoWidth; 
+        const logoHeightOffset = layout.logoWidth * 0.1; 
+        
         ctx.drawImage(
           logo, 
-          (width - logoWidth) / 2, 
-          (height - ((logo.height / logo.width) * logoWidth)) / 2 - logoHeightOffset, 
-          logoWidth, 
-          (logo.height / logo.width) * logoWidth
+          (width - layout.logoWidth) / 2, 
+          (height - logoHeight) / 2 - logoHeightOffset, 
+          layout.logoWidth, 
+          logoHeight
         );
       }
 
       ctx.save();
-      let fontSize = '24px';
-      if (width >= 640) fontSize = '30px';
-      if (width >= 768) fontSize = '36px';
       
-      ctx.font = `900 ${fontSize} monospace`;
+      ctx.font = `900 ${layout.fontSize}px monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.letterSpacing = '8px';
+      ctx.letterSpacing = `${layout.letterSpacing}px`;
 
-      const textX = (width / 2) + (isPortrait ? 80 : 170);
-      const textY = (height / 2) + (isPortrait ? 30 : 50);
+      const textX = (width / 2) + layout.offsetX;
+      const textY = (height / 2) + layout.offsetY;
 
       const g = glitchState || {
         c1: 'rgba(0, 0, 0, 0.4)', o1: { x: -2, y: 0 },   
@@ -405,8 +455,6 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     const handleMouseMove = (e: MouseEvent | TouchEvent) => {
       if (!isEngineReadyRef.current) return; 
       
-      // FIX 1: Precise coordinate bounding to eliminate offsets.
-      // Use getBoundingClientRect to ensure CSS margins/mobile bars don't cause drift.
       const rect = canvas.getBoundingClientRect();
       let clientX, clientY;
 
@@ -418,27 +466,21 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           clientY = (e as MouseEvent).clientY - rect.top;
       }
 
-      // FIX 2: Virtual "Collision Box" for changing color when dragging over text
-      // This ensures mobile users can see the color change without needing 'hover'
-      const isPortrait = width < 768;
-      const tx = (width / 2) + (isPortrait ? 80 : 170);
-      const ty = (height / 2) + (isPortrait ? 30 : 50);
-      const hitboxW = isPortrait ? 220 : 280;
-      const hitboxH = 60;
+      const layout = getLayoutConfigs(width, height);
+      const tx = (width / 2) + layout.offsetX;
+      const ty = (height / 2) + layout.offsetY;
       
       if (
-        clientX > tx - hitboxW / 2 && clientX < tx + hitboxW / 2 &&
-        clientY > ty - hitboxH / 2 && clientY < ty + hitboxH / 2
+        clientX > tx - layout.hitboxW / 2 && clientX < tx + layout.hitboxW / 2 &&
+        clientY > ty - layout.hitboxH / 2 && clientY < ty + layout.hitboxH / 2
       ) {
         const nowTime = performance.now();
-        // Throttle triggers so it doesn't seizure-flash when scrubbing over it
         if (nowTime - lastHoverTimeRef.current > 300) {
            if (triggerColorChangeRef.current) triggerColorChangeRef.current();
            lastHoverTimeRef.current = nowTime;
         }
       }
 
-      // Physics coordinate calculations
       if (isFirstMoveRef.current) {
         isFirstMoveRef.current = false;
         lastMousePosRef.current = { x: clientX, y: clientY };
@@ -510,14 +552,13 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     setTimeout(() => onSplashComplete(true), 2500); 
   };
 
-  const isPortraitLayout = windowWidth < 768;
-  const layoutTransform = isPortraitLayout ? 'translate(80px, 30px)' : 'translate(170px, 50px)';
+  const layout = getLayoutConfigs(windowSize.w, windowSize.h);
+  const layoutTransform = `translate(${layout.offsetX}px, ${layout.offsetY}px)`;
 
   return (
     <div className={`relative w-full h-screen bg-black overflow-hidden ${isReady ? 'cursor-pointer' : 'cursor-wait'}`}>
 
       {/* HTML TEXT GLITCH OVERLAY */}
-      {/* Set to pointer-events-none so it doesn't block water interaction behind it */}
       <div 
         className={`absolute inset-0 flex items-center justify-center pointer-events-none z-30 transition-opacity duration-500 ${isSplashing ? 'opacity-0' : 'opacity-100'}`}
         style={{ transform: layoutTransform }} 
@@ -532,8 +573,11 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           role="button"
           tabIndex={isReady ? 0 : -1}
           aria-label="Enter Portfolio"
-          // Removed specific pointer-events-auto so physics engine catches everything
-          className="font-black tracking-[8px] text-2xl sm:text-3xl md:text-4xl text-center select-none opacity-0 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-8 focus:ring-offset-black rounded-lg p-2"
+          className="font-black text-center select-none opacity-0 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-8 focus:ring-offset-black rounded-lg p-2"
+          style={{ 
+            fontSize: `${layout.fontSize}px`,
+            letterSpacing: `${layout.letterSpacing}px`
+          }}
         >
           PORTFOLIO
         </h1>
@@ -585,13 +629,13 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
       </div>
 
       {/* BOTTOM CENTER STATUS TEXT */}
-      <div className={`absolute inset-0 z-20 flex flex-col items-center justify-end pb-32 pointer-events-none mix-blend-difference transition-opacity duration-500 ${isSplashing ? 'opacity-0' : 'opacity-100'}`}>
+      <div className={`absolute inset-0 z-20 flex flex-col items-center justify-end pb-16 sm:pb-10 pointer-events-none mix-blend-difference transition-opacity duration-500 ${isSplashing ? 'opacity-0' : 'opacity-100'}`}>
         {!isReady ? (
-          <div className="text-zinc-500 font-mono text-sm tracking-[0.5em] animate-pulse" aria-live="polite">
+          <div className="text-zinc-500 font-mono text-[10px] sm:text-sm tracking-[0.2em] sm:tracking-[0.5em] animate-pulse text-center w-full px-4" aria-live="polite">
             INITIALIZING CORE ASSETS [ {loadProgress}% ]
           </div>
         ) : (
-          <div className="text-white font-black text-xl tracking-[0.4em] animate-pulse" aria-live="polite">
+          <div className="text-white font-black text-xs sm:text-base md:text-xl tracking-[0.2em] sm:tracking-[0.4em] animate-pulse text-center w-full px-4 " aria-live="polite">
             [ CLICK ANYWHERE TO DIVE IN ]
           </div>
         )}
