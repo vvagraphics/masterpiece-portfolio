@@ -96,7 +96,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         isUltrawide: "(min-width: 1536px)",                            // Matches Tailwind '2xl:'
         isMobileLandscape: "(max-height: 500px) and (orientation: landscape)" // Targets sideways phones overriding width
       }, (context) => {
-        let { isMobile, isSm, isTablet, isDesktop, isUltrawide, isMobileLandscape } = context.conditions as any;
+        let { isMobile, isSm, isUltrawide, isMobileLandscape } = context.conditions as any;
 
         // Tweak the 'isSm' and 'isMobileLandscape' values here to adjust your pans!
         const sceneConfigs = {

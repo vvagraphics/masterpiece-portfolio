@@ -235,7 +235,9 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
     canvas.width = width;
     canvas.height = height;
 
-    const scale = 4;
+    let scale = 4;
+    if (width >= 2500) scale = 6;
+    else if (width >= 1600) scale = 5;
     const physicsWidth = Math.floor(width / scale);
     const physicsHeight = Math.floor(height / scale);
     const size = physicsWidth * physicsHeight;
@@ -342,8 +344,8 @@ export default function WaterPreloader({ onSplashComplete }: WaterPreloaderProps
           for (let x = 1; x < physicsWidth - 1; x++) {
             const i = x + y * physicsWidth;
             current[i] = (previous[i - 1] + previous[i + 1] + previous[i - physicsWidth] + previous[i + physicsWidth]) / 2 - current[i];
-            current[i] *= 0.90; 
-            if (Math.abs(current[i]) < 0.05) current[i] = 0;
+            current[i] *= 0.94; 
+            if (Math.abs(current[i]) < 0.02) current[i] = 0;
           }
         }
 
