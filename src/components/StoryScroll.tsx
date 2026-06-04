@@ -96,7 +96,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         isUltrawide: "(min-width: 1536px)",                            // Matches Tailwind '2xl:'
         isMobileLandscape: "(max-height: 500px) and (orientation: landscape)" // Targets sideways phones overriding width
       }, (context) => {
-        let { isMobile, isSm, isUltrawide, isMobileLandscape } = context.conditions as any;
+        let { isMobile, isSm, isDesktop,isUltrawide, isMobileLandscape } = context.conditions as any;
 
         // Tweak the 'isSm' and 'isMobileLandscape' values here to adjust your pans!
         const sceneConfigs = {
@@ -107,7 +107,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           },
           pan2: { 
             scale: isMobileLandscape ? 2.4 : isMobile ? 1.5 : isSm ? 1.6 : isUltrawide ? 2.0 : 2.5, 
-            x: isMobileLandscape ? -8 : isMobile ? -19 : isSm ? -17 : isUltrawide ? -7 : -11, 
+            x: isMobileLandscape ? -8 : isMobile ? -19 : isSm ? -17 : isDesktop ? -8 : isUltrawide ? -7 : -11, 
             y: isMobileLandscape ? -20 : isMobile ? 3 : isSm ? 5 : isUltrawide ? 7 : -28 
           },
           pan3: { 
@@ -117,7 +117,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           },
           pan4: { 
             scale: isMobileLandscape ? 3.0 : isMobile ? 1.8 : isSm ? 2.0 : isUltrawide ? 3.0 : 3.2, 
-            x: isMobileLandscape ? 32 : isMobile ? -2 : isSm ? 5 : isUltrawide ? 32 : 30, 
+            x: isMobileLandscape ? 32 : isMobile ? -2 : isSm ? 5 : isDesktop ? 35 :  isUltrawide ? 32 : 30, 
             y: isMobileLandscape ? 81 : isMobile ? 43 : isSm ? 50 : isUltrawide ? 108 : 75 
           },
           pan5: { 
@@ -441,7 +441,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-             <div className="relative w-[88vw] h-[32vh] sm:w-[31vw] sm:h-[50vh] md:w-[45vw] md:h-[22vh] lg:w-[42vw] lg:h-[43vh] 2xl:w-[40vw] 2xl:h-[85vh] pointer-events-auto">
+             <div className="relative w-[88vw] h-[32vh] sm:w-[31vw] sm:h-[50vh] md:w-[45vw] md:h-[22vh] lg:w-[34vw] lg:h-[45vh] 2xl:w-[40vw] 2xl:h-[85vh] pointer-events-auto">
                  <div className="scene-1-part1 absolute inset-0 flex flex-col bg-black/90 justify p-1 pb-8 md:pb-10 border border-blue-900 rounded-xl opacity-0 shadow-2xl overflow-hidden">
                      <div className="flex-1 w-full relative overflow-hidden rounded-sm border border-white/10 bg-black">
                          <img src={`${imgBase}MySpace_profile_page_2004.jpg`} alt="Early Web Profile" className="myspace-scroll-img absolute top-0 left-0 w-full h-auto min-h-full object-cover transform-gpu" />
@@ -479,7 +479,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-             <div className="relative w-[82vw] h-[35vh] sm:w-[36vw] sm:h-[60vh] md:w-[46vw] md:h-[25vh] lg:w-[49vw] lg:h-[56vh] 2xl:w-[28vw] 2xl:h-[68vh] pointer-events-auto">
+             <div className="relative w-[82vw] h-[35vh] sm:w-[36vw] sm:h-[60vh] md:w-[46vw] md:h-[25vh] lg:w-[40vw] lg:h-[56vh] 2xl:w-[28vw] 2xl:h-[68vh] pointer-events-auto">
                  <div className="scene-2-part1 absolute inset-0 flex flex-col items-center justify-center text-white opacity-0 bg-black/80 md:bg-black/50 p-1 rounded-xl shadow-2xl">
                      <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
                          <img src={`${imgBase}first_website.jpg`} alt="First Website Design" className="w-full h-full object-contain border-2 border-red-900 rotate-3 shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
@@ -555,7 +555,7 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-             <div className="relative w-[90vw] h-[30vh] sm:w-[48vw] sm:h-[58vh] md:w-[30vw] md:h-[17vh] lg:w-[62vw] lg:h-[52vh] 2xl:w-[45vw] 2xl:h-[75vh] pointer-events-auto">
+             <div className="relative w-[90vw] h-[30vh] sm:w-[48vw] sm:h-[58vh] md:w-[30vw] md:h-[17vh] lg:w-[42vw] lg:h-[52vh] 2xl:w-[45vw] 2xl:h-[75vh] pointer-events-auto">
                  <div className="scene-4-part1 absolute inset-0 flex flex-col items-center justify-center bg-teal-900/80 border border-teal-500/50 rounded-xl p-1 opacity-0 shadow-2xl">
                      <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
                          <img src={`${imgBase}webmaster.jpg`} alt="Webmaster Coding" className="w-full h-full object-contain rounded-lg shadow-lg" />
