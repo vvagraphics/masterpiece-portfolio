@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
 import gsap from 'gsap';
 import { Howl } from 'howler';
-import { ChevronLeft, ChevronRight, X, Volume2, VolumeX } from 'lucide-react'; 
+import { ChevronLeft, ChevronRight, X, ExternalLink, Volume2, VolumeX } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion'; 
 
 import Holograms from '../sandboxes/Holograms'; 
@@ -427,7 +427,41 @@ export default function SandboxWrapper({
               SFX: {isSfxEnabled ? <span className="text-green-400 font-bold">ON</span> : <span className="text-red-400 font-bold">OFF</span>}
             </button>
           </div>
+
+          {/* NEW PREVIOUS PORTFOLIO LINK */}
+<div className="mt-5 pointer-events-auto">
+  <a 
+    href="http://mr3anderson.pro" 
+    target="_blank" 
+    rel="noopener noreferrer"
+    className="group relative inline-flex items-center gap-2 px-6 py-3 rounded-full font-mono font-bold text-xs uppercase tracking-widest overflow-hidden transition-all duration-500 border border-emerald-500/30 bg-black/60 backdrop-blur-md text-emerald-400 animate-[pulse_3s_infinite] shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:scale-105 hover:bg-emerald-500 hover:text-black hover:animate-none hover:shadow-[0_0_25px_rgba(16,185,129,0.5)]"
+  >
+    {/* Shimmer Effect */}
+    <div className="absolute inset-0 -translate-x-full animate-[shimmer_4s_infinite] bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent"></div>
+
+    {/* Text Layer */}
+    <span className="relative z-10 flex items-center gap-2">
+      View My Dev Projects
+      <ExternalLink size={14} />
+    </span>
+  </a>
+</div>
+
+{/* 
+  REQUIRED: Add this to your CSS file or global styles 
+  so the shimmer animation is recognized by Tailwind.
+*/}
+<style>{`
+  @keyframes shimmer {
+    0% { transform: translateX(-150%); opacity: 0; }
+    10% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translateX(150%); opacity: 0; }
+  }
+`}</style>
         </div>
+
+        
 
         {/* CUSTOM HOVER TOOLTIP */}
         {hoveredProject && (
