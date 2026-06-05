@@ -12,7 +12,7 @@ interface SandboxShellProps {
   onLayoutChange: (mode: LayoutMode) => void;
   activeTexture?: string; 
   splitBackgroundImage?: string; 
-  backgroundOverlay?: ReactNode; // NEW: So Graffiti can pass CitySilhouette, but others stay blank
+  backgroundOverlay?: ReactNode; 
   isEnvAudioMuted: boolean;
   onToggleEnvAudio: () => void;
   onPublish?: () => void;
@@ -34,8 +34,22 @@ export default function SandboxShell({
   saveStatus = 'IDLE'
 }: SandboxShellProps) {
 
-  const uiPositionClass = layoutMode === 'SPLIT_HORIZ' ? 'top-20' : 'bottom-8';
-  const uiWidthClass = layoutMode === 'SPLIT_VERT' ? 'max-w-[45vw]' : 'max-w-[90vw]';
+  // DYNAMIC BOUNDARIES based on your 3 specific requirements
+  const getLayoutClasses = (mode: LayoutMode) => {
+    switch (mode) {
+      case 'FULL':
+        // Bottom 3rd of the screen, spans across
+        return 'bottom-4 left-4 right-4 md:bottom-8 md:left-8 md:right-8 max-h-[33vh] max-w-7xl mx-auto';
+      case 'SPLIT_VERT':
+        // Left side ONLY, up to 45% width, tall as needed
+        return 'top-4 left-4 md:top-8 md:left-8 w-[95vw] md:w-[45vw] max-h-[90vh]';
+      case 'SPLIT_HORIZ':
+        // Top half ONLY, spans across
+        return 'top-4 left-4 right-4 md:top-8 md:left-8 md:right-8 max-h-[45vh] max-w-7xl mx-auto';
+      default:
+        return '';
+    }
+  };
 
   return (
     <div className="relative w-screen h-screen bg-black overflow-hidden touch-none overscroll-none">
@@ -52,7 +66,6 @@ export default function SandboxShell({
              style={{ backgroundImage: `url('${splitBackgroundImage}')`, backgroundSize: 'contain', backgroundPosition: 'top center', backgroundRepeat: 'no-repeat' }} 
            />
         )}
-        {/* FIXED: No more hardcoded CitySilhouette! */}
         {backgroundOverlay && backgroundOverlay}
       </div>
 
@@ -72,20 +85,30 @@ export default function SandboxShell({
         {children}
       </div>
 
-      {/* UNIFIED UI BAR */}
-      <div className={`absolute z-20 left-4 md:left-8 transition-all duration-500 ease-in-out ${uiPositionClass} ${uiWidthClass} bg-black/80 p-4 border border-zinc-700 rounded text-white flex flex-col gap-4 shadow-xl backdrop-blur-sm overflow-y-auto max-h-[80vh]`}>
+      {/* UNIFIED UI BAR - NOW WITH PINNED HEADER & SCROLLING BODY */}
+      <div className={`absolute z-20 flex flex-col transition-all duration-500 ease-in-out bg-black/80 p-4 border border-zinc-700 rounded-xl text-white shadow-xl backdrop-blur-md ${getLayoutClasses(layoutMode)}`}>
         
-        <div className="flex flex-wrap gap-6 items-center">
-          <h3 className="font-bold uppercase tracking-widest text-teal-500 hidden sm:block">{title}</h3>
+        {/* PINNED HEADER SECTION */}
+        <div className="flex flex-wrap gap-4 items-center justify-between shrink-0 mb-4 pb-4 border-b border-zinc-700/50">
           
-          <div className="flex flex-1 items-center gap-2">
-             {controls}
+          <div className="flex items-center gap-4">
+            <h3 className="font-bold uppercase tracking-widest text-teal-500 hidden sm:block">{title}</h3>
+            
+            {/* Global Layout Controls */}
+            <div className="flex gap-2 bg-zinc-900/50 p-1 rounded border border-zinc-800">
+              {(['FULL', 'SPLIT_VERT', 'SPLIT_HORIZ'] as LayoutMode[]).map((mode) => (
+                <button 
+                  key={mode}
+                  onClick={() => onLayoutChange(mode)}
+                  className={`px-3 py-1 text-[10px] sm:text-xs font-bold rounded transition-colors ${layoutMode === mode ? 'bg-teal-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                >
+                  {mode.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="h-6 w-px bg-zinc-700 mx-2 hidden lg:block"></div>
-
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-sm text-zinc-400 uppercase tracking-widest text-xs font-bold">Ambience:</span>
+          <div className="flex items-center gap-4">
             <button
               onClick={onToggleEnvAudio}
               className={`p-2 rounded border transition-colors flex items-center justify-center ${
@@ -94,43 +117,27 @@ export default function SandboxShell({
             >
               {isEnvAudioMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
             </button>
-          </div>
 
-          {onPublish && (
-            <>
-              <div className="h-6 w-px bg-zinc-700 mx-2 hidden lg:block"></div>
-              <div className="flex items-center justify-end">
-                <button 
-                  onClick={onPublish} 
-                  disabled={saveStatus === 'SAVING'}
-                  className="bg-red-600 hover:bg-red-500 disabled:bg-red-800 px-4 py-1 rounded font-bold transition-colors uppercase tracking-wider text-sm"
-                >
-                  {saveStatus === 'SAVING' ? 'PUBLISHING...' : 'Publish'}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="h-px w-full bg-zinc-700"></div>
-
-        {/* Global Layout Controls */}
-        <div className="flex flex-col xl:flex-row gap-6 items-start xl:items-center">
-          <div className="flex gap-2">
-            <span className="text-xs text-zinc-400 uppercase tracking-widest self-center mr-2">Playground:</span>
-            {(['FULL', 'SPLIT_VERT', 'SPLIT_HORIZ'] as LayoutMode[]).map((mode) => (
+            {onPublish && (
               <button 
-                key={mode}
-                onClick={() => onLayoutChange(mode)}
-                className={`px-3 py-1 text-xs font-bold rounded border transition-colors ${layoutMode === mode ? 'bg-teal-600 border-teal-500 text-white' : 'border-zinc-600 hover:border-zinc-400 text-zinc-400'}`}
+                onClick={onPublish} 
+                disabled={saveStatus === 'SAVING'}
+                className="bg-red-600 hover:bg-red-500 disabled:bg-red-800 px-4 py-1.5 rounded font-bold transition-colors uppercase tracking-wider text-xs sm:text-sm"
               >
-                {mode.replace('_', ' ')}
+                {saveStatus === 'SAVING' ? 'PUBLISHING...' : 'Publish'}
               </button>
-            ))}
+            )}
           </div>
         </div>
-      </div>
 
+        {/* SCROLLABLE CONTROLS SECTION */}
+        {controls && (
+          <div className="flex-1 overflow-y-auto min-h-0 pr-2 pb-2 scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent">
+            {controls}
+          </div>
+        )}
+        
+      </div>
     </div>
   );
 }
