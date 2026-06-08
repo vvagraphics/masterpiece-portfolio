@@ -410,18 +410,18 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
 
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none mt-10">
              
-             <div className="scene-1-part1 absolute z-20 flex flex-col items-center justify-center p-1  rounded-xl opacity-0 shadow-2xl w-[90vw] md:w-auto md:h-[80vh]">
-                 <div className="flex-1 w-full min-h-0 flex items-center justify-center mb-4">
-                     <img src={`${imgBase}myspace11.jpg`} alt="Early Web Profile" className="w-full h-full object-contain rounded drop-shadow-lg" />
+             <div className="glow-container scene-1-part1 absolute z-20 flex flex-col items-center justify-center p-1  rounded-xl opacity-0 shadow-2xl w-[90vw] md:w-auto md:h-[80vh]">
+                 <div className="flex-1 w-full  min-h-0 flex items-center justify-center ">
+                     <img src={`${imgBase}myspace11.avif`} alt="Early Web Profile" className="w-full h-full object-contain rounded drop-shadow-lg" />
                  </div>
-                 <h2 className="text-blue-600 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">:::myspace</h2>
+                 <h2 className="background-text text-blue-600 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">:::myspace(html/css)</h2>
              </div>
 
              <div className="scene-1-part2 absolute z-20 flex flex-col items-center justify-center p-1  rounded-xl opacity-0 shadow-2xl w-[90vw] md:w-auto md:h-[80vh]">
                  <div className="flex-1 w-full min-h-0 flex items-center justify-center mb-4">
-                     <img src={`${imgBase}yahooaim11.jpg`} alt="Classic Chat Interface" className="w-full h-full object-contain rounded drop-shadow-lg" />
+                     <img src={`${imgBase}yahooaim11.avif`} alt="Classic Chat Interface" className="w-full h-full object-contain rounded drop-shadow-lg" />
                  </div>
-                 <h2 className="text-yellow-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">Yahoo/A.I.M Chat</h2>
+                 <h2 className="text-yellow-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">YAHOO CHAT(JAVASCRIPT)</h2>
              </div>
              
           </div>
@@ -448,17 +448,17 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none mt-10">
              
              <div className="scene-2-part1 absolute z-10 flex flex-col items-center justify-center text-white opacity-0 p-1 rounded-xl shadow-2xl w-[90vw] md:w-auto md:h-[80vh]">
-                 <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
-                     <img src={`${imgBase}ittvva11.jpg`} alt="First Website Design" className="w-full h-full object-contain  shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
+                 <div className="glow-container flex-1 w-full min-h-0 flex items-center justify-center ">
+                     <img src={`${imgBase}ittvva11.avif`} alt="First Website Design" className="w-full h-full object-contain  shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
                  </div>
-                 <h2 className="text-purple-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">VVAGRAPHICS is born</h2>
+                 <h2 className=" background-text text-purple-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">MY FIRST WEBSITE</h2>
              </div>
              
              <div className="scene-2-part2 absolute z-20 flex flex-col items-center justify-center text-white opacity-0 p-1 rounded-xl shadow-2xl border border-white/10 w-[90vw] md:w-auto md:h-[80vh]">
-                 <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
-                     <img src={`${imgBase}ittclose11.jpg`} alt="Newspaper Clipping" className="w-full h-full object-contain  shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
+                 <div className="glow-container flex-1 w-full min-h-0 flex items-center justify-center ">
+                     <img src={`${imgBase}ittclose11.avif`} alt="Newspaper Clipping" className="w-full h-full object-contain  shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
                  </div>
-                 <h2 className="text-grey-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">ITT TECH CLOSES</h2>
+                 <h2 className="background-text text-grey-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">ITT TECH CLOSES</h2>
              </div>
 
           </div>
@@ -523,17 +523,17 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none mt-10">
              
              <div className="scene-4-part1 absolute z-10 flex flex-col items-center justify-center  rounded-xl p-1 opacity-0 shadow-2xl w-[90vw] md:w-auto md:h-[80vh]">
-                 <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
-                     <img src={`${imgBase}webmaster2.jpg`} alt="Webmaster Coding" className="w-full h-full object-contain rounded-lg shadow-lg" />
+                 <div className="glow-container flex-1 w-full min-h-0 flex items-center justify-center ">
+                     <img src={`${imgBase}webmaster2.avif`} alt="Webmaster Coding" className="w-full h-full object-contain rounded-lg shadow-lg" />
                  </div>
-                 <h2 className="text-white-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">WEBMASTER</h2>
+                 <h2 className="background-text text-white-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">WEBMASTER</h2>
              </div>
              
              <div className="scene-4-part2 absolute z-20 flex flex-col items-center justify-center  rounded-xl p-1 opacity-0 shadow-2xl w-[90vw] md:w-auto md:h-[80vh]">
-                 <div className="flex-1 w-full min-h-0 flex items-center justify-center ">
-                     <img src={`${imgBase}Two_interconnected_tech_stacks2.jpg`} alt="Tech Stack Architecture" className="w-full h-full object-contain rounded-lg shadow-lg" />
+                 <div className="glow-container flex-1 w-full min-h-0 flex items-center justify-center ">
+                     <img src={`${imgBase}Two_interconnected_tech_stacks2.avif`} alt="Tech Stack Architecture" className="w-full h-full object-contain rounded-lg shadow-lg" />
                  </div>
-                 <h2 className="text-white-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">MEAN / MERN</h2>
+                 <h2 className="background-text text-white-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">MEAN/MERN STACK</h2>
              </div>
 
           </div>
