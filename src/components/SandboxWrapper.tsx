@@ -12,15 +12,17 @@ import GraffitiCanvas from '../sandboxes/GraffitiCanvas';
 import GlassWalls from '../sandboxes/GlassWalls';
 import InspirationGallery from './InspirationGallery'; 
 import TornadoTransition from './TornadoTransition'; 
+import InkWell from '../sandboxes/InkWell';
 
-type ActiveView = 'MUSEUM' | 'GRAFFITI' | 'GLASS_WALLS' | 'HOLOGRAM' | 'GACHA' | 'GALLERY';
-const SANDBOX_ORDER: ActiveView[] = ['GRAFFITI', 'GLASS_WALLS', 'HOLOGRAM', 'GACHA', 'GALLERY'];
+type ActiveView = 'MUSEUM' | 'GRAFFITI' | 'GLASS_WALLS' | 'HOLOGRAM' | 'GACHA' | 'INK_WELL' | 'GALLERY';
+const SANDBOX_ORDER: ActiveView[] = ['GRAFFITI', 'GLASS_WALLS', 'HOLOGRAM', 'GACHA', 'INK_WELL', 'GALLERY'];
 
 // Moved to top level so it can be used for both Physics Bodies AND Keyboard Accessibility Menu
 const PROJECTS = [
   { color: '#ef4444', label: 'VVA Graffiti', type: 'GRAFFITI' as ActiveView, shape: 'capsule', w: 70, h: 120, texture: '/spray_can.svg' },
   { color: '#14b8a6', label: 'Glass Structure', type: 'GLASS_WALLS' as ActiveView, shape: 'rectangle', w: 70, h: 133, texture: '/glass_pane.svg' }, 
   { color: '#3b82f6', label: 'Holograms', type: 'HOLOGRAM' as ActiveView, shape: 'rectangle', w: 100, h: 133, texture: '/hologram.svg' }, 
+  { color: '#4f46e5', label: 'Ink Fluid', type: 'INK_WELL' as ActiveView, shape: 'circle', w: 110, h: 110, texture: '/inkwell.svg' },
   { color: '#a855f7', label: 'Gacha System', type: 'GACHA' as ActiveView, shape: 'square', w: 100, h: 100, texture: '/gacha.svg' },
   { color: '#f59e0b', label: 'Community Archives', type: 'GALLERY' as ActiveView, shape: 'square', w: 150, h: 150, texture: '/archives.svg' }
 ];
@@ -402,6 +404,7 @@ export default function SandboxWrapper({
           {activeView === 'GRAFFITI' && <GraffitiCanvas isAudioEnabled={isAudioEnabled} onLayoutChange={setGraffitiLayout} />}
           {activeView === 'GLASS_WALLS' && <GlassWalls isAudioEnabled={isAudioEnabled} />}
           {activeView === 'HOLOGRAM' && <Holograms isAudioEnabled={isAudioEnabled} />}
+          {activeView === 'INK_WELL' && <InkWell isAudioEnabled={isAudioEnabled} />}
           {activeView === 'GACHA' && <Gacha isAudioEnabled={isAudioEnabled} />}
           {activeView === 'GALLERY' && (
             <div className="w-full h-full bg-black pt-24 px-8 overflow-y-auto">

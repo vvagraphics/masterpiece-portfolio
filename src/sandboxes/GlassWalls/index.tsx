@@ -37,7 +37,7 @@ const useSafeTextures = () => {
       brokenGlass: '/textures/broken.webp',
       rainGlass: '/textures/rain.webp',
       firstWebsite: '/glasswalls.jpeg',
-      bgCustom: '/textures/bg_custom.webp' // Make sure you add this file to your public folder!
+      bgCustom: '/textures/bg_custom.webp' 
     };
     
     const loaded: Record<string, THREE.Texture | null> = {};
@@ -233,13 +233,12 @@ function SceneManager({ controls, isAudioEnabled, layoutMode }: any) {
 
   return (
     <>
-      {/* Invisible lighting calculations for reflections */}
       <Environment preset={controls.environment || 'city'} background={false} />
 
-      {/* Background handling */}
+      {/* Increased planeGeometry args to [45, 30] to fill entire camera view, removing top/bottom black borders */}
       {layoutMode === 'FULL' && textures.firstWebsite && (
         <mesh position={[0, 0, -10]}>
-          <planeGeometry args={[26, 16]} /> 
+          <planeGeometry args={[45, 30]} /> 
           <meshBasicMaterial map={textures.firstWebsite} toneMapped={false} />
         </mesh>
       )}
@@ -248,15 +247,13 @@ function SceneManager({ controls, isAudioEnabled, layoutMode }: any) {
 
       {layoutMode !== 'FULL' && controls.background === 'Custom Image' && textures.bgCustom && (
         <mesh position={[0, 0, -10]}>
-          <planeGeometry args={[30, 20]} />
-          {/* Opacity lowered slightly so it doesn't overpower the glass */}
+          <planeGeometry args={[45, 30]} />
           <meshBasicMaterial map={textures.bgCustom} toneMapped={false} opacity={0.5} transparent />
         </mesh>
       )}
 
-      {/* When Minimal Dark is selected, nothing is rendered in the background, leaving the pure canvas color */}
-
-      <Center>
+      {/* Shift Center UP by 2.5 on the Y-Axis during FULL layout so text doesn't hide behind controls */}
+      <Center position={[0, layoutMode === 'FULL' ? 2.5 : 0, 0]}>
         {lines.map((line: string, rowIndex: number) => {
           const chars = line.split('').filter(c => c !== ' ');
           return chars.map((char: string, colIndex: number) => (
