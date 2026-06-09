@@ -61,7 +61,7 @@ function HolographicText({ text, color, style, glitch, rotationSpeed, isAudioEna
   const isWireframe = style === 'Wireframe Mesh';
   const opacityBase = style === 'Ghostly' ? 0.4 : 0.9;
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!groupRef.current || !textRef.current) return;
 
     // Base Rotation
