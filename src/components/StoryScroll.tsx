@@ -447,16 +447,16 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
 
           <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none mt-10">
              
-             <div className="scene-2-part1 absolute z-10 flex flex-col items-center justify-center text-white opacity-0 p-1 rounded-xl shadow-2xl w-[90vw] md:w-auto md:h-[80vh]">
+             <div className="scene-2-part1 absolute z-10 flex flex-col items-center justify-center text-white opacity-0 p-1 rounded-xl  w-[90vw] md:w-auto md:h-[80vh]">
                  <div className="glow-container flex-1 w-full min-h-0 flex items-center justify-center ">
-                     <img src={`${imgBase}ittvva11.avif`} alt="First Website Design" className="w-full h-full object-contain  shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
+                     <img src={`${imgBase}ittvva11.avif`} alt="First Website Design" className="w-full h-full object-contain" />
                  </div>
                  <h2 className=" background-text text-purple-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">MY FIRST WEBSITE</h2>
              </div>
              
-             <div className="scene-2-part2 absolute z-20 flex flex-col items-center justify-center text-white opacity-0 p-1 rounded-xl shadow-2xl border border-white/10 w-[90vw] md:w-auto md:h-[80vh]">
+             <div className="scene-2-part2 absolute z-20 flex flex-col items-center justify-center text-white opacity-0 p-1 rounded-xl  w-[90vw] md:w-auto md:h-[80vh]">
                  <div className="glow-container flex-1 w-full min-h-0 flex items-center justify-center ">
-                     <img src={`${imgBase}ittclose11.avif`} alt="Newspaper Clipping" className="w-full h-full object-contain  shadow-[0_0_30px_rgba(153,27,27,0.5)]" />
+                     <img src={`${imgBase}ittclose11.avif`} alt="Newspaper Clipping" className="w-full h-full object-contain" />
                  </div>
                  <h2 className="background-text text-grey-400 text-2xl sm:text-3xl md:text-5xl 2xl:text-6xl font-mono mt-6 sm:mt-2 md:mt-8 font-bold tracking-wider text-center drop-shadow-md">ITT TECH CLOSES</h2>
              </div>

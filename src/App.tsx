@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Lenis from '@studio-freight/lenis';
 import { Howl, Howler } from 'howler';
+import { AnimatePresence, motion } from 'framer-motion'; // Added Framer Motion imports
 import WaterPreloader from './components/WaterPreloader';
 import StoryScroll from './components/StoryScroll';
 import SandboxWrapper from './components/SandboxWrapper';
@@ -21,7 +22,6 @@ function App() {
       src: ['audio/Midnight_Moonlight_(Remastered)_v7.mp3'],
       loop: true,
       volume: 0,
-      // html5: true,
       onplayerror: function() {
         ambientAudioRef.current?.once('unlock', function() {
           ambientAudioRef.current?.play();
@@ -38,32 +38,29 @@ function App() {
   }, []);
 
   // story section
-
   useEffect(() => {
-  if (!ambientAudioRef.current) return;
+    if (!ambientAudioRef.current) return;
 
-  if (currentPhase === 'STORY' && isAudioUnlocked) {
-    // Force resume the context whenever we enter the Story phase
-    if (Howler.ctx && Howler.ctx.state === 'suspended') {
-      Howler.ctx.resume().then(() => {
-        if (!ambientAudioRef.current?.playing()) {
-          ambientAudioRef.current?.play();
-          ambientAudioRef.current?.fade(0, 0.3, 2000);
-        }
-      });
-    } else if (!ambientAudioRef.current.playing()) {
-      ambientAudioRef.current.play();
-      ambientAudioRef.current.fade(0, 0.3, 2000);
+    if (currentPhase === 'STORY' && isAudioUnlocked) {
+      if (Howler.ctx && Howler.ctx.state === 'suspended') {
+        Howler.ctx.resume().then(() => {
+          if (!ambientAudioRef.current?.playing()) {
+            ambientAudioRef.current?.play();
+            ambientAudioRef.current?.fade(0, 0.3, 2000);
+          }
+        });
+      } else if (!ambientAudioRef.current.playing()) {
+        ambientAudioRef.current.play();
+        ambientAudioRef.current.fade(0, 0.3, 2000);
+      }
     }
-  }
-}, [currentPhase, isAudioUnlocked]);
+  }, [currentPhase, isAudioUnlocked]);
 
-// home section
+  // home section
   useEffect(() => {
     if (!ambientAudioRef.current) return;
 
     if (currentPhase !== 'PRELOADER' && isAudioUnlocked) {
-      // POLISH: Ensure the Web Audio API context is awake before playing
       if (Howler.ctx && Howler.ctx.state === 'suspended') {
         Howler.ctx.resume().then(() => {
           if (!ambientAudioRef.current?.playing()) {
@@ -105,28 +102,37 @@ function App() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-black text-white overflow-x-hidden">
+    <div className="w-full min-h-screen bg-black text-white overflow-x-hidden relative">
       <CustomCursor />
       
-      {currentPhase === 'PRELOADER' && (
-        <WaterPreloader onSplashComplete={handleSplashComplete} />
-      )}
+      {/* Wrapped state shifts in AnimatePresence for clean structural transitions if needed later */}
+      <AnimatePresence mode="wait">
+        {currentPhase === 'PRELOADER' && (
+          <motion.div key="preloader" exit={{ opacity: 0 }}>
+            <WaterPreloader onSplashComplete={handleSplashComplete} />
+          </motion.div>
+        )}
 
-      {currentPhase === 'STORY' && (
-        <StoryScroll 
-          onStoryComplete={() => setCurrentPhase('PLAYGROUND')} 
-          isAudioEnabled={isAudioUnlocked}
-          toggleAudio={() => setIsAudioUnlocked(!isAudioUnlocked)}
-        />
-      )}
+        {currentPhase === 'STORY' && (
+          <motion.div key="story" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <StoryScroll 
+              onStoryComplete={() => setCurrentPhase('PLAYGROUND')} 
+              isAudioEnabled={isAudioUnlocked}
+              toggleAudio={() => setIsAudioUnlocked(!isAudioUnlocked)}
+            />
+          </motion.div>
+        )}
 
-      {currentPhase === 'PLAYGROUND' && (
-        <SandboxWrapper 
-          isAudioEnabled={isAudioUnlocked} 
-          toggleAudio={() => setIsAudioUnlocked(!isAudioUnlocked)}
-          ambientAudioRef={ambientAudioRef} 
-        />
-      )}
+        {currentPhase === 'PLAYGROUND' && (
+          <motion.div key="playground" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <SandboxWrapper 
+              isAudioEnabled={isAudioUnlocked} 
+              toggleAudio={() => setIsAudioUnlocked(!isAudioUnlocked)}
+              ambientAudioRef={ambientAudioRef} 
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {currentPhase === 'STORY' && (
         <div className="fixed bottom-6 right-6 z-50">
