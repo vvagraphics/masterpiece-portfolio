@@ -287,31 +287,31 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
   // Keeps your scroll position saved when you refresh the page!
   // ==========================================
   
-  useEffect(() => {
-    const savedScroll = sessionStorage.getItem("dev-scroll-pos");
-    if (savedScroll) {
-      setTimeout(() => window.scrollTo(0, parseInt(savedScroll)), 100);
-    }
-    const handleScroll = () => {
-      sessionStorage.setItem("dev-scroll-pos", window.scrollY.toString());
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  // useEffect(() => {
+  //   const savedScroll = sessionStorage.getItem("dev-scroll-pos");
+  //   if (savedScroll) {
+  //     setTimeout(() => window.scrollTo(0, parseInt(savedScroll)), 100);
+  //   }
+  //   const handleScroll = () => {
+  //     sessionStorage.setItem("dev-scroll-pos", window.scrollY.toString());
+  //   };
+  //   window.addEventListener("scroll", handleScroll);
+  //   return () => window.removeEventListener("scroll", handleScroll);
+  // }, []);
 
   // ==========================================
   // DEV TOOL JUMP FUNCTION (Commented out for Production)
   // ==========================================
   
-  const handleJump = (label: string) => {
-    const tl = gsap.getById("storyTimeline") as gsap.core.Timeline;
-    if (tl && tl.scrollTrigger) {
-      const st = tl.scrollTrigger;
-      const labelTime = tl.labels[label];
-      const scrollPos = st.start + (labelTime / tl.duration()) * (st.end - st.start);
-      window.scrollTo({ top: scrollPos, behavior: 'smooth' });
-    }
-  };
+  // const handleJump = (label: string) => {
+  //   const tl = gsap.getById("storyTimeline") as gsap.core.Timeline;
+  //   if (tl && tl.scrollTrigger) {
+  //     const st = tl.scrollTrigger;
+  //     const labelTime = tl.labels[label];
+  //     const scrollPos = st.start + (labelTime / tl.duration()) * (st.end - st.start);
+  //     window.scrollTo({ top: scrollPos, behavior: 'smooth' });
+  //   }
+  // };
 
   // ==========================================
   // AUTOSCROLL LISTENER
@@ -354,14 +354,14 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
       <WarpBackground />
 
       {/* DEV TOOLS JUMP MENU - Commented out for Production */}
-      <div className="fixed bottom-4 left-4 z-[9999] flex flex-col gap-1 bg-black/80 p-2 rounded-lg border border-white/20 shadow-2xl ">
+      {/* <div className="fixed bottom-4 left-4 z-[9999] flex flex-col gap-1 bg-black/80 p-2 rounded-lg border border-white/20 shadow-2xl ">
         <span className="text-[10px] text-gray-400 font-mono text-center uppercase tracking-widest mb-1 border-b border-white/20 pb-1">Dev Jump</span>
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp2'); }} className="text-xs text-white p-1 hover:bg-blue-600 rounded">Scene 1 (Bedroom)</button>
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp3'); }} className="text-xs text-white p-1 hover:bg-red-600 rounded">Scene 2 (ITT)</button>
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp4'); }} className="text-xs text-white p-1 hover:bg-blue-400 rounded">Scene 3 (UX/UI)</button>
         <button onClick={(e) => { e.stopPropagation(); handleJump('warp5'); }} className="text-xs text-white p-1 hover:bg-teal-600 rounded">Scene 4 (PC Prof)</button>
         <button onClick={(e) => { e.stopPropagation(); handleJump('hideAgents'); }} className="text-xs text-white p-1 hover:bg-purple-600 rounded">Scene 5 (Future)</button>
-      </div>
+      </div> */}
 
       {/* CONTROLS MENU */}
       <div className="fixed top-4 right-4 md:top-8 md:right-8 z-[100] flex gap-2 md:gap-4">
