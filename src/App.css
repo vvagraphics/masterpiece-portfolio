@@ -298,3 +298,10 @@ body {
     opacity: 0;
   }
 }
+.tiny-question {
+  font-size: 14px; /* Keeps it very small */
+  letter-spacing: 2px; /* Adds a nice cinematic spread to the small text */
+  margin-bottom: 8px; /* A tiny gap between the question and the big text */
+  opacity: 0.7; /* Fades it slightly so the main statement pops more */
+  text-transform: lowercase;
+}

@@ -393,8 +393,8 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         {/* ================= ERA 1 FLYBYS ================= */}
         <FlybyItem eraClass="era-1-flyby" z={3500} xOffset={-25} yOffset={-18} rotate={-15} label="Motorola Razr" imageUrl={`${imgBase}razr_v3_spinning.jpg`}/>
         <FlybyItem eraClass="era-1-flyby" z={2500} xOffset={25} yOffset={18} rotate={10} label="iPod Classic" imageUrl={`${imgBase}ipod_classic_clickwheel.jpg`} />
-        <FlybyItem eraClass="era-1-flyby" z={1500} xOffset={-20} yOffset={20} rotate={-5} label="Top 8 Profile"imageUrl={`${imgBase}top8_grid.jpg`} />
-        <FlybyItem eraClass="era-1-flyby" z={500} xOffset={25} yOffset={-18} rotate={15} label="Wii Remote" imageUrl={`${imgBase}wii_remote.jpg`}/>
+        <FlybyItem eraClass="era-1-flyby" z={1500} xOffset={-20} yOffset={20} rotate={-5} label="Myspace"imageUrl={`${imgBase}top8_grid.jpg`} />
+        <FlybyItem eraClass="era-1-flyby" z={500} xOffset={25} yOffset={-18} rotate={15} label="Wii" imageUrl={`${imgBase}wii_remote.jpg`}/>
 
         {/* ================= SCENE 1: BEDROOM ================= */}
         <div className="scene-1-wrapper absolute inset-0 w-full h-full opacity-0 overflow-hidden" style={{ transform: "translateZ(0px)" }}>
@@ -428,10 +428,10 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         </div>
 
         {/* ================= ERA 2 FLYBYS ================= */}
-        <FlybyItem eraClass="era-2-flyby" z={-500} xOffset={25} yOffset={-18} rotate={15} label="Polaroid Icon" imageUrl={`${imgBase}polaroid_icon.jpg`} />
-        <FlybyItem eraClass="era-2-flyby" z={-1500} xOffset={-25} yOffset={15} rotate={-20} label="Glowing Bitcoin" imageUrl={`${imgBase}glowing_bitcoin.jpg`}/>
-        <FlybyItem eraClass="era-2-flyby" z={-2500} xOffset={25} yOffset={20} rotate={5} label="Diamond Pickaxe" imageUrl={`${imgBase}minecraft_pickaxe.jpg`}/>
-        <FlybyItem eraClass="era-2-flyby" z={-3500} xOffset={-25} yOffset={-20} rotate={-10} label="Pokéball" imageUrl={`${imgBase}pokeball.jpg`}/>
+        <FlybyItem eraClass="era-2-flyby" z={-500} xOffset={25} yOffset={-18} rotate={15} label="Instagram" imageUrl={`${imgBase}polaroid_icon.jpg`} />
+        <FlybyItem eraClass="era-2-flyby" z={-1500} xOffset={-25} yOffset={15} rotate={-20} label="Bitcoin" imageUrl={`${imgBase}glowing_bitcoin.jpg`}/>
+        <FlybyItem eraClass="era-2-flyby" z={-2500} xOffset={25} yOffset={20} rotate={5} label="Minecraft" imageUrl={`${imgBase}minecraft_pickaxe.jpg`}/>
+        <FlybyItem eraClass="era-2-flyby" z={-3500} xOffset={-25} yOffset={-20} rotate={-10} label="Pokémon" imageUrl={`${imgBase}pokeball.jpg`}/>
 
         {/* ================= SCENE 2: ITT TECH ================= */}
         <div className="scene-2-wrapper absolute inset-0 w-full h-full opacity-0 overflow-hidden" style={{ transform: "translateZ(-4000px)" }}>
@@ -465,10 +465,10 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         </div>
 
         {/* ================= ERA 3 FLYBYS ================= */}
-        <FlybyItem eraClass="era-3-flyby" z={-4500} xOffset={-25} yOffset={18} rotate={-15} label="Figma Pen" imageUrl={`${imgBase}figma_pen_tool.jpg`}/>
+        <FlybyItem eraClass="era-3-flyby" z={-4500} xOffset={-25} yOffset={18} rotate={-15} label="Figma" imageUrl={`${imgBase}figma_pen_tool.jpg`}/>
         <FlybyItem eraClass="era-3-flyby" z={-5500} xOffset={25} yOffset={-18} rotate={10} label="OG AirPods" imageUrl={`${imgBase}original_airpods.jpg`}/>
-        <FlybyItem eraClass="era-3-flyby" z={-6500} xOffset={-25} yOffset={-15} rotate={-5} label="Glitch Logo" imageUrl={`${imgBase}tiktok_glitch_logo.jpg`}/>
-        <FlybyItem eraClass="era-3-flyby" z={-7500} xOffset={25} yOffset={20} rotate={25} label="Llama Piñata" imageUrl={`${imgBase}fortnite_llama.jpg`}/>
+        <FlybyItem eraClass="era-3-flyby" z={-6500} xOffset={-25} yOffset={-15} rotate={-5} label="TikTok" imageUrl={`${imgBase}tiktok_glitch_logo.jpg`}/>
+        <FlybyItem eraClass="era-3-flyby" z={-7500} xOffset={25} yOffset={20} rotate={25} label="Fortnite" imageUrl={`${imgBase}fortnite_llama.jpg`}/>
 
         {/* ================= SCENE 3: GOOGLE UI/UX (SLIDES IN) ================= */}
         <div className="scene-3-wrapper absolute inset-0 w-full h-full opacity-0 overflow-hidden" style={{ transform: "translateZ(-8000px)", willChange: "opacity, transform" }}>
@@ -502,9 +502,9 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
         </div>
 
         {/* ================= ERA 4 FLYBYS ================= */}
-        <FlybyItem eraClass="era-4-flyby" z={-8500} xOffset={25} yOffset={-20} rotate={5} label="Zoom Webcams" imageUrl={`${imgBase}zoom_webcams_grid.jpg`}/>
-        <FlybyItem eraClass="era-4-flyby" z={-9500} xOffset={-25} yOffset={18} rotate={-10} label="Masks & Space" imageUrl={`${imgBase}masks_distancing.jpg`}/>
-        <FlybyItem eraClass="era-4-flyby" z={-10500} xOffset={25} yOffset={20} rotate={15} label="Bored Ape NFT" imageUrl={`${imgBase}bored_ape_nft.jpg`}/>
+        <FlybyItem eraClass="era-4-flyby" z={-8500} xOffset={25} yOffset={-20} rotate={5} label="Zoom" imageUrl={`${imgBase}zoom_webcams_grid.jpg`}/>
+        <FlybyItem eraClass="era-4-flyby" z={-9500} xOffset={-25} yOffset={18} rotate={-10} label="COVID-19" imageUrl={`${imgBase}masks_distancing.jpg`}/>
+        <FlybyItem eraClass="era-4-flyby" z={-10500} xOffset={25} yOffset={20} rotate={15} label="NFTs" imageUrl={`${imgBase}bored_ape_nft.jpg`}/>
         <FlybyItem eraClass="era-4-flyby" z={-11500} xOffset={-25} yOffset={-18} rotate={-20} label="James Webb" imageUrl={`${imgBase}james_webb_mirror.jpg`}/>
 
         {/* ================= SCENE 4: PC PROFESSOR ================= */}
@@ -642,17 +642,25 @@ export default function StoryScroll({ onStoryComplete, isAudioEnabled, toggleAud
                 </div>
 
                 <div 
-                    className="relative z-20 flex flex-col items-center p-6 md:p-14 bg-black/70 rounded-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.9)] w-[90%] md:w-auto"
-                    onMouseEnter={() => setHoveredFuture(null)}
-                >
-                    <h3 className="text-gray-300 text-xs sm:text-sm md:text-xl 2xl:text-3xl uppercase tracking-[0.3em] md:tracking-[0.6em] mb-6 md:mb-12 font-light text-center drop-shadow-md">The Choice is Ours</h3>
-                    <button 
-                      onClick={onStoryComplete} 
-                      className="px-6 md:px-14 py-3 md:py-6 bg-white text-black font-black text-sm md:text-2xl 2xl:text-4xl uppercase tracking-[0.1em] md:tracking-[0.3em] hover:bg-purple-600 hover:text-white hover:scale-105 transition-all duration-300 rounded-sm pointer-events-auto shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.8)] whitespace-nowrap focus:outline-none focus:ring-4 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-black"
-                    >
-                        Enter the Museum
-                    </button>
-                </div>
+    className="relative z-20 flex flex-col items-center p-6 md:p-14 bg-black/70 rounded-2xl border border-white/10 shadow-[0_0_80px_rgba(0,0,0,0.9)] w-[90%] md:w-auto"
+    onMouseEnter={() => setHoveredFuture(null)}
+>
+    {/* Small context question added here */}
+    <h4 className="text-gray-400 text-[10px] md:text-xs uppercase tracking-widest mb-2 font-light opacity-70 text-center">
+        What is our future with AI?
+    </h4>
+    
+    <h3 className="text-gray-300 text-xs sm:text-sm md:text-xl 2xl:text-3xl uppercase tracking-[0.3em] md:tracking-[0.6em] mb-6 md:mb-12 font-light text-center drop-shadow-md">
+        The Choice is Ours
+    </h3>
+    
+    <button 
+      onClick={onStoryComplete} 
+      className="px-6 md:px-14 py-3 md:py-6 bg-white text-black font-black text-sm md:text-2xl 2xl:text-4xl uppercase tracking-[0.1em] md:tracking-[0.3em] hover:bg-purple-600 hover:text-white hover:scale-105 transition-all duration-300 rounded-sm pointer-events-auto shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:shadow-[0_0_50px_rgba(168,85,247,0.8)] whitespace-nowrap focus:outline-none focus:ring-4 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-black"
+    >
+        Enter the Museum
+    </button>
+</div>
             </div>
           </div>
         </div>
