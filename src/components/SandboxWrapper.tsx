@@ -437,7 +437,7 @@ export default function SandboxWrapper({
     href="http://mr3anderson.pro" 
     target="_blank" 
     rel="noopener noreferrer"
-    className="group relative inline-flex items-center gap-2 px-6 py-3 rounded-full font-mono font-bold text-xs uppercase tracking-widest overflow-hidden transition-all duration-500 border border-emerald-500/30 bg-black/60 backdrop-blur-md text-emerald-400 animate-[pulse_3s_infinite] shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:scale-105 hover:bg-emerald-500 hover:text-black hover:animate-none hover:shadow-[0_0_25px_rgba(16,185,129,0.5)]"
+    className="group relative inline-flex items-center gap-2 px-6 py-2 rounded-full font-mono font-bold text-md uppercase tracking-widest overflow-hidden transition-all duration-500 border border-emerald-500/30 bg-black/60 backdrop-blur-md text-emerald-400 animate-[pulse_3s_infinite] shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:scale-105 hover:bg-emerald-500 hover:text-black hover:animate-none hover:shadow-[0_0_25px_rgba(16,185,129,0.5)]"
   >
     {/* Shimmer Effect */}
     <div className="absolute inset-0 -translate-x-full animate-[shimmer_4s_infinite] bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent"></div>
@@ -445,7 +445,7 @@ export default function SandboxWrapper({
     {/* Text Layer */}
     <span className="relative z-10 flex items-center gap-2">
       View My Dev Projects
-      <ExternalLink size={14} />
+      <ExternalLink size={44} />
     </span>
   </a>
 </div>
